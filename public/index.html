@@ -3,7 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
   <title>Inside Deep's World</title>
 
   <style>
@@ -220,12 +219,10 @@
       margin-top: 12px;
     }
 
-    /* CONTENT PAGE */
+    /* CONTENT */
 
     .content-page {
       display: none;
-      max-width: 850px;
-      margin: 0 auto;
       animation: fadeIn 0.35s ease;
     }
 
@@ -243,10 +240,6 @@
         opacity: 1;
         transform: translateY(0);
       }
-    }
-
-    .content-header {
-      margin-bottom: 28px;
     }
 
     .back-button {
@@ -273,6 +266,7 @@
     .content-header p {
       color: #777;
       line-height: 1.7;
+      margin-bottom: 28px;
     }
 
     .content-box {
@@ -293,10 +287,6 @@
       margin-bottom: 22px;
     }
 
-    .content-box p:last-child {
-      margin-bottom: 0;
-    }
-
     .friend {
       margin-top: 34px;
       padding-top: 30px;
@@ -306,19 +296,11 @@
     .friend h3 {
       font-size: 26px;
       margin-bottom: 14px;
-      color: white;
-    }
-
-    .quote {
-      border-left: 2px solid #555;
-      padding-left: 18px;
-      color: #999 !important;
-      font-style: italic;
     }
 
     .coming-soon {
       text-align: center;
-      padding: 70px 20px;
+      padding: 60px 20px;
       color: #777;
     }
 
@@ -367,6 +349,7 @@
         </p>
 
       </div>
+
 
       <div class="sections">
 
@@ -459,18 +442,18 @@
     </div>
 
 
-    <!-- CONTENT -->
+    <!-- CONTENT PAGE -->
 
     <div id="contentPage" class="content-page">
 
-      <div class="content-header">
+      <button
+        class="back-button"
+        onclick="goHome()"
+      >
+        ← Back
+      </button>
 
-        <button
-          class="back-button"
-          onclick="goHome()"
-        >
-          ← Back
-        </button>
+      <div class="content-header">
 
         <h2 id="contentTitle"></h2>
 
@@ -495,7 +478,10 @@
         Unlock
       </h2>
 
-      <div class="hint" id="hint"></div>
+      <div
+        class="hint"
+        id="hint"
+      ></div>
 
       <input
         type="password"
@@ -535,20 +521,15 @@
 
     const hints = {
 
-      people:
-        "A date that matters.",
+      people: "A date that matters.",
 
-      memories:
-        "A private phrase.",
+      memories: "A private phrase.",
 
-      music:
-        "One word. You know the vibe.",
+      music: "One word. You know the vibe.",
 
-      socials:
-        "A phrase tied to the account.",
+      socials: "A phrase tied to the account.",
 
-      random:
-        "A word from the Deep lore."
+      random: "A word from the Deep lore."
 
     };
 
@@ -581,11 +562,11 @@
 
               <p>
                 Sharik is my OG friend. I always felt like he was that one
-                online friend who was genuinely great to have around.
-                We’d always be fucking around, talking shit, and having fun.
+                online friend who was genuinely great to have around. We’d
+                always be fucking around, talking shit, and having fun.
                 I don’t think I could ever be sad while talking to him.
-                He was, and honestly still is, fucking funny.
-                Sharik is an OG, and that’s just it.
+                He was, and honestly still is, fucking funny. Sharik is
+                an OG, and that’s just it.
               </p>
 
             </div>
@@ -619,16 +600,16 @@
                 Diksha too. Me and her actually started off with us arguing
                 a lot. But slowly, things started getting better. Eventually,
                 we just became friends online, and she turned out to be a
-                pretty good friend. She’s funny, easy to talk to, and honestly
-                just a good person to have around.
+                pretty good friend. She’s funny, easy to talk to, and
+                honestly just a good person to have around.
               </p>
 
               <p>
                 And before anyone gets the wrong idea, no, I wasn’t in love
-                with her. I could never be in love with her. We literally end
-                up fighting every time. She’s just not my type, and honestly,
-                I feel like we’d always end up arguing anyway. That’s just
-                how we are.
+                with her. I could never be in love with her. We literally
+                end up fighting every time. She’s just not my type, and
+                honestly, I feel like we’d always end up arguing anyway.
+                That’s just how we are.
               </p>
 
             </div>
@@ -652,10 +633,10 @@
               </p>
 
               <p>
-                Right now, while I’m writing this about you,
-                “The Night We Met” is playing in front of me. I actually
-                like the timing of that. And honestly, I’m kind of crying
-                on the inside while writing this.
+                Right now, while I’m writing this about you, “The Night We
+                Met” is playing in front of me. I actually like the timing
+                of that. And honestly, I’m kind of crying on the inside
+                while writing this.
               </p>
 
             </div>
@@ -689,15 +670,11 @@
         subtitle: "Moments worth keeping.",
 
         html: `
-
           <div class="content-box">
-
             <div class="coming-soon">
               Memories coming soon.
             </div>
-
           </div>
-
         `
 
       },
@@ -710,15 +687,11 @@
         subtitle: "The soundtrack.",
 
         html: `
-
           <div class="content-box">
-
             <div class="coming-soon">
               Music coming soon.
             </div>
-
           </div>
-
         `
 
       },
@@ -731,15 +704,11 @@
         subtitle: "Find me online.",
 
         html: `
-
           <div class="content-box">
-
             <div class="coming-soon">
               Socials coming soon.
             </div>
-
           </div>
-
         `
 
       },
@@ -752,15 +721,11 @@
         subtitle: "Deep lore & random nonsense.",
 
         html: `
-
           <div class="content-box">
-
             <div class="coming-soon">
               Random shit coming soon.
             </div>
-
           </div>
-
         `
 
       }
@@ -784,9 +749,7 @@
       document.getElementById("modal").classList.add("show");
 
       setTimeout(() => {
-
         document.getElementById("password").focus();
-
       }, 100);
 
     }
@@ -828,6 +791,10 @@
 
       try {
 
+        const sectionBeingUnlocked =
+          currentSection;
+
+
         const response = await fetch(
           "/api/check-password",
           {
@@ -839,7 +806,7 @@
 
             body: JSON.stringify({
 
-              section: currentSection,
+              section: sectionBeingUnlocked,
 
               password: password
 
@@ -863,9 +830,14 @@
         }
 
 
+        /* IMPORTANT:
+           Save section BEFORE closeModal()
+           because closeModal() sets currentSection = null.
+        */
+
         closeModal();
 
-        showSection(currentSection);
+        showSection(sectionBeingUnlocked);
 
       }
 
@@ -884,6 +856,13 @@
 
       const data =
         sectionContent[section];
+
+
+      if (!data) {
+
+        return;
+
+      }
 
 
       document.getElementById("home")
