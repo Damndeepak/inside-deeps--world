@@ -2,7 +2,10 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
-    if (url.pathname === "/api/check-password" && request.method === "POST") {
+    if (
+      url.pathname === "/api/check-password" &&
+      request.method === "POST"
+    ) {
       try {
         const { section, password } = await request.json();
 
@@ -14,27 +17,24 @@ export default {
           random: env.RANDOM_PASSWORD
         };
 
-        const correctPassword = passwords[section];
+        if (!passwords[section]) {
+          return Response.json(
+            { success: false },
+            { status: 400 }
+          );
+        }
 
-        if (!correctPassword || password !== correctPassword) {
+        if (password !== passwords[section]) {
           return Response.json(
             { success: false },
             { status: 401 }
           );
         }
 
-        const city = request.cf?.city || "Unknown";
-        const country = request.cf?.country || "Unknown";
-        const timestamp = new Date().toISOString();
+        return Response.json({
+          success: true
+        });
 
-        await env.LOGS_DB.prepare(
-          `INSERT INTO access_logs (section, city, country, timestamp)
-           VALUES (?, ?, ?, ?)`
-        )
-          .bind(section, city, country, timestamp)
-          .run();
-
-        return Response.json({ success: true });
       } catch (error) {
         return Response.json(
           { success: false },
