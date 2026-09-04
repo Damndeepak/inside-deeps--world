@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <title>Inside Deep's World</title>
 
   <style>
@@ -89,11 +90,6 @@
     .section-card:hover {
       transform: translateY(-6px);
       border-color: #444;
-      background: linear-gradient(
-        145deg,
-        rgba(38, 38, 38, 0.98),
-        rgba(15, 15, 15, 0.98)
-      );
       box-shadow: 0 18px 45px rgba(0,0,0,0.35);
     }
 
@@ -141,7 +137,7 @@
       grid-column: span 2;
     }
 
-    /* password modal */
+    /* PASSWORD MODAL */
 
     .modal {
       display: none;
@@ -224,6 +220,108 @@
       margin-top: 12px;
     }
 
+    /* CONTENT PAGE */
+
+    .content-page {
+      display: none;
+      max-width: 850px;
+      margin: 0 auto;
+      animation: fadeIn 0.35s ease;
+    }
+
+    .content-page.show {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .content-header {
+      margin-bottom: 28px;
+    }
+
+    .back-button {
+      border: 1px solid #292929;
+      background: #111;
+      color: #aaa;
+      padding: 10px 16px;
+      border-radius: 12px;
+      cursor: pointer;
+      margin-bottom: 25px;
+    }
+
+    .back-button:hover {
+      color: white;
+      border-color: #444;
+    }
+
+    .content-header h2 {
+      font-size: clamp(34px, 7vw, 58px);
+      letter-spacing: -2px;
+      margin-bottom: 10px;
+    }
+
+    .content-header p {
+      color: #777;
+      line-height: 1.7;
+    }
+
+    .content-box {
+      background: linear-gradient(
+        145deg,
+        rgba(27,27,27,0.96),
+        rgba(11,11,11,0.96)
+      );
+      border: 1px solid #292929;
+      border-radius: 24px;
+      padding: clamp(22px, 5vw, 38px);
+    }
+
+    .content-box p {
+      color: #b7b7b7;
+      font-size: 15px;
+      line-height: 1.85;
+      margin-bottom: 22px;
+    }
+
+    .content-box p:last-child {
+      margin-bottom: 0;
+    }
+
+    .friend {
+      margin-top: 34px;
+      padding-top: 30px;
+      border-top: 1px solid #252525;
+    }
+
+    .friend h3 {
+      font-size: 26px;
+      margin-bottom: 14px;
+      color: white;
+    }
+
+    .quote {
+      border-left: 2px solid #555;
+      padding-left: 18px;
+      color: #999 !important;
+      font-style: italic;
+    }
+
+    .coming-soon {
+      text-align: center;
+      padding: 70px 20px;
+      color: #777;
+    }
+
     @media (max-width: 650px) {
       body {
         padding: 30px 15px;
@@ -252,66 +350,138 @@
 
   <div class="container">
 
-    <div class="hero">
-      <h1>Inside Deep's World</h1>
+    <!-- HOME -->
 
-      <p>
-        Every section has its own password and its own hint.
-      </p>
+    <div id="home">
 
-      <p class="small-text">
-        You’ll need the right password to unlock each section.
-      </p>
+      <div class="hero">
+
+        <h1>Inside Deep's World</h1>
+
+        <p>
+          Every section has its own password and its own hint.
+        </p>
+
+        <p class="small-text">
+          You’ll need the right password to unlock each section.
+        </p>
+
+      </div>
+
+      <div class="sections">
+
+        <div
+          class="section-card"
+          onclick="openSection('people', 'Ppl I fw ❤️')"
+        >
+          <div class="section-number">01</div>
+
+          <div class="section-title">
+            Ppl I fw ❤️
+          </div>
+
+          <div class="section-bottom">
+            <span>People who matter</span>
+            <span class="arrow">↗</span>
+          </div>
+        </div>
+
+
+        <div
+          class="section-card"
+          onclick="openSection('memories', 'Memories')"
+        >
+          <div class="section-number">02</div>
+
+          <div class="section-title">
+            Memories
+          </div>
+
+          <div class="section-bottom">
+            <span>Moments worth keeping</span>
+            <span class="arrow">↗</span>
+          </div>
+        </div>
+
+
+        <div
+          class="section-card"
+          onclick="openSection('music', 'Music')"
+        >
+          <div class="section-number">03</div>
+
+          <div class="section-title">
+            Music
+          </div>
+
+          <div class="section-bottom">
+            <span>The soundtrack</span>
+            <span class="arrow">↗</span>
+          </div>
+        </div>
+
+
+        <div
+          class="section-card"
+          onclick="openSection('socials', 'Socials')"
+        >
+          <div class="section-number">04</div>
+
+          <div class="section-title">
+            Socials
+          </div>
+
+          <div class="section-bottom">
+            <span>Find me online</span>
+            <span class="arrow">↗</span>
+          </div>
+        </div>
+
+
+        <div
+          class="section-card wide"
+          onclick="openSection('random', 'Random Shit')"
+        >
+          <div class="section-number">05</div>
+
+          <div class="section-title">
+            Random Shit
+          </div>
+
+          <div class="section-bottom">
+            <span>Deep lore & random nonsense</span>
+            <span class="arrow">↗</span>
+          </div>
+        </div>
+
+      </div>
+
     </div>
 
-    <div class="sections">
 
-      <div class="section-card" onclick="openSection('people', 'Ppl I fw ❤️')">
-        <div class="section-number">01</div>
-        <div class="section-title">Ppl I fw ❤️</div>
-        <div class="section-bottom">
-          <span>People who matter</span>
-          <span class="arrow">↗</span>
-        </div>
+    <!-- CONTENT -->
+
+    <div id="contentPage" class="content-page">
+
+      <div class="content-header">
+
+        <button
+          class="back-button"
+          onclick="goHome()"
+        >
+          ← Back
+        </button>
+
+        <h2 id="contentTitle"></h2>
+
+        <p id="contentSubtitle"></p>
+
       </div>
 
-      <div class="section-card" onclick="openSection('memories', 'Memories')">
-        <div class="section-number">02</div>
-        <div class="section-title">Memories</div>
-        <div class="section-bottom">
-          <span>Moments worth keeping</span>
-          <span class="arrow">↗</span>
-        </div>
-      </div>
-
-      <div class="section-card" onclick="openSection('music', 'Music')">
-        <div class="section-number">03</div>
-        <div class="section-title">Music</div>
-        <div class="section-bottom">
-          <span>The soundtrack</span>
-          <span class="arrow">↗</span>
-        </div>
-      </div>
-
-      <div class="section-card" onclick="openSection('socials', 'Socials')">
-        <div class="section-number">04</div>
-        <div class="section-title">Socials</div>
-        <div class="section-bottom">
-          <span>Find me online</span>
-          <span class="arrow">↗</span>
-        </div>
-      </div>
-
-      <div class="section-card wide" onclick="openSection('random', 'Random Shit')">
-        <div class="section-number">05</div>
-        <div class="section-title">Random Shit</div>
-        <div class="section-bottom">
-          <span>Deep lore & random nonsense</span>
-          <span class="arrow">↗</span>
-        </div>
-      </div>
+      <div id="content"></div>
 
     </div>
+
   </div>
 
 
@@ -321,7 +491,9 @@
 
     <div class="modal-box">
 
-      <h2 id="modalTitle">Unlock</h2>
+      <h2 id="modalTitle">
+        Unlock
+      </h2>
 
       <div class="hint" id="hint"></div>
 
@@ -332,13 +504,22 @@
         autocomplete="off"
       >
 
-      <button class="unlock" onclick="checkPassword()">
+      <button
+        class="unlock"
+        onclick="checkPassword()"
+      >
         Unlock
       </button>
 
-      <div class="error" id="error"></div>
+      <div
+        class="error"
+        id="error"
+      ></div>
 
-      <button class="close" onclick="closeModal()">
+      <button
+        class="close"
+        onclick="closeModal()"
+      >
         Close
       </button>
 
@@ -351,12 +532,239 @@
 
     let currentSection = null;
 
+
     const hints = {
-      people: "A date that matters.",
-      memories: "A private phrase.",
-      music: "One word. You know the vibe.",
-      socials: "A phrase tied to the account.",
-      random: "A word from the Deep lore."
+
+      people:
+        "A date that matters.",
+
+      memories:
+        "A private phrase.",
+
+      music:
+        "One word. You know the vibe.",
+
+      socials:
+        "A phrase tied to the account.",
+
+      random:
+        "A word from the Deep lore."
+
+    };
+
+
+    const sectionContent = {
+
+      people: {
+
+        title: "Ppl I fw ❤️",
+
+        subtitle: "The people who became part of my world.",
+
+        html: `
+
+          <div class="content-box">
+
+            <p>
+              I got five friends. One in real life, and four online.
+            </p>
+
+            <p>
+              The one I know in real life is Om. The four I met online are
+              Sharik, Daksh, Diksha, and *******.
+            </p>
+
+
+            <div class="friend">
+
+              <h3>Sharik</h3>
+
+              <p>
+                Sharik is my OG friend. I always felt like he was that one
+                online friend who was genuinely great to have around.
+                We’d always be fucking around, talking shit, and having fun.
+                I don’t think I could ever be sad while talking to him.
+                He was, and honestly still is, fucking funny.
+                Sharik is an OG, and that’s just it.
+              </p>
+
+            </div>
+
+
+            <div class="friend">
+
+              <h3>Daksh</h3>
+
+              <p>
+                Daksh is one of my closest friends. He was probably the
+                biggest menace back in 2024. Like, bro, I genuinely miss
+                the 2024 version of Daksh. We did so much stupid shit that
+                year, so much fucking bakchodi. I don’t even know how to
+                explain it. He could somehow turn literally anything into
+                a joke. Nothing ever felt too serious when I was talking
+                to him, and I used to laugh so much because of that.
+                He’s still one of my favourite people, though.
+              </p>
+
+            </div>
+
+
+            <div class="friend">
+
+              <h3>Diksha</h3>
+
+              <p>
+                Diksha is the third one. I found her through the same place
+                where I met Sharik. Basically, where I found Sharik, I found
+                Diksha too. Me and her actually started off with us arguing
+                a lot. But slowly, things started getting better. Eventually,
+                we just became friends online, and she turned out to be a
+                pretty good friend. She’s funny, easy to talk to, and honestly
+                just a good person to have around.
+              </p>
+
+              <p>
+                And before anyone gets the wrong idea, no, I wasn’t in love
+                with her. I could never be in love with her. We literally end
+                up fighting every time. She’s just not my type, and honestly,
+                I feel like we’d always end up arguing anyway. That’s just
+                how we are.
+              </p>
+
+            </div>
+
+
+            <div class="friend">
+
+              <h3>*******</h3>
+
+              <p>
+                She’s not really just a friend to me. She became something
+                way more than that over time. I spent more than half a year
+                with her, and honestly, I spent more than a year thinking
+                about her.
+              </p>
+
+              <p>
+                That’s a lot of time to have one person constantly somewhere
+                in your mind. Somehow, she became a huge part of my life
+                without me even realizing how much space she had taken up.
+              </p>
+
+              <p>
+                Right now, while I’m writing this about you,
+                “The Night We Met” is playing in front of me. I actually
+                like the timing of that. And honestly, I’m kind of crying
+                on the inside while writing this.
+              </p>
+
+            </div>
+
+
+            <div class="friend">
+
+              <h3>Om</h3>
+
+              <p>
+                He’s the only one I know in real life, and he’s been a part
+                of my life in a completely different way from the others.
+                Having someone you actually know outside the screen just
+                hits different. He’s one of those people who makes the whole
+                “friend” thing feel real.
+              </p>
+
+            </div>
+
+          </div>
+
+        `
+
+      },
+
+
+      memories: {
+
+        title: "Memories",
+
+        subtitle: "Moments worth keeping.",
+
+        html: `
+
+          <div class="content-box">
+
+            <div class="coming-soon">
+              Memories coming soon.
+            </div>
+
+          </div>
+
+        `
+
+      },
+
+
+      music: {
+
+        title: "Music",
+
+        subtitle: "The soundtrack.",
+
+        html: `
+
+          <div class="content-box">
+
+            <div class="coming-soon">
+              Music coming soon.
+            </div>
+
+          </div>
+
+        `
+
+      },
+
+
+      socials: {
+
+        title: "Socials",
+
+        subtitle: "Find me online.",
+
+        html: `
+
+          <div class="content-box">
+
+            <div class="coming-soon">
+              Socials coming soon.
+            </div>
+
+          </div>
+
+        `
+
+      },
+
+
+      random: {
+
+        title: "Random Shit",
+
+        subtitle: "Deep lore & random nonsense.",
+
+        html: `
+
+          <div class="content-box">
+
+            <div class="coming-soon">
+              Random shit coming soon.
+            </div>
+
+          </div>
+
+        `
+
+      }
+
     };
 
 
@@ -376,7 +784,9 @@
       document.getElementById("modal").classList.add("show");
 
       setTimeout(() => {
+
         document.getElementById("password").focus();
+
       }, 100);
 
     }
@@ -384,7 +794,9 @@
 
     function closeModal() {
 
-      document.getElementById("modal").classList.remove("show");
+      document
+        .getElementById("modal")
+        .classList.remove("show");
 
       currentSection = null;
 
@@ -410,7 +822,8 @@
       }
 
 
-      error.textContent = "Checking...";
+      error.textContent =
+        "Checking...";
 
 
       try {
@@ -425,14 +838,19 @@
             },
 
             body: JSON.stringify({
+
               section: currentSection,
+
               password: password
+
             })
+
           }
         );
 
 
-        const data = await response.json();
+        const data =
+          await response.json();
 
 
         if (!response.ok || !data.success) {
@@ -447,12 +865,12 @@
 
         closeModal();
 
-        alert(
-          "Unlocked. Content will be added here."
-        );
+        showSection(currentSection);
+
+      }
 
 
-      } catch (err) {
+      catch (err) {
 
         error.textContent =
           "Something went wrong. Try again.";
@@ -462,26 +880,88 @@
     }
 
 
+    function showSection(section) {
+
+      const data =
+        sectionContent[section];
+
+
+      document.getElementById("home")
+        .style.display = "none";
+
+
+      document.getElementById("contentPage")
+        .classList.add("show");
+
+
+      document.getElementById("contentTitle")
+        .textContent = data.title;
+
+
+      document.getElementById("contentSubtitle")
+        .textContent = data.subtitle;
+
+
+      document.getElementById("content")
+        .innerHTML = data.html;
+
+
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+      });
+
+    }
+
+
+    function goHome() {
+
+      document.getElementById("contentPage")
+        .classList.remove("show");
+
+
+      document.getElementById("home")
+        .style.display = "block";
+
+
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+      });
+
+    }
+
+
     document
       .getElementById("password")
-      .addEventListener("keydown", function(event) {
+      .addEventListener(
+        "keydown",
+        function(event) {
 
-        if (event.key === "Enter") {
-          checkPassword();
+          if (event.key === "Enter") {
+
+            checkPassword();
+
+          }
+
         }
-
-      });
+      );
 
 
     document
       .getElementById("modal")
-      .addEventListener("click", function(event) {
+      .addEventListener(
+        "click",
+        function(event) {
 
-        if (event.target === this) {
-          closeModal();
+          if (event.target === this) {
+
+            closeModal();
+
+          }
+
         }
-
-      });
+      );
 
   </script>
 
