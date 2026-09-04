@@ -13,87 +13,156 @@
       padding: 0;
     }
 
+    html {
+      scroll-behavior: smooth;
+    }
+
     body {
       min-height: 100vh;
-      background: #080808;
+      background:
+        radial-gradient(circle at 50% -10%, #202020 0%, transparent 35%),
+        #070707;
       color: #f5f5f5;
-      font-family: Arial, sans-serif;
-      padding: 35px 18px;
+      font-family: Arial, Helvetica, sans-serif;
+      padding: 30px 18px;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        radial-gradient(rgba(255,255,255,.035) 1px, transparent 1px);
+      background-size: 28px 28px;
+      mask-image: linear-gradient(to bottom, black, transparent 85%);
     }
 
     .container {
       width: 100%;
-      max-width: 680px;
+      max-width: 700px;
       margin: auto;
+      position: relative;
+      z-index: 1;
     }
 
     /* HERO */
 
     .hero {
       text-align: center;
-      padding: 55px 0 38px;
+      padding: 70px 0 45px;
+    }
+
+    .eyebrow {
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 4px;
+      font-size: 9px;
+      margin-bottom: 18px;
     }
 
     .title {
-      font-size: 44px;
-      font-weight: 700;
-      letter-spacing: -2px;
-      margin-bottom: 12px;
+      font-size: clamp(36px, 8vw, 52px);
+      font-weight: 800;
+      letter-spacing: -2.5px;
+      line-height: 1;
+      background: linear-gradient(180deg, #fff, #858585);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 17px;
     }
 
     .subtitle {
       color: #777;
-      font-size: 14px;
+      font-size: 13px;
+      letter-spacing: .2px;
     }
 
-    /* SECTION BUTTONS */
+    /* SECTIONS */
 
     .sections {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 13px;
     }
 
     .section {
+      position: relative;
       width: 100%;
-      padding: 20px 21px;
-      border: 1px solid #292929;
-      border-radius: 16px;
-      background: #101010;
-      color: #fff;
+      padding: 21px 22px;
+      border: 1px solid #252525;
+      border-radius: 18px;
+      background:
+        linear-gradient(135deg, rgba(255,255,255,.045), rgba(255,255,255,.01)),
+        #0d0d0d;
+      color: #f5f5f5;
       text-align: left;
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 600;
       cursor: pointer;
-      transition: .2s ease;
+      overflow: hidden;
+      transition:
+        transform .25s ease,
+        border-color .25s ease,
+        background .25s ease,
+        box-shadow .25s ease;
+    }
+
+    .section::before {
+      content: "";
+      position: absolute;
+      width: 120px;
+      height: 120px;
+      top: -70px;
+      right: -40px;
+      background: rgba(255,255,255,.04);
+      filter: blur(25px);
+      border-radius: 50%;
+      transition: .3s ease;
     }
 
     .section:hover {
-      background: #171717;
+      transform: translateY(-3px);
       border-color: #444;
-      transform: translateY(-2px);
+      background: #121212;
+      box-shadow: 0 15px 40px rgba(0,0,0,.35);
+    }
+
+    .section:hover::before {
+      transform: scale(1.5);
+    }
+
+    .section:active {
+      transform: translateY(-1px) scale(.99);
     }
 
     .lock {
       float: right;
-      color: #777;
+      color: #666;
+      font-size: 13px;
     }
 
     /* FOOTER */
 
     .footer {
       text-align: center;
-      margin-top: 38px;
-      color: #444;
-      font-size: 11px;
+      margin-top: 45px;
+      padding-bottom: 20px;
+      color: #3d3d3d;
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
     }
 
-    /* PASSWORD MODAL */
+    /* MODAL */
 
     .modal {
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,.82);
+      background: rgba(0,0,0,.78);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
       display: none;
       align-items: center;
       justify-content: center;
@@ -103,43 +172,52 @@
 
     .modal.show {
       display: flex;
+      animation: modalBg .25s ease;
     }
 
     .box {
       width: 100%;
       max-width: 390px;
-      background: #111;
+      background:
+        linear-gradient(145deg, rgba(255,255,255,.055), rgba(255,255,255,.015)),
+        #0d0d0d;
       border: 1px solid #303030;
-      border-radius: 20px;
-      padding: 25px;
-      box-shadow: 0 20px 60px rgba(0,0,0,.55);
+      border-radius: 23px;
+      padding: 27px;
+      box-shadow:
+        0 30px 90px rgba(0,0,0,.65),
+        inset 0 1px 0 rgba(255,255,255,.04);
+      animation: modalBox .3s ease;
     }
 
     .box h2 {
-      font-size: 22px;
+      font-size: 23px;
+      letter-spacing: -.5px;
       margin-bottom: 8px;
     }
 
     .hint {
-      color: #888;
+      color: #777;
       font-size: 13px;
-      line-height: 1.5;
-      margin-bottom: 18px;
+      line-height: 1.6;
+      margin-bottom: 19px;
     }
 
     input {
       width: 100%;
-      padding: 13px 14px;
-      border-radius: 11px;
-      border: 1px solid #333;
-      background: #080808;
+      padding: 14px;
+      border-radius: 12px;
+      border: 1px solid #303030;
+      background: #070707;
       color: #fff;
       outline: none;
-      font-size: 15px;
+      font-size: 14px;
+      transition: .2s ease;
     }
 
     input:focus {
       border-color: #666;
+      box-shadow: 0 0 0 3px rgba(255,255,255,.035);
     }
 
     .actions {
@@ -150,18 +228,28 @@
 
     .actions button {
       flex: 1;
-      padding: 12px;
-      border-radius: 11px;
-      border: 1px solid #333;
-      background: #181818;
+      padding: 13px;
+      border-radius: 12px;
+      border: 1px solid #303030;
+      background: #161616;
       color: #fff;
       cursor: pointer;
+      transition: .2s ease;
+    }
+
+    .actions button:hover {
+      background: #202020;
     }
 
     .actions .enter {
       background: #f5f5f5;
       color: #080808;
       border-color: #f5f5f5;
+      font-weight: 600;
+    }
+
+    .actions .enter:hover {
+      background: #dcdcdc;
     }
 
     .error {
@@ -177,7 +265,7 @@
       display: none;
       margin-top: 30px;
       padding-bottom: 30px;
-      animation: fadeIn .35s ease;
+      animation: pageIn .45s ease;
     }
 
     #unlockedContent.active {
@@ -185,93 +273,127 @@
     }
 
     .back {
-      display: inline-block;
-      margin-bottom: 25px;
-      color: #888;
-      font-size: 13px;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 28px;
+      color: #777;
+      font-size: 12px;
       cursor: pointer;
+      transition: .2s ease;
     }
 
     .back:hover {
       color: #fff;
+      transform: translateX(-3px);
     }
 
     #unlockedContent h2 {
-      font-size: 32px;
-      letter-spacing: -1px;
-      margin-bottom: 8px;
+      font-size: 34px;
+      letter-spacing: -1.5px;
+      margin-bottom: 9px;
     }
 
     .intro {
-      color: #777;
-      font-size: 14px;
+      color: #707070;
+      font-size: 13px;
       line-height: 1.7;
-      margin-bottom: 24px;
+      margin-bottom: 25px;
     }
 
     /* FRIEND CARDS */
 
     .friend-card {
-      background: linear-gradient(145deg, #151515, #0d0d0d);
-      border: 1px solid #292929;
-      border-radius: 20px;
-      padding: 24px;
+      position: relative;
+      background:
+        linear-gradient(145deg, rgba(255,255,255,.055), rgba(255,255,255,.01)),
+        #0d0d0d;
+      border: 1px solid #272727;
+      border-radius: 22px;
+      padding: 25px;
       margin-bottom: 16px;
-      box-shadow: 0 10px 35px rgba(0,0,0,.22);
-      transition: .2s ease;
+      box-shadow:
+        0 12px 40px rgba(0,0,0,.22),
+        inset 0 1px 0 rgba(255,255,255,.025);
+      overflow: hidden;
+      transition: .25s ease;
+    }
+
+    .friend-card::before {
+      content: "";
+      position: absolute;
+      width: 150px;
+      height: 150px;
+      top: -100px;
+      right: -70px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.045);
+      filter: blur(25px);
     }
 
     .friend-card:hover {
       border-color: #3b3b3b;
       transform: translateY(-2px);
+      box-shadow: 0 18px 50px rgba(0,0,0,.32);
     }
 
     .friend-name {
+      position: relative;
       font-size: 23px;
-      margin-bottom: 14px;
+      letter-spacing: -.5px;
+      margin-bottom: 15px;
     }
 
     .friend-card p {
-      color: #b5b5b5;
+      position: relative;
+      color: #aaa;
       font-size: 14px;
-      line-height: 1.8;
-      margin-bottom: 13px;
+      line-height: 1.85;
+      margin-bottom: 14px;
     }
 
     .friend-card p:last-child {
       margin-bottom: 0;
     }
 
+    /* SPECIAL CARD */
+
     .special-card {
       background:
         radial-gradient(
           circle at top right,
-          rgba(255,255,255,.07),
-          transparent 35%
+          rgba(255,255,255,.09),
+          transparent 38%
         ),
-        linear-gradient(145deg, #181818, #0c0c0c);
-
-      border-color: #383838;
-      padding: 27px;
+        linear-gradient(145deg, #151515, #0a0a0a);
+      border-color: #363636;
+      padding: 28px;
     }
 
     .special-card .friend-name {
-      letter-spacing: 2px;
+      letter-spacing: 3px;
     }
+
+    /* EMPTY SECTIONS */
 
     .empty-section {
-      background: #101010;
-      border: 1px solid #292929;
-      border-radius: 18px;
-      padding: 24px;
-      color: #888;
-      line-height: 1.7;
+      background:
+        linear-gradient(145deg, rgba(255,255,255,.045), rgba(255,255,255,.01)),
+        #0d0d0d;
+      border: 1px solid #272727;
+      border-radius: 20px;
+      padding: 27px;
+      color: #777;
+      line-height: 1.8;
+      text-align: center;
     }
 
-    @keyframes fadeIn {
+    /* ANIMATIONS */
+
+    @keyframes pageIn {
       from {
         opacity: 0;
-        transform: translateY(8px);
+        transform: translateY(15px);
       }
 
       to {
@@ -280,25 +402,64 @@
       }
     }
 
+    @keyframes modalBg {
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: 1;
+      }
+    }
+
+    @keyframes modalBox {
+      from {
+        opacity: 0;
+        transform: translateY(15px) scale(.97);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    /* MOBILE */
+
     @media (max-width: 500px) {
+
       body {
-        padding: 25px 16px;
+        padding: 20px 15px;
       }
 
       .hero {
-        padding-top: 30px;
+        padding: 50px 0 35px;
       }
 
       .title {
-        font-size: 34px;
+        letter-spacing: -1.8px;
+      }
+
+      .section {
+        padding: 19px;
       }
 
       .friend-card {
-        padding: 20px;
+        padding: 21px;
+        border-radius: 19px;
       }
 
       #unlockedContent h2 {
-        font-size: 28px;
+        font-size: 29px;
+      }
+
+      .friend-name {
+        font-size: 21px;
+      }
+
+      .friend-card p {
+        font-size: 13.5px;
+        line-height: 1.8;
       }
     }
   </style>
@@ -310,7 +471,12 @@
   <div class="container">
 
     <div class="hero">
-      <div class="title">Inside Deep's World</div>
+      <div class="eyebrow">private archive</div>
+
+      <div class="title">
+        Inside Deep's World
+      </div>
+
       <div class="subtitle">
         Every section has its own password.
       </div>
@@ -400,8 +566,6 @@
     let currentSection = "";
 
 
-    /* SECTION INFO */
-
     const sectionInfo = {
 
       people: {
@@ -431,8 +595,6 @@
 
     };
 
-
-    /* CONTENT */
 
     const content = {
 
@@ -649,8 +811,6 @@
     };
 
 
-    /* OPEN MODAL */
-
     function openModal(section) {
 
       currentSection = section;
@@ -665,7 +825,9 @@
 
       document.getElementById("error").textContent = "";
 
-      document.getElementById("passwordModal").classList.add("show");
+      document
+        .getElementById("passwordModal")
+        .classList.add("show");
 
       setTimeout(() => {
         document.getElementById("passwordInput").focus();
@@ -673,8 +835,6 @@
 
     }
 
-
-    /* CLOSE MODAL */
 
     function closeModal() {
 
@@ -685,8 +845,6 @@
     }
 
 
-    /* CHECK PASSWORD */
-
     async function checkPassword() {
 
       const password =
@@ -694,6 +852,7 @@
 
       const error =
         document.getElementById("error");
+
 
       if (!password) {
 
@@ -755,6 +914,7 @@
 
       }
 
+
       catch (err) {
 
         error.textContent =
@@ -764,8 +924,6 @@
 
     }
 
-
-    /* BACK TO HOME */
 
     function goBack() {
 
@@ -786,8 +944,6 @@
     }
 
 
-    /* ENTER KEY */
-
     document
       .getElementById("passwordInput")
       .addEventListener("keydown", function(event) {
@@ -798,8 +954,6 @@
 
       });
 
-
-    /* CLICK OUTSIDE MODAL */
 
     document
       .getElementById("passwordModal")
