@@ -3,764 +3,236 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
   <title>Inside Deep's World</title>
 
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Inter:wght@400;500;600;700&display=swap');
-
-    :root {
-      --bg: #070707;
-      --text: #f4f4f4;
-      --muted: #707070;
-      --line: #1d1d1d;
-    }
-
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
     }
 
-    html {
-      scroll-behavior: smooth;
-    }
-
     body {
       min-height: 100vh;
-      background:
-        radial-gradient(circle at 50% -10%, #171717 0%, transparent 42%),
-        var(--bg);
-      color: var(--text);
-      font-family: "Inter", sans-serif;
-      overflow-x: hidden;
-    }
-
-    body::before {
-      content: "";
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      opacity: .035;
-      background-image:
-        radial-gradient(#fff .5px, transparent .5px);
-      background-size: 5px 5px;
-      z-index: 20;
-    }
-
-    .page {
-      width: min(900px, calc(100% - 40px));
-      margin: auto;
-    }
-
-    /* HERO */
-
-    .hero {
-      min-height: 82vh;
+      background: #050505;
+      color: #ffffff;
+      font-family: Arial, Helvetica, sans-serif;
       display: flex;
-      flex-direction: column;
       justify-content: center;
-      padding: 80px 0 50px;
-    }
-
-    .eyebrow {
-      font-family: "DM Mono", monospace;
-      color: var(--muted);
-      font-size: 11px;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      margin-bottom: 25px;
-      animation: fadeUp .8s ease both;
-    }
-
-    .hero h1 {
-      font-size: clamp(64px, 12vw, 130px);
-      line-height: .84;
-      letter-spacing: -7px;
-      font-weight: 700;
-      max-width: 850px;
-      animation: fadeUp .9s ease .08s both;
-    }
-
-    .hero h1 span {
-      color: #777;
-    }
-
-    .hero-sub {
-      margin-top: 38px;
-      color: #777;
-      font-size: 14px;
-      line-height: 1.7;
-      max-width: 330px;
-      animation: fadeUp .9s ease .18s both;
-    }
-
-    .scroll-note {
-      margin-top: 55px;
-      display: flex;
       align-items: center;
-      gap: 12px;
-      color: #454545;
-      font-family: "DM Mono", monospace;
-      font-size: 10px;
-      letter-spacing: 1px;
-      animation: fadeUp .9s ease .3s both;
+      padding: 30px 20px;
     }
 
-    .scroll-line {
-      width: 45px;
-      height: 1px;
-      background: #333;
+    .container {
+      width: 100%;
+      max-width: 700px;
+      text-align: center;
     }
 
-    /* SECTIONS */
+    h1 {
+      font-size: clamp(36px, 8vw, 64px);
+      margin-bottom: 12px;
+      letter-spacing: -2px;
+    }
+
+    .subtitle {
+      color: #a0a0a0;
+      font-size: 15px;
+      margin-bottom: 8px;
+      line-height: 1.6;
+    }
+
+    .hint-info {
+      color: #666;
+      font-size: 13px;
+      margin-bottom: 35px;
+      line-height: 1.5;
+    }
 
     .sections {
-      border-top: 1px solid var(--line);
-    }
-
-    .section {
-      position: relative;
-      display: grid;
-      grid-template-columns: 55px 1fr auto;
-      align-items: center;
-      gap: 20px;
-      min-height: 105px;
-      padding: 20px 8px;
-      border-bottom: 1px solid var(--line);
-      cursor: pointer;
-      overflow: hidden;
-      transition:
-        padding .35s ease,
-        background .35s ease;
-    }
-
-    .section::before {
-      content: "";
-      position: absolute;
-      left: 0;
-      top: 0;
-      width: 0;
-      height: 100%;
-      background: #fff;
-      transition: width .35s ease;
-    }
-
-    .section:hover {
-      padding-left: 20px;
-      background: #0b0b0b;
-    }
-
-    .section:hover::before {
-      width: 2px;
-    }
-
-    .number {
-      color: #3d3d3d;
-      font-family: "DM Mono", monospace;
-      font-size: 11px;
-      transition: color .3s ease;
-    }
-
-    .section:hover .number {
-      color: #888;
-    }
-
-    .section-name {
-      font-size: clamp(20px, 3vw, 28px);
-      font-weight: 500;
-      letter-spacing: -1px;
-    }
-
-    .section-desc {
-      color: #555;
-      font-size: 11px;
-      margin-top: 5px;
-    }
-
-    .arrow {
-      color: #444;
-      font-size: 20px;
-      transition:
-        transform .3s ease,
-        color .3s ease;
-    }
-
-    .section:hover .arrow {
-      transform: translateX(7px);
-      color: #fff;
-    }
-
-    /* FOOTER */
-
-    footer {
-      padding: 100px 0 40px;
       display: flex;
-      justify-content: space-between;
-      color: #333;
-      font-family: "DM Mono", monospace;
-      font-size: 9px;
-      letter-spacing: 1px;
+      flex-direction: column;
+      gap: 14px;
     }
 
-    /* MODAL */
+    .section-btn {
+      width: 100%;
+      padding: 20px;
+      border: 1px solid #222;
+      border-radius: 14px;
+      background: #0d0d0d;
+      color: white;
+      font-size: 17px;
+      cursor: pointer;
+      transition: 0.2s ease;
+    }
+
+    .section-btn:hover {
+      background: #151515;
+      border-color: #444;
+      transform: translateY(-2px);
+    }
 
     .modal {
+      display: none;
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,.82);
-      backdrop-filter: blur(18px);
-      -webkit-backdrop-filter: blur(18px);
-      display: none;
-      align-items: center;
+      background: rgba(0, 0, 0, 0.85);
       justify-content: center;
-      padding: 20px;
-      z-index: 100;
-    }
-
-    .modal.show {
-      display: flex;
-      animation: modalIn .3s ease both;
-    }
-
-    .box {
-      width: min(420px, 100%);
-      background:
-        linear-gradient(145deg, #111, #090909);
-      border: 1px solid #292929;
-      border-radius: 20px;
-      padding: 30px;
-      box-shadow: 0 30px 100px rgba(0,0,0,.7);
-      animation: boxIn .35s ease both;
-    }
-
-    .box-top {
-      display: flex;
-      justify-content: space-between;
       align-items: center;
-      margin-bottom: 28px;
+      padding: 20px;
     }
 
-    .box-label {
-      font-family: "DM Mono", monospace;
-      font-size: 9px;
-      color: #555;
-      letter-spacing: 2px;
-      text-transform: uppercase;
+    .modal-box {
+      width: 100%;
+      max-width: 400px;
+      background: #0d0d0d;
+      border: 1px solid #2a2a2a;
+      border-radius: 18px;
+      padding: 28px;
+      text-align: center;
     }
 
-    .close {
-      width: 30px;
-      height: 30px;
-      border-radius: 50%;
-      border: 1px solid #292929;
-      background: #101010;
-      color: #777;
-      cursor: pointer;
-      transition: .2s ease;
+    .modal-box h2 {
+      margin-bottom: 10px;
+      font-size: 24px;
     }
 
-    .close:hover {
-      color: #fff;
-      border-color: #555;
-      transform: rotate(90deg);
-    }
-
-    .box h2 {
-      font-size: 31px;
-      letter-spacing: -1.5px;
-      margin-bottom: 18px;
-    }
-
-    .hint {
-      margin-bottom: 22px;
-    }
-
-    .hint-label {
-      font-family: "DM Mono", monospace;
-      font-size: 9px;
-      letter-spacing: 2px;
-      color: #444;
-      margin-bottom: 7px;
-      text-transform: uppercase;
-    }
-
-    #modalHint {
+    .modal-box p {
       color: #888;
-      font-size: 12px;
-      line-height: 1.6;
+      font-size: 14px;
+      margin-bottom: 20px;
+      line-height: 1.5;
     }
 
     input {
       width: 100%;
-      padding: 15px 16px;
-      border-radius: 12px;
+      padding: 14px;
+      border-radius: 10px;
       border: 1px solid #292929;
-      background: #070707;
-      color: #fff;
+      background: #050505;
+      color: white;
       outline: none;
-      font-family: "DM Mono", monospace;
-      font-size: 13px;
-      transition: .25s ease;
+      font-size: 15px;
+      margin-bottom: 12px;
     }
 
     input:focus {
-      border-color: #777;
-      box-shadow: 0 0 0 3px rgba(255,255,255,.03);
-    }
-
-    .actions {
-      display: flex;
-      gap: 10px;
-      margin-top: 12px;
-    }
-
-    .actions button {
-      flex: 1;
-      padding: 13px;
-      border-radius: 11px;
-      border: 1px solid #292929;
-      background: #141414;
-      color: #aaa;
-      cursor: pointer;
-      font-weight: 600;
-      transition: .2s ease;
-    }
-
-    .actions button:hover {
-      background: #1c1c1c;
-      color: #fff;
-    }
-
-    .actions .enter {
-      background: #f4f4f4;
-      color: #080808;
-      border-color: #f4f4f4;
-    }
-
-    .actions .enter:hover {
-      background: #fff;
-      transform: translateY(-1px);
-    }
-
-    .error {
-      color: #ff6f6f;
-      font-size: 11px;
-      margin-top: 12px;
-      min-height: 14px;
-      font-family: "DM Mono", monospace;
-    }
-
-    /* UNLOCKED CONTENT */
-
-    #unlockedContent {
-      width: min(900px, calc(100% - 40px));
-      margin: 0 auto;
-      padding: 80px 0 100px;
-      animation: fadeUp .5s ease both;
-    }
-
-    .content-header {
-      border-bottom: 1px solid var(--line);
-      padding-bottom: 35px;
-      margin-bottom: 70px;
-    }
-
-    .content-index {
-      font-family: "DM Mono", monospace;
-      color: #444;
-      font-size: 10px;
-      letter-spacing: 2px;
-      margin-bottom: 18px;
-    }
-
-    .content-header h2 {
-      font-size: clamp(48px, 9vw, 82px);
-      line-height: .9;
-      letter-spacing: -4px;
-    }
-
-    .content-header p {
-      color: #666;
-      margin-top: 18px;
-      font-size: 13px;
-    }
-
-    .friend {
-      position: relative;
-      padding: 0 0 70px;
-      margin-bottom: 70px;
-      border-bottom: 1px solid var(--line);
-    }
-
-    .friend:last-child {
-      border-bottom: none;
-    }
-
-    .friend-meta {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 18px;
-      font-family: "DM Mono", monospace;
-      color: #444;
-      font-size: 9px;
-      letter-spacing: 1.5px;
-      text-transform: uppercase;
-    }
-
-    .friend h3 {
-      font-size: clamp(32px, 6vw, 52px);
-      letter-spacing: -2.5px;
-      margin-bottom: 25px;
-    }
-
-    .friend p {
-      max-width: 680px;
-      color: #999;
-      font-size: 15px;
-      line-height: 1.9;
-      margin-bottom: 20px;
-    }
-
-    .friend.special {
-      padding: 50px 0;
-    }
-
-    .friend.special h3 {
-      letter-spacing: 5px;
-      color: #ddd;
-    }
-
-    .back {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      color: #666;
-      background: transparent;
-      border: 1px solid #222;
-      border-radius: 100px;
-      padding: 11px 17px;
-      cursor: pointer;
-      font-size: 11px;
-      transition: .25s ease;
-    }
-
-    .back:hover {
-      color: #fff;
       border-color: #555;
     }
 
-    /* ANIMATIONS */
-
-    @keyframes fadeUp {
-      from {
-        opacity: 0;
-        transform: translateY(18px);
-      }
-
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+    .unlock-btn {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 10px;
+      background: white;
+      color: black;
+      font-size: 15px;
+      font-weight: bold;
+      cursor: pointer;
     }
 
-    @keyframes modalIn {
-      from {
-        opacity: 0;
-      }
-
-      to {
-        opacity: 1;
-      }
+    .unlock-btn:hover {
+      opacity: 0.85;
     }
 
-    @keyframes boxIn {
-      from {
-        opacity: 0;
-        transform: translateY(15px) scale(.98);
-      }
-
-      to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-      }
+    .close-btn {
+      margin-top: 15px;
+      background: none;
+      border: none;
+      color: #777;
+      cursor: pointer;
+      font-size: 14px;
     }
 
-    /* MOBILE */
+    .error {
+      color: #ff5c5c;
+      font-size: 13px;
+      margin-top: 12px;
+      display: none;
+    }
 
-    @media (max-width: 600px) {
-
-      .page {
-        width: min(100% - 30px, 900px);
-      }
-
-      .hero {
-        min-height: 76vh;
-      }
-
-      .hero h1 {
-        letter-spacing: -4px;
-      }
-
-      .section {
-        grid-template-columns: 38px 1fr 20px;
-        min-height: 92px;
-        gap: 12px;
-      }
-
-      .section-name {
-        font-size: 19px;
-      }
-
-      .section-desc {
-        font-size: 10px;
-      }
-
-      footer {
-        padding-top: 70px;
-      }
-
-      #unlockedContent {
-        width: min(100% - 30px, 900px);
-      }
-
-      .content-header {
-        margin-bottom: 50px;
-      }
-
-      .content-header h2 {
-        letter-spacing: -3px;
-      }
-
-      .friend {
-        padding-bottom: 50px;
-        margin-bottom: 50px;
-      }
-
-      .friend p {
-        font-size: 14px;
-        line-height: 1.85;
-      }
-
-      .box {
-        padding: 25px;
-      }
+    .success {
+      color: #7cff9b;
+      font-size: 13px;
+      margin-top: 12px;
+      display: none;
     }
   </style>
 </head>
 
 <body>
 
-  <main class="page">
+  <div class="container">
 
-    <section class="hero">
+    <h1>Inside Deep's World</h1>
 
-      <div class="eyebrow">
-        private archive / 001
-      </div>
+    <p class="subtitle">
+      Every section has its own password and its own hint.
+    </p>
 
-      <h1>
-        INSIDE<br>
-        DEEP'S<br>
-        <span>WORLD</span>
-      </h1>
+    <p class="hint-info">
+      You’ll need the right password to unlock each section.
+    </p>
 
-      <p class="hero-sub">
-        a small collection of people, memories,
-        music and random shit that somehow became
-        part of my world.
-      </p>
+    <div class="sections">
 
-      <div class="scroll-note">
-        <span class="scroll-line"></span>
-        ENTER THE ARCHIVE
-      </div>
+      <button class="section-btn" onclick="openModal('people')">
+        Ppl I fw ❤️
+      </button>
 
-    </section>
+      <button class="section-btn" onclick="openModal('memories')">
+        Memories
+      </button>
 
+      <button class="section-btn" onclick="openModal('music')">
+        Music
+      </button>
 
-    <section class="sections">
+      <button class="section-btn" onclick="openModal('socials')">
+        Socials
+      </button>
 
-      <div
-        class="section"
-        onclick="openModal('people')"
-      >
-        <div class="number">01</div>
+      <button class="section-btn" onclick="openModal('random')">
+        Random Shit
+      </button>
 
-        <div>
-          <div class="section-name">
-            Ppl I fw ❤️
-          </div>
-
-          <div class="section-desc">
-            the people who matter
-          </div>
-        </div>
-
-        <div class="arrow">↗</div>
-      </div>
+    </div>
+  </div>
 
 
-      <div
-        class="section"
-        onclick="openModal('memories')"
-      >
-        <div class="number">02</div>
+  <div class="modal" id="passwordModal">
 
-        <div>
-          <div class="section-name">
-            Memories
-          </div>
+    <div class="modal-box">
 
-          <div class="section-desc">
-            things worth remembering
-          </div>
-        </div>
+      <h2 id="modalTitle">Unlock</h2>
 
-        <div class="arrow">↗</div>
-      </div>
-
-
-      <div
-        class="section"
-        onclick="openModal('music')"
-      >
-        <div class="number">03</div>
-
-        <div>
-          <div class="section-name">
-            Music
-          </div>
-
-          <div class="section-desc">
-            sounds that stayed
-          </div>
-        </div>
-
-        <div class="arrow">↗</div>
-      </div>
-
-
-      <div
-        class="section"
-        onclick="openModal('socials')"
-      >
-        <div class="number">04</div>
-
-        <div>
-          <div class="section-name">
-            Socials
-          </div>
-
-          <div class="section-desc">
-            find me somewhere online
-          </div>
-        </div>
-
-        <div class="arrow">↗</div>
-      </div>
-
-
-      <div
-        class="section"
-        onclick="openModal('random')"
-      >
-        <div class="number">05</div>
-
-        <div>
-          <div class="section-name">
-            Random Shit
-          </div>
-
-          <div class="section-desc">
-            the unexplained section
-          </div>
-        </div>
-
-        <div class="arrow">↗</div>
-      </div>
-
-    </section>
-
-
-    <footer>
-      <span>DEEP'S WORLD</span>
-      <span>© 2026</span>
-    </footer>
-
-  </main>
-
-
-  <!-- PASSWORD MODAL -->
-
-  <div
-    class="modal"
-    id="passwordModal"
-  >
-
-    <div class="box">
-
-      <div class="box-top">
-
-        <div class="box-label">
-          restricted area
-        </div>
-
-        <button
-          class="close"
-          onclick="closeModal()"
-        >
-          ×
-        </button>
-
-      </div>
-
-
-      <h2 id="modalTitle">
-        Enter password
-      </h2>
-
-
-      <div class="hint">
-
-        <div class="hint-label">
-          Hint
-        </div>
-
-        <div id="modalHint">
-          this section is private.
-        </div>
-
-      </div>
-
+      <p id="modalHint"></p>
 
       <input
-        id="passwordInput"
         type="password"
-        placeholder="enter password"
+        id="passwordInput"
+        placeholder="Enter password"
         autocomplete="off"
       />
 
+      <button class="unlock-btn" onclick="checkPassword()">
+        Unlock
+      </button>
 
-      <div class="actions">
-
-        <button onclick="closeModal()">
-          Cancel
-        </button>
-
-        <button
-          class="enter"
-          onclick="checkPassword()"
-        >
-          Enter
-        </button>
-
+      <div class="error" id="errorMessage">
+        Wrong password.
       </div>
 
+      <div class="success" id="successMessage">
+        Unlocked.
+      </div>
 
-      <div
-        class="error"
-        id="error"
-      ></div>
+      <button class="close-btn" onclick="closeModal()">
+        Close
+      </button>
 
     </div>
 
@@ -769,34 +241,33 @@
 
   <script>
 
-    let currentSection = null;
+    let currentSection = "";
 
-
-    const sectionInfo = {
+    const sectionData = {
 
       people: {
         title: "Ppl I fw ❤️",
-        hint: "A Day That Matters."
+        hint: "A date that matters."
       },
 
       memories: {
         title: "Memories",
-        hint: "some things are better kept private."
+        hint: "A private phrase."
       },
 
       music: {
         title: "Music",
-        hint: "you might know the vibe."
+        hint: "One word. You know the vibe."
       },
 
       socials: {
         title: "Socials",
-        hint: "not everything is public."
+        hint: "A phrase tied to the account."
       },
 
       random: {
         title: "Random Shit",
-        hint: "good luck figuring this one out."
+        hint: "A word from the Deep lore."
       }
 
     };
@@ -807,41 +278,29 @@
       currentSection = section;
 
       document.getElementById("modalTitle").textContent =
-        sectionInfo[section].title;
+        sectionData[section].title;
 
       document.getElementById("modalHint").textContent =
-        sectionInfo[section].hint;
+        "Hint: " + sectionData[section].hint;
 
       document.getElementById("passwordInput").value = "";
 
-      document.getElementById("error").textContent = "";
+      document.getElementById("errorMessage").style.display = "none";
+      document.getElementById("successMessage").style.display = "none";
 
-      document
-        .getElementById("passwordModal")
-        .classList.add("show");
-
+      document.getElementById("passwordModal").style.display = "flex";
 
       setTimeout(() => {
-
-        document
-          .getElementById("passwordInput")
-          .focus();
-
+        document.getElementById("passwordInput").focus();
       }, 100);
-
     }
 
 
     function closeModal() {
 
-      document
-        .getElementById("passwordModal")
-        .classList.remove("show");
+      document.getElementById("passwordModal").style.display = "none";
 
-      document.getElementById("passwordInput").value = "";
-
-      document.getElementById("error").textContent = "";
-
+      currentSection = "";
     }
 
 
@@ -850,457 +309,96 @@
       const password =
         document.getElementById("passwordInput").value;
 
-      const error =
-        document.getElementById("error");
+      const errorMessage =
+        document.getElementById("errorMessage");
+
+      const successMessage =
+        document.getElementById("successMessage");
+
+
+      errorMessage.style.display = "none";
+      successMessage.style.display = "none";
 
 
       if (!password) {
-
-        error.textContent =
-          "enter something first.";
-
+        errorMessage.textContent = "Enter a password.";
+        errorMessage.style.display = "block";
         return;
       }
 
 
-      error.textContent =
-        "checking...";
-
-
       try {
 
-        const response = await fetch(
-          "/api/check-password",
-          {
-            method: "POST",
+        const response = await fetch("/api/check-password", {
 
-            headers: {
-              "Content-Type": "application/json"
-            },
+          method: "POST",
 
-            body: JSON.stringify({
-              section: currentSection,
-              password: password
-            })
-          }
-        );
+          headers: {
+            "Content-Type": "application/json"
+          },
 
+          body: JSON.stringify({
+            section: currentSection,
+            password: password
+          })
 
-        const data =
-          await response.json();
+        });
 
 
-        if (!data.success) {
+        const data = await response.json();
 
-          error.textContent =
-            "wrong password.";
 
-          return;
+        if (data.success) {
+
+          successMessage.textContent = "Unlocked.";
+          successMessage.style.display = "block";
+
+          setTimeout(() => {
+            closeModal();
+
+            alert("Unlocked. Content will be added here.");
+
+          }, 500);
+
+        } else {
+
+          errorMessage.textContent = "Wrong password.";
+          errorMessage.style.display = "block";
+
         }
 
+      } catch (error) {
 
-        closeModal();
+        errorMessage.textContent =
+          "Something went wrong. Try again.";
 
-        showContent(currentSection);
-
-
-      } catch (err) {
-
-        error.textContent =
-          "something went wrong. try again.";
+        errorMessage.style.display = "block";
 
       }
-
-    }
-
-
-    function showContent(section) {
-
-      const content = {
-
-        people: `
-
-          <div class="content-header">
-
-            <div class="content-index">
-              01 / PEOPLE
-            </div>
-
-            <h2>
-              Ppl I fw ❤️
-            </h2>
-
-            <p>
-              the people who somehow became part of my world.
-            </p>
-
-          </div>
-
-
-          <div class="friend">
-
-            <div class="friend-meta">
-              <span>01 / REAL LIFE</span>
-              <span>OM</span>
-            </div>
-
-            <h3>Om</h3>
-
-            <p>
-              He’s the only one I know in real life, and he’s been a
-              part of my life in a completely different way from the others.
-              Having someone you actually know outside the screen just hits
-              different.
-            </p>
-
-            <p>
-              He’s one of those people who makes the whole “friend” thing
-              feel real.
-            </p>
-
-          </div>
-
-
-          <div class="friend">
-
-            <div class="friend-meta">
-              <span>02 / ONLINE</span>
-              <span>OG</span>
-            </div>
-
-            <h3>Sharik</h3>
-
-            <p>
-              Sharik is my OG friend. I always felt like he was that one
-              online friend who was genuinely great to have around.
-              We’d always be fucking around, talking shit, and having fun.
-            </p>
-
-            <p>
-              I don’t think I could ever be sad while talking to him.
-              He was, and honestly still is, fucking funny.
-              Sharik is an OG, and that’s just it.
-            </p>
-
-          </div>
-
-
-          <div class="friend">
-
-            <div class="friend-meta">
-              <span>03 / ONLINE</span>
-              <span>2024 ARCHIVE</span>
-            </div>
-
-            <h3>Daksh</h3>
-
-            <p>
-              Daksh is one of my closest friends. He was probably the
-              biggest menace back in 2024.
-            </p>
-
-            <p>
-              Like, bro, I genuinely miss the 2024 version of Daksh.
-              We did so much stupid shit that year, so much fucking bakchodi.
-              I don’t even know how to explain it.
-            </p>
-
-            <p>
-              He could somehow turn literally anything into a joke.
-              Nothing ever felt too serious when I was talking to him,
-              and I used to laugh so much because of that.
-              He’s still one of my favourite people, though.
-            </p>
-
-          </div>
-
-
-          <div class="friend">
-
-            <div class="friend-meta">
-              <span>04 / ONLINE</span>
-              <span>NO, NOT LIKE THAT</span>
-            </div>
-
-            <h3>Diksha</h3>
-
-            <p>
-              Diksha is the third one. I found her through the same place
-              where I met Sharik. Basically, where I found Sharik,
-              I found Diksha too.
-            </p>
-
-            <p>
-              Me and her actually started off with us arguing a lot.
-              But slowly, things started getting better. Eventually,
-              we just became friends online, and she turned out to be
-              a pretty good friend.
-            </p>
-
-            <p>
-              She’s funny, easy to talk to, and honestly just a good
-              person to have around.
-            </p>
-
-            <p>
-              And before anyone gets the wrong idea, no, I wasn’t in love
-              with her. I could never be in love with her.
-              We literally end up fighting every time.
-              She’s just not my type, and honestly, I feel like we’d
-              always end up arguing anyway.
-            </p>
-
-            <p>
-              That’s just how we are.
-            </p>
-
-          </div>
-
-
-          <div class="friend special">
-
-            <div class="friend-meta">
-              <span>05 / CLASSIFIED</span>
-              <span>*******</span>
-            </div>
-
-            <h3>*******</h3>
-
-            <p>
-              She’s not really just a friend to me.
-              She became something way more than that over time.
-              I spent more than half a year with her, and honestly,
-              I spent more than a year thinking about her.
-            </p>
-
-            <p>
-              That’s a lot of time to have one person constantly
-              somewhere in your mind. Somehow, she became a huge part
-              of my life without me even realizing how much space
-              she had taken up.
-            </p>
-
-            <p>
-              Right now, while I’m writing this about you,
-              “The Night We Met” is playing in front of me.
-              I actually like the timing of that.
-              And honestly, I’m kind of crying on the inside
-              while writing this.
-            </p>
-
-          </div>
-
-
-          <button
-            class="back"
-            onclick="goHome()"
-          >
-            ← back to archive
-          </button>
-
-        `,
-
-
-        memories: `
-
-          <div class="content-header">
-
-            <div class="content-index">
-              02 / MEMORIES
-            </div>
-
-            <h2>
-              Memories
-            </h2>
-
-            <p>
-              this part is still being built.
-            </p>
-
-          </div>
-
-          <button
-            class="back"
-            onclick="goHome()"
-          >
-            ← back to archive
-          </button>
-
-        `,
-
-
-        music: `
-
-          <div class="content-header">
-
-            <div class="content-index">
-              03 / MUSIC
-            </div>
-
-            <h2>
-              Music
-            </h2>
-
-            <p>
-              songs that somehow became memories.
-            </p>
-
-          </div>
-
-          <button
-            class="back"
-            onclick="goHome()"
-          >
-            ← back to archive
-          </button>
-
-        `,
-
-
-        socials: `
-
-          <div class="content-header">
-
-            <div class="content-index">
-              04 / SOCIALS
-            </div>
-
-            <h2>
-              Socials
-            </h2>
-
-            <p>
-              you know where to find me.
-            </p>
-
-          </div>
-
-          <button
-            class="back"
-            onclick="goHome()"
-          >
-            ← back to archive
-          </button>
-
-        `,
-
-
-        random: `
-
-          <div class="content-header">
-
-            <div class="content-index">
-              05 / RANDOM
-            </div>
-
-            <h2>
-              Random Shit
-            </h2>
-
-            <p>
-              deep lore loading...
-            </p>
-
-          </div>
-
-          <button
-            class="back"
-            onclick="goHome()"
-          >
-            ← back to archive
-          </button>
-
-        `
-
-      };
-
-
-      document.querySelector("main").style.display =
-        "none";
-
-
-      let box =
-        document.getElementById("unlockedContent");
-
-
-      if (!box) {
-
-        box =
-          document.createElement("div");
-
-        box.id =
-          "unlockedContent";
-
-        document.body.appendChild(box);
-
-      }
-
-
-      box.innerHTML =
-        content[section];
-
-
-      window.scrollTo({
-        top: 0,
-        behavior: "instant"
-      });
-
-    }
-
-
-    function goHome() {
-
-      const box =
-        document.getElementById("unlockedContent");
-
-
-      if (box) {
-        box.remove();
-      }
-
-
-      document.querySelector("main").style.display =
-        "block";
-
-
-      window.scrollTo({
-        top: 0,
-        behavior: "smooth"
-      });
 
     }
 
 
     document
       .getElementById("passwordInput")
-      .addEventListener(
-        "keydown",
-        function(event) {
+      .addEventListener("keydown", function(event) {
 
-          if (event.key === "Enter") {
-            checkPassword();
-          }
-
-          if (event.key === "Escape") {
-            closeModal();
-          }
-
+        if (event.key === "Enter") {
+          checkPassword();
         }
-      );
+
+      });
 
 
     document
       .getElementById("passwordModal")
-      .addEventListener(
-        "click",
-        function(event) {
+      .addEventListener("click", function(event) {
 
-          if (event.target === this) {
-            closeModal();
-          }
-
+        if (event.target === this) {
+          closeModal();
         }
-      );
+
+      });
 
   </script>
 
