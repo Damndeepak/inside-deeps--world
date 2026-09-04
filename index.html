@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Inside Deep's World</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      background: #080808;
+      color: #f5f5f5;
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 25px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 520px;
+      text-align: center;
+    }
+
+    .title {
+      font-size: 42px;
+      font-weight: 700;
+      letter-spacing: -1.5px;
+      margin-bottom: 12px;
+    }
+
+    .subtitle {
+      color: #999;
+      font-size: 14px;
+      margin-bottom: 38px;
+    }
+
+    .sections {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .section {
+      width: 100%;
+      padding: 19px 22px;
+      border: 1px solid #292929;
+      border-radius: 14px;
+      background: #101010;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.2s ease;
+    }
+
+    .section:hover {
+      background: #171717;
+      border-color: #444;
+      transform: translateY(-2px);
+    }
+
+    .lock {
+      float: right;
+      color: #777;
+    }
+
+    .footer {
+      margin-top: 35px;
+      color: #555;
+      font-size: 11px;
+    }
+
+    @media (max-width: 500px) {
+      .title {
+        font-size: 34px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <main class="container">
+
+    <h1 class="title">Inside Deep's World</h1>
+
+    <p class="subtitle">
+      Every section has its own password.
+    </p>
+
+    <div class="sections">
+
+      <button class="section" onclick="openSection('people')">
+        People I FW
+        <span class="lock">🔒</span>
+      </button>
+
+      <button class="section" onclick="openSection('memories')">
+        Memories
+        <span class="lock">🔒</span>
+      </button>
+
+      <button class="section" onclick="openSection('music')">
+        Music
+        <span class="lock">🔒</span>
+      </button>
+
+      <button class="section" onclick="openSection('socials')">
+        Socials
+        <span class="lock">🔒</span>
+      </button>
+
+      <button class="section" onclick="openSection('random')">
+        Random Shit
+        <span class="lock">🔒</span>
+      </button>
+
+    </div>
+
+    <p class="footer">
+      private archive
+    </p>
+
+  </main>
+
+  <script>
+    function openSection(section) {
+      alert("This section will be protected shortly.");
+    }
+  </script>
+
+</body>
+</html>
