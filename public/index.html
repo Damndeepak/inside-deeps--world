@@ -268,14 +268,26 @@
     .box h2 {
       font-size: 31px;
       letter-spacing: -1.5px;
-      margin-bottom: 10px;
+      margin-bottom: 18px;
     }
 
     .hint {
-      color: #666;
+      margin-bottom: 22px;
+    }
+
+    .hint-label {
+      font-family: "DM Mono", monospace;
+      font-size: 9px;
+      letter-spacing: 2px;
+      color: #444;
+      margin-bottom: 7px;
+      text-transform: uppercase;
+    }
+
+    #modalHint {
+      color: #888;
       font-size: 12px;
       line-height: 1.6;
-      margin-bottom: 22px;
     }
 
     input {
@@ -542,7 +554,9 @@
 
     <section class="hero">
 
-      <div class="eyebrow">private archive / 001</div>
+      <div class="eyebrow">
+        private archive / 001
+      </div>
 
       <h1>
         INSIDE<br>
@@ -563,64 +577,110 @@
 
     </section>
 
+
     <section class="sections">
 
-      <div class="section" onclick="openModal('people')">
+      <div
+        class="section"
+        onclick="openModal('people')"
+      >
         <div class="number">01</div>
 
         <div>
-          <div class="section-name">Ppl I fw ❤️</div>
-          <div class="section-desc">the people who matter</div>
+          <div class="section-name">
+            Ppl I fw ❤️
+          </div>
+
+          <div class="section-desc">
+            the people who matter
+          </div>
         </div>
 
         <div class="arrow">↗</div>
       </div>
 
-      <div class="section" onclick="openModal('memories')">
+
+      <div
+        class="section"
+        onclick="openModal('memories')"
+      >
         <div class="number">02</div>
 
         <div>
-          <div class="section-name">Memories</div>
-          <div class="section-desc">things worth remembering</div>
+          <div class="section-name">
+            Memories
+          </div>
+
+          <div class="section-desc">
+            things worth remembering
+          </div>
         </div>
 
         <div class="arrow">↗</div>
       </div>
 
-      <div class="section" onclick="openModal('music')">
+
+      <div
+        class="section"
+        onclick="openModal('music')"
+      >
         <div class="number">03</div>
 
         <div>
-          <div class="section-name">Music</div>
-          <div class="section-desc">sounds that stayed</div>
+          <div class="section-name">
+            Music
+          </div>
+
+          <div class="section-desc">
+            sounds that stayed
+          </div>
         </div>
 
         <div class="arrow">↗</div>
       </div>
 
-      <div class="section" onclick="openModal('socials')">
+
+      <div
+        class="section"
+        onclick="openModal('socials')"
+      >
         <div class="number">04</div>
 
         <div>
-          <div class="section-name">Socials</div>
-          <div class="section-desc">find me somewhere online</div>
+          <div class="section-name">
+            Socials
+          </div>
+
+          <div class="section-desc">
+            find me somewhere online
+          </div>
         </div>
 
         <div class="arrow">↗</div>
       </div>
 
-      <div class="section" onclick="openModal('random')">
+
+      <div
+        class="section"
+        onclick="openModal('random')"
+      >
         <div class="number">05</div>
 
         <div>
-          <div class="section-name">Random Shit</div>
-          <div class="section-desc">the unexplained section</div>
+          <div class="section-name">
+            Random Shit
+          </div>
+
+          <div class="section-desc">
+            the unexplained section
+          </div>
         </div>
 
         <div class="arrow">↗</div>
       </div>
 
     </section>
+
 
     <footer>
       <span>DEEP'S WORLD</span>
@@ -632,7 +692,10 @@
 
   <!-- PASSWORD MODAL -->
 
-  <div class="modal" id="passwordModal">
+  <div
+    class="modal"
+    id="passwordModal"
+  >
 
     <div class="box">
 
@@ -651,13 +714,24 @@
 
       </div>
 
+
       <h2 id="modalTitle">
         Enter password
       </h2>
 
-      <p class="hint" id="modalHint">
-        this section is private.
-      </p>
+
+      <div class="hint">
+
+        <div class="hint-label">
+          Hint
+        </div>
+
+        <div id="modalHint">
+          this section is private.
+        </div>
+
+      </div>
+
 
       <input
         id="passwordInput"
@@ -665,6 +739,7 @@
         placeholder="enter password"
         autocomplete="off"
       />
+
 
       <div class="actions">
 
@@ -680,6 +755,7 @@
         </button>
 
       </div>
+
 
       <div
         class="error"
@@ -744,6 +820,7 @@
         .getElementById("passwordModal")
         .classList.add("show");
 
+
       setTimeout(() => {
 
         document
@@ -776,6 +853,7 @@
       const error =
         document.getElementById("error");
 
+
       if (!password) {
 
         error.textContent =
@@ -783,6 +861,7 @@
 
         return;
       }
+
 
       error.textContent =
         "checking...";
