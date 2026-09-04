@@ -7,6 +7,32 @@
   <title>Inside Deep's World</title>
 
   <style>
+    closeModal();
+
+const content = {
+  people: `
+    <h2>Ppl I fw ❤️</h2>
+    <p>the people who actually matter.</p>
+    <div class="card">
+      <h3>Friend 1</h3>
+      <p>Details coming soon...</p>
+    </div>
+  `,
+  memories: `<h2>Memories</h2><p>Memories coming soon...</p>`,
+  music: `<h2>Music</h2><p>Music coming soon...</p>`,
+  socials: `<h2>Socials</h2><p>Socials coming soon...</p>`,
+  random: `<h2>Random Shit</h2><p>Deep lore loading...</p>`
+};
+
+let box = document.getElementById("unlockedContent");
+
+if (!box) {
+  box = document.createElement("div");
+  box.id = "unlockedContent";
+  document.body.appendChild(box);
+}
+
+box.innerHTML = content[currentSection];
     * {
       box-sizing: border-box;
       margin: 0;
