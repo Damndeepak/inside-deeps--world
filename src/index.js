@@ -23,9 +23,19 @@ export default {
           );
         }
 
-        return Response.json({ success: true });
+        const city = request.cf?.city || "Unknown";
+        const country = request.cf?.country || "Unknown";
+        const timestamp = new Date().toISOString();
 
-      } catch {
+        await env.LOGS_DB.prepare(
+          `INSERT INTO access_logs (section, city, country, timestamp)
+           VALUES (?, ?, ?, ?)`
+        )
+          .bind(section, city, country, timestamp)
+          .run();
+
+        return Response.json({ success: true });
+      } catch (error) {
         return Response.json(
           { success: false },
           { status: 400 }
