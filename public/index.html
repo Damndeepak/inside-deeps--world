@@ -1,12 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Inside Deep's World</title>
 
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Inter:wght@400;500;600;700&display=swap');
+
+    :root {
+      --bg: #070707;
+      --text: #f4f4f4;
+      --muted: #707070;
+      --line: #1d1d1d;
+    }
+
     * {
       box-sizing: border-box;
       margin: 0;
@@ -20,11 +28,10 @@
     body {
       min-height: 100vh;
       background:
-        radial-gradient(circle at 50% -10%, #202020 0%, transparent 35%),
-        #070707;
-      color: #f5f5f5;
-      font-family: Arial, Helvetica, sans-serif;
-      padding: 30px 18px;
+        radial-gradient(circle at 50% -10%, #171717 0%, transparent 42%),
+        var(--bg);
+      color: var(--text);
+      font-family: "Inter", sans-serif;
       overflow-x: hidden;
     }
 
@@ -33,126 +40,166 @@
       position: fixed;
       inset: 0;
       pointer-events: none;
+      opacity: .035;
       background-image:
-        radial-gradient(rgba(255,255,255,.035) 1px, transparent 1px);
-      background-size: 28px 28px;
-      mask-image: linear-gradient(to bottom, black, transparent 85%);
+        radial-gradient(#fff .5px, transparent .5px);
+      background-size: 5px 5px;
+      z-index: 20;
     }
 
-    .container {
-      width: 100%;
-      max-width: 700px;
+    .page {
+      width: min(900px, calc(100% - 40px));
       margin: auto;
-      position: relative;
-      z-index: 1;
     }
 
     /* HERO */
 
     .hero {
-      text-align: center;
-      padding: 70px 0 45px;
+      min-height: 82vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 80px 0 50px;
     }
 
     .eyebrow {
-      color: #666;
+      font-family: "DM Mono", monospace;
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: 2px;
       text-transform: uppercase;
-      letter-spacing: 4px;
-      font-size: 9px;
-      margin-bottom: 18px;
+      margin-bottom: 25px;
+      animation: fadeUp .8s ease both;
     }
 
-    .title {
-      font-size: clamp(36px, 8vw, 52px);
-      font-weight: 800;
-      letter-spacing: -2.5px;
-      line-height: 1;
-      background: linear-gradient(180deg, #fff, #858585);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      margin-bottom: 17px;
+    .hero h1 {
+      font-size: clamp(64px, 12vw, 130px);
+      line-height: .84;
+      letter-spacing: -7px;
+      font-weight: 700;
+      max-width: 850px;
+      animation: fadeUp .9s ease .08s both;
     }
 
-    .subtitle {
+    .hero h1 span {
       color: #777;
-      font-size: 13px;
-      letter-spacing: .2px;
+    }
+
+    .hero-sub {
+      margin-top: 38px;
+      color: #777;
+      font-size: 14px;
+      line-height: 1.7;
+      max-width: 330px;
+      animation: fadeUp .9s ease .18s both;
+    }
+
+    .scroll-note {
+      margin-top: 55px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: #454545;
+      font-family: "DM Mono", monospace;
+      font-size: 10px;
+      letter-spacing: 1px;
+      animation: fadeUp .9s ease .3s both;
+    }
+
+    .scroll-line {
+      width: 45px;
+      height: 1px;
+      background: #333;
     }
 
     /* SECTIONS */
 
     .sections {
-      display: flex;
-      flex-direction: column;
-      gap: 13px;
+      border-top: 1px solid var(--line);
     }
 
     .section {
       position: relative;
-      width: 100%;
-      padding: 21px 22px;
-      border: 1px solid #252525;
-      border-radius: 18px;
-      background:
-        linear-gradient(135deg, rgba(255,255,255,.045), rgba(255,255,255,.01)),
-        #0d0d0d;
-      color: #f5f5f5;
-      text-align: left;
-      font-size: 15px;
-      font-weight: 600;
+      display: grid;
+      grid-template-columns: 55px 1fr auto;
+      align-items: center;
+      gap: 20px;
+      min-height: 105px;
+      padding: 20px 8px;
+      border-bottom: 1px solid var(--line);
       cursor: pointer;
       overflow: hidden;
       transition:
-        transform .25s ease,
-        border-color .25s ease,
-        background .25s ease,
-        box-shadow .25s ease;
+        padding .35s ease,
+        background .35s ease;
     }
 
     .section::before {
       content: "";
       position: absolute;
-      width: 120px;
-      height: 120px;
-      top: -70px;
-      right: -40px;
-      background: rgba(255,255,255,.04);
-      filter: blur(25px);
-      border-radius: 50%;
-      transition: .3s ease;
+      left: 0;
+      top: 0;
+      width: 0;
+      height: 100%;
+      background: #fff;
+      transition: width .35s ease;
     }
 
     .section:hover {
-      transform: translateY(-3px);
-      border-color: #444;
-      background: #121212;
-      box-shadow: 0 15px 40px rgba(0,0,0,.35);
+      padding-left: 20px;
+      background: #0b0b0b;
     }
 
     .section:hover::before {
-      transform: scale(1.5);
+      width: 2px;
     }
 
-    .section:active {
-      transform: translateY(-1px) scale(.99);
+    .number {
+      color: #3d3d3d;
+      font-family: "DM Mono", monospace;
+      font-size: 11px;
+      transition: color .3s ease;
     }
 
-    .lock {
-      float: right;
-      color: #666;
-      font-size: 13px;
+    .section:hover .number {
+      color: #888;
+    }
+
+    .section-name {
+      font-size: clamp(20px, 3vw, 28px);
+      font-weight: 500;
+      letter-spacing: -1px;
+    }
+
+    .section-desc {
+      color: #555;
+      font-size: 11px;
+      margin-top: 5px;
+    }
+
+    .arrow {
+      color: #444;
+      font-size: 20px;
+      transition:
+        transform .3s ease,
+        color .3s ease;
+    }
+
+    .section:hover .arrow {
+      transform: translateX(7px);
+      color: #fff;
     }
 
     /* FOOTER */
 
-    .footer {
-      text-align: center;
-      margin-top: 45px;
-      padding-bottom: 20px;
-      color: #3d3d3d;
-      font-size: 10px;
-      letter-spacing: 2px;
-      text-transform: uppercase;
+    footer {
+      padding: 100px 0 40px;
+      display: flex;
+      justify-content: space-between;
+      color: #333;
+      font-family: "DM Mono", monospace;
+      font-size: 9px;
+      letter-spacing: 1px;
     }
 
     /* MODAL */
@@ -160,240 +207,242 @@
     .modal {
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,.78);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
+      background: rgba(0,0,0,.82);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
       display: none;
       align-items: center;
       justify-content: center;
       padding: 20px;
-      z-index: 1000;
+      z-index: 100;
     }
 
     .modal.show {
       display: flex;
-      animation: modalBg .25s ease;
+      animation: modalIn .3s ease both;
     }
 
     .box {
-      width: 100%;
-      max-width: 390px;
+      width: min(420px, 100%);
       background:
-        linear-gradient(145deg, rgba(255,255,255,.055), rgba(255,255,255,.015)),
-        #0d0d0d;
-      border: 1px solid #303030;
-      border-radius: 23px;
-      padding: 27px;
-      box-shadow:
-        0 30px 90px rgba(0,0,0,.65),
-        inset 0 1px 0 rgba(255,255,255,.04);
-      animation: modalBox .3s ease;
+        linear-gradient(145deg, #111, #090909);
+      border: 1px solid #292929;
+      border-radius: 20px;
+      padding: 30px;
+      box-shadow: 0 30px 100px rgba(0,0,0,.7);
+      animation: boxIn .35s ease both;
+    }
+
+    .box-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 28px;
+    }
+
+    .box-label {
+      font-family: "DM Mono", monospace;
+      font-size: 9px;
+      color: #555;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .close {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      border: 1px solid #292929;
+      background: #101010;
+      color: #777;
+      cursor: pointer;
+      transition: .2s ease;
+    }
+
+    .close:hover {
+      color: #fff;
+      border-color: #555;
+      transform: rotate(90deg);
     }
 
     .box h2 {
-      font-size: 23px;
-      letter-spacing: -.5px;
-      margin-bottom: 8px;
+      font-size: 31px;
+      letter-spacing: -1.5px;
+      margin-bottom: 10px;
     }
 
     .hint {
-      color: #777;
-      font-size: 13px;
+      color: #666;
+      font-size: 12px;
       line-height: 1.6;
-      margin-bottom: 19px;
+      margin-bottom: 22px;
     }
 
     input {
       width: 100%;
-      padding: 14px;
+      padding: 15px 16px;
       border-radius: 12px;
-      border: 1px solid #303030;
+      border: 1px solid #292929;
       background: #070707;
       color: #fff;
       outline: none;
-      font-size: 14px;
-      transition: .2s ease;
+      font-family: "DM Mono", monospace;
+      font-size: 13px;
+      transition: .25s ease;
     }
 
     input:focus {
-      border-color: #666;
-      box-shadow: 0 0 0 3px rgba(255,255,255,.035);
+      border-color: #777;
+      box-shadow: 0 0 0 3px rgba(255,255,255,.03);
     }
 
     .actions {
       display: flex;
-      gap: 9px;
+      gap: 10px;
       margin-top: 12px;
     }
 
     .actions button {
       flex: 1;
       padding: 13px;
-      border-radius: 12px;
-      border: 1px solid #303030;
-      background: #161616;
-      color: #fff;
+      border-radius: 11px;
+      border: 1px solid #292929;
+      background: #141414;
+      color: #aaa;
       cursor: pointer;
+      font-weight: 600;
       transition: .2s ease;
     }
 
     .actions button:hover {
-      background: #202020;
+      background: #1c1c1c;
+      color: #fff;
     }
 
     .actions .enter {
-      background: #f5f5f5;
+      background: #f4f4f4;
       color: #080808;
-      border-color: #f5f5f5;
-      font-weight: 600;
+      border-color: #f4f4f4;
     }
 
     .actions .enter:hover {
-      background: #dcdcdc;
+      background: #fff;
+      transform: translateY(-1px);
     }
 
     .error {
-      color: #ff7777;
-      font-size: 12px;
-      margin-top: 10px;
-      min-height: 15px;
+      color: #ff6f6f;
+      font-size: 11px;
+      margin-top: 12px;
+      min-height: 14px;
+      font-family: "DM Mono", monospace;
     }
 
     /* UNLOCKED CONTENT */
 
     #unlockedContent {
-      display: none;
-      margin-top: 30px;
-      padding-bottom: 30px;
-      animation: pageIn .45s ease;
+      width: min(900px, calc(100% - 40px));
+      margin: 0 auto;
+      padding: 80px 0 100px;
+      animation: fadeUp .5s ease both;
     }
 
-    #unlockedContent.active {
-      display: block;
+    .content-header {
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 35px;
+      margin-bottom: 70px;
+    }
+
+    .content-index {
+      font-family: "DM Mono", monospace;
+      color: #444;
+      font-size: 10px;
+      letter-spacing: 2px;
+      margin-bottom: 18px;
+    }
+
+    .content-header h2 {
+      font-size: clamp(48px, 9vw, 82px);
+      line-height: .9;
+      letter-spacing: -4px;
+    }
+
+    .content-header p {
+      color: #666;
+      margin-top: 18px;
+      font-size: 13px;
+    }
+
+    .friend {
+      position: relative;
+      padding: 0 0 70px;
+      margin-bottom: 70px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .friend:last-child {
+      border-bottom: none;
+    }
+
+    .friend-meta {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 18px;
+      font-family: "DM Mono", monospace;
+      color: #444;
+      font-size: 9px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+
+    .friend h3 {
+      font-size: clamp(32px, 6vw, 52px);
+      letter-spacing: -2.5px;
+      margin-bottom: 25px;
+    }
+
+    .friend p {
+      max-width: 680px;
+      color: #999;
+      font-size: 15px;
+      line-height: 1.9;
+      margin-bottom: 20px;
+    }
+
+    .friend.special {
+      padding: 50px 0;
+    }
+
+    .friend.special h3 {
+      letter-spacing: 5px;
+      color: #ddd;
     }
 
     .back {
       display: inline-flex;
       align-items: center;
-      gap: 7px;
-      margin-bottom: 28px;
-      color: #777;
-      font-size: 12px;
+      gap: 10px;
+      color: #666;
+      background: transparent;
+      border: 1px solid #222;
+      border-radius: 100px;
+      padding: 11px 17px;
       cursor: pointer;
-      transition: .2s ease;
+      font-size: 11px;
+      transition: .25s ease;
     }
 
     .back:hover {
       color: #fff;
-      transform: translateX(-3px);
-    }
-
-    #unlockedContent h2 {
-      font-size: 34px;
-      letter-spacing: -1.5px;
-      margin-bottom: 9px;
-    }
-
-    .intro {
-      color: #707070;
-      font-size: 13px;
-      line-height: 1.7;
-      margin-bottom: 25px;
-    }
-
-    /* FRIEND CARDS */
-
-    .friend-card {
-      position: relative;
-      background:
-        linear-gradient(145deg, rgba(255,255,255,.055), rgba(255,255,255,.01)),
-        #0d0d0d;
-      border: 1px solid #272727;
-      border-radius: 22px;
-      padding: 25px;
-      margin-bottom: 16px;
-      box-shadow:
-        0 12px 40px rgba(0,0,0,.22),
-        inset 0 1px 0 rgba(255,255,255,.025);
-      overflow: hidden;
-      transition: .25s ease;
-    }
-
-    .friend-card::before {
-      content: "";
-      position: absolute;
-      width: 150px;
-      height: 150px;
-      top: -100px;
-      right: -70px;
-      border-radius: 50%;
-      background: rgba(255,255,255,.045);
-      filter: blur(25px);
-    }
-
-    .friend-card:hover {
-      border-color: #3b3b3b;
-      transform: translateY(-2px);
-      box-shadow: 0 18px 50px rgba(0,0,0,.32);
-    }
-
-    .friend-name {
-      position: relative;
-      font-size: 23px;
-      letter-spacing: -.5px;
-      margin-bottom: 15px;
-    }
-
-    .friend-card p {
-      position: relative;
-      color: #aaa;
-      font-size: 14px;
-      line-height: 1.85;
-      margin-bottom: 14px;
-    }
-
-    .friend-card p:last-child {
-      margin-bottom: 0;
-    }
-
-    /* SPECIAL CARD */
-
-    .special-card {
-      background:
-        radial-gradient(
-          circle at top right,
-          rgba(255,255,255,.09),
-          transparent 38%
-        ),
-        linear-gradient(145deg, #151515, #0a0a0a);
-      border-color: #363636;
-      padding: 28px;
-    }
-
-    .special-card .friend-name {
-      letter-spacing: 3px;
-    }
-
-    /* EMPTY SECTIONS */
-
-    .empty-section {
-      background:
-        linear-gradient(145deg, rgba(255,255,255,.045), rgba(255,255,255,.01)),
-        #0d0d0d;
-      border: 1px solid #272727;
-      border-radius: 20px;
-      padding: 27px;
-      color: #777;
-      line-height: 1.8;
-      text-align: center;
+      border-color: #555;
     }
 
     /* ANIMATIONS */
 
-    @keyframes pageIn {
+    @keyframes fadeUp {
       from {
         opacity: 0;
-        transform: translateY(15px);
+        transform: translateY(18px);
       }
 
       to {
@@ -402,7 +451,7 @@
       }
     }
 
-    @keyframes modalBg {
+    @keyframes modalIn {
       from {
         opacity: 0;
       }
@@ -412,10 +461,10 @@
       }
     }
 
-    @keyframes modalBox {
+    @keyframes boxIn {
       from {
         opacity: 0;
-        transform: translateY(15px) scale(.97);
+        transform: translateY(15px) scale(.98);
       }
 
       to {
@@ -426,101 +475,159 @@
 
     /* MOBILE */
 
-    @media (max-width: 500px) {
+    @media (max-width: 600px) {
 
-      body {
-        padding: 20px 15px;
+      .page {
+        width: min(100% - 30px, 900px);
       }
 
       .hero {
-        padding: 50px 0 35px;
+        min-height: 76vh;
       }
 
-      .title {
-        letter-spacing: -1.8px;
+      .hero h1 {
+        letter-spacing: -4px;
       }
 
       .section {
-        padding: 19px;
+        grid-template-columns: 38px 1fr 20px;
+        min-height: 92px;
+        gap: 12px;
       }
 
-      .friend-card {
-        padding: 21px;
-        border-radius: 19px;
+      .section-name {
+        font-size: 19px;
       }
 
-      #unlockedContent h2 {
-        font-size: 29px;
+      .section-desc {
+        font-size: 10px;
       }
 
-      .friend-name {
-        font-size: 21px;
+      footer {
+        padding-top: 70px;
       }
 
-      .friend-card p {
-        font-size: 13.5px;
-        line-height: 1.8;
+      #unlockedContent {
+        width: min(100% - 30px, 900px);
+      }
+
+      .content-header {
+        margin-bottom: 50px;
+      }
+
+      .content-header h2 {
+        letter-spacing: -3px;
+      }
+
+      .friend {
+        padding-bottom: 50px;
+        margin-bottom: 50px;
+      }
+
+      .friend p {
+        font-size: 14px;
+        line-height: 1.85;
+      }
+
+      .box {
+        padding: 25px;
       }
     }
   </style>
 </head>
 
-
 <body>
 
-  <div class="container">
+  <main class="page">
 
-    <div class="hero">
-      <div class="eyebrow">private archive</div>
+    <section class="hero">
 
-      <div class="title">
-        Inside Deep's World
+      <div class="eyebrow">private archive / 001</div>
+
+      <h1>
+        INSIDE<br>
+        DEEP'S<br>
+        <span>WORLD</span>
+      </h1>
+
+      <p class="hero-sub">
+        a small collection of people, memories,
+        music and random shit that somehow became
+        part of my world.
+      </p>
+
+      <div class="scroll-note">
+        <span class="scroll-line"></span>
+        ENTER THE ARCHIVE
       </div>
 
-      <div class="subtitle">
-        Every section has its own password.
+    </section>
+
+    <section class="sections">
+
+      <div class="section" onclick="openModal('people')">
+        <div class="number">01</div>
+
+        <div>
+          <div class="section-name">Ppl I fw ❤️</div>
+          <div class="section-desc">the people who matter</div>
+        </div>
+
+        <div class="arrow">↗</div>
       </div>
-    </div>
 
+      <div class="section" onclick="openModal('memories')">
+        <div class="number">02</div>
 
-    <div class="sections" id="sections">
+        <div>
+          <div class="section-name">Memories</div>
+          <div class="section-desc">things worth remembering</div>
+        </div>
 
-      <button class="section" onclick="openModal('people')">
-        Ppl I fw ❤️
-        <span class="lock">🔒</span>
-      </button>
+        <div class="arrow">↗</div>
+      </div>
 
-      <button class="section" onclick="openModal('memories')">
-        Memories
-        <span class="lock">🔒</span>
-      </button>
+      <div class="section" onclick="openModal('music')">
+        <div class="number">03</div>
 
-      <button class="section" onclick="openModal('music')">
-        Music
-        <span class="lock">🔒</span>
-      </button>
+        <div>
+          <div class="section-name">Music</div>
+          <div class="section-desc">sounds that stayed</div>
+        </div>
 
-      <button class="section" onclick="openModal('socials')">
-        Socials
-        <span class="lock">🔒</span>
-      </button>
+        <div class="arrow">↗</div>
+      </div>
 
-      <button class="section" onclick="openModal('random')">
-        Random Shit
-        <span class="lock">🔒</span>
-      </button>
+      <div class="section" onclick="openModal('socials')">
+        <div class="number">04</div>
 
-    </div>
+        <div>
+          <div class="section-name">Socials</div>
+          <div class="section-desc">find me somewhere online</div>
+        </div>
 
+        <div class="arrow">↗</div>
+      </div>
 
-    <div id="unlockedContent"></div>
+      <div class="section" onclick="openModal('random')">
+        <div class="number">05</div>
 
+        <div>
+          <div class="section-name">Random Shit</div>
+          <div class="section-desc">the unexplained section</div>
+        </div>
 
-    <div class="footer">
-      inside deep's world
-    </div>
+        <div class="arrow">↗</div>
+      </div>
 
-  </div>
+    </section>
+
+    <footer>
+      <span>DEEP'S WORLD</span>
+      <span>© 2026</span>
+    </footer>
+
+  </main>
 
 
   <!-- PASSWORD MODAL -->
@@ -529,18 +636,35 @@
 
     <div class="box">
 
-      <h2 id="modalTitle">Locked</h2>
+      <div class="box-top">
 
-      <div class="hint" id="modalHint">
-        Enter the password to continue.
+        <div class="box-label">
+          restricted area
+        </div>
+
+        <button
+          class="close"
+          onclick="closeModal()"
+        >
+          ×
+        </button>
+
       </div>
+
+      <h2 id="modalTitle">
+        Enter password
+      </h2>
+
+      <p class="hint" id="modalHint">
+        this section is private.
+      </p>
 
       <input
         id="passwordInput"
         type="password"
-        placeholder="Password"
+        placeholder="enter password"
         autocomplete="off"
-      >
+      />
 
       <div class="actions">
 
@@ -548,13 +672,19 @@
           Cancel
         </button>
 
-        <button class="enter" onclick="checkPassword()">
+        <button
+          class="enter"
+          onclick="checkPassword()"
+        >
           Enter
         </button>
 
       </div>
 
-      <div class="error" id="error"></div>
+      <div
+        class="error"
+        id="error"
+      ></div>
 
     </div>
 
@@ -563,14 +693,14 @@
 
   <script>
 
-    let currentSection = "";
+    let currentSection = null;
 
 
     const sectionInfo = {
 
       people: {
         title: "Ppl I fw ❤️",
-        hint: "you already know who belongs here."
+        hint: "A Day That Matters."
       },
 
       memories: {
@@ -580,233 +710,18 @@
 
       music: {
         title: "Music",
-        hint: "you know the vibe."
+        hint: "you might know the vibe."
       },
 
       socials: {
         title: "Socials",
-        hint: "only if you actually know me."
+        hint: "not everything is public."
       },
 
       random: {
         title: "Random Shit",
-        hint: "deep lore."
+        hint: "good luck figuring this one out."
       }
-
-    };
-
-
-    const content = {
-
-      people: `
-
-        <span class="back" onclick="goBack()">← back</span>
-
-        <h2>Ppl I fw ❤️</h2>
-
-        <p class="intro">
-          I got five friends. One in real life, and four online.
-        </p>
-
-
-        <div class="friend-card">
-
-          <h3 class="friend-name">Om</h3>
-
-          <p>
-            He’s the only one I know in real life, and he’s been a part
-            of my life in a completely different way from the others.
-            Having someone you actually know outside the screen just
-            hits different.
-          </p>
-
-          <p>
-            He’s one of those people who makes the whole “friend”
-            thing feel real.
-          </p>
-
-        </div>
-
-
-        <div class="friend-card">
-
-          <h3 class="friend-name">Sharik</h3>
-
-          <p>
-            Sharik is my OG friend. I always felt like he was that one
-            online friend who was genuinely great to have around.
-            We’d always be fucking around, talking shit, and having fun.
-            I don’t think I could ever be sad while talking to him.
-          </p>
-
-          <p>
-            He was, and honestly still is, fucking funny.
-            Sharik is an OG, and that’s just it.
-          </p>
-
-        </div>
-
-
-        <div class="friend-card">
-
-          <h3 class="friend-name">Daksh</h3>
-
-          <p>
-            Daksh is one of my closest friends. He was probably the
-            biggest menace back in 2024. Like, bro, I genuinely miss
-            the 2024 version of Daksh.
-          </p>
-
-          <p>
-            We did so much stupid shit that year, so much fucking
-            bakchodi. I don’t even know how to explain it. He could
-            somehow turn literally anything into a joke.
-          </p>
-
-          <p>
-            Nothing ever felt too serious when I was talking to him,
-            and I used to laugh so much because of that.
-            He’s still one of my favourite people, though.
-          </p>
-
-        </div>
-
-
-        <div class="friend-card">
-
-          <h3 class="friend-name">Diksha</h3>
-
-          <p>
-            Diksha is the third one. I found her through the same place
-            where I met Sharik. Basically, where I found Sharik,
-            I found Diksha too.
-          </p>
-
-          <p>
-            Me and her actually started off with us arguing a lot.
-            But slowly, things started getting better. Eventually,
-            we just became friends online, and she turned out to be
-            a pretty good friend.
-          </p>
-
-          <p>
-            She’s funny, easy to talk to, and honestly just a good
-            person to have around.
-          </p>
-
-          <p>
-            And before anyone gets the wrong idea, no, I wasn’t in
-            love with her. I could never be in love with her.
-            We literally end up fighting every time.
-          </p>
-
-          <p>
-            She’s just not my type, and honestly, I feel like we’d
-            always end up arguing anyway. That’s just how we are.
-          </p>
-
-        </div>
-
-
-        <div class="friend-card special-card">
-
-          <h3 class="friend-name">*******</h3>
-
-          <p>
-            She’s not really just a friend to me. She became something
-            way more than that over time. I spent more than half a year
-            with her, and honestly, I spent more than a year thinking
-            about her.
-          </p>
-
-          <p>
-            That’s a lot of time to have one person constantly somewhere
-            in your mind. Somehow, she became a huge part of my life
-            without me even realizing how much space she had taken up.
-          </p>
-
-          <p>
-            Right now, while I’m writing this about you,
-            “The Night We Met” is playing in front of me.
-            I actually like the timing of that.
-          </p>
-
-          <p>
-            And honestly, I’m kind of crying on the inside while
-            writing this.
-          </p>
-
-        </div>
-
-      `,
-
-
-      memories: `
-
-        <span class="back" onclick="goBack()">← back</span>
-
-        <h2>Memories</h2>
-
-        <p class="intro">
-          some moments deserve their own little corner.
-        </p>
-
-        <div class="empty-section">
-          Memories coming soon...
-        </div>
-
-      `,
-
-
-      music: `
-
-        <span class="back" onclick="goBack()">← back</span>
-
-        <h2>Music</h2>
-
-        <p class="intro">
-          songs, playlists, and whatever the fuck is playing in my head.
-        </p>
-
-        <div class="empty-section">
-          Music coming soon...
-        </div>
-
-      `,
-
-
-      socials: `
-
-        <span class="back" onclick="goBack()">← back</span>
-
-        <h2>Socials</h2>
-
-        <p class="intro">
-          places where you can find me online.
-        </p>
-
-        <div class="empty-section">
-          Socials coming soon...
-        </div>
-
-      `,
-
-
-      random: `
-
-        <span class="back" onclick="goBack()">← back</span>
-
-        <h2>Random Shit</h2>
-
-        <p class="intro">
-          absolutely unnecessary information about me.
-        </p>
-
-        <div class="empty-section">
-          Deep lore loading...
-        </div>
-
-      `
 
     };
 
@@ -830,7 +745,11 @@
         .classList.add("show");
 
       setTimeout(() => {
-        document.getElementById("passwordInput").focus();
+
+        document
+          .getElementById("passwordInput")
+          .focus();
+
       }, 100);
 
     }
@@ -841,6 +760,10 @@
       document
         .getElementById("passwordModal")
         .classList.remove("show");
+
+      document.getElementById("passwordInput").value = "";
+
+      document.getElementById("error").textContent = "";
 
     }
 
@@ -853,16 +776,16 @@
       const error =
         document.getElementById("error");
 
-
       if (!password) {
 
-        error.textContent = "enter the password.";
+        error.textContent =
+          "enter something first.";
 
         return;
       }
 
-
-      error.textContent = "checking...";
+      error.textContent =
+        "checking...";
 
 
       try {
@@ -884,12 +807,14 @@
         );
 
 
-        const result = await response.json();
+        const data =
+          await response.json();
 
 
-        if (!response.ok || !result.success) {
+        if (!data.success) {
 
-          error.textContent = "wrong password.";
+          error.textContent =
+            "wrong password.";
 
           return;
         }
@@ -897,25 +822,10 @@
 
         closeModal();
 
-        document.getElementById("sections").style.display = "none";
-
-        const unlocked =
-          document.getElementById("unlockedContent");
-
-        unlocked.innerHTML =
-          content[currentSection];
-
-        unlocked.classList.add("active");
-
-        window.scrollTo({
-          top: 0,
-          behavior: "smooth"
-        });
-
-      }
+        showContent(currentSection);
 
 
-      catch (err) {
+      } catch (err) {
 
         error.textContent =
           "something went wrong. try again.";
@@ -925,16 +835,354 @@
     }
 
 
-    function goBack() {
+    function showContent(section) {
 
-      const unlocked =
+      const content = {
+
+        people: `
+
+          <div class="content-header">
+
+            <div class="content-index">
+              01 / PEOPLE
+            </div>
+
+            <h2>
+              Ppl I fw ❤️
+            </h2>
+
+            <p>
+              the people who somehow became part of my world.
+            </p>
+
+          </div>
+
+
+          <div class="friend">
+
+            <div class="friend-meta">
+              <span>01 / REAL LIFE</span>
+              <span>OM</span>
+            </div>
+
+            <h3>Om</h3>
+
+            <p>
+              He’s the only one I know in real life, and he’s been a
+              part of my life in a completely different way from the others.
+              Having someone you actually know outside the screen just hits
+              different.
+            </p>
+
+            <p>
+              He’s one of those people who makes the whole “friend” thing
+              feel real.
+            </p>
+
+          </div>
+
+
+          <div class="friend">
+
+            <div class="friend-meta">
+              <span>02 / ONLINE</span>
+              <span>OG</span>
+            </div>
+
+            <h3>Sharik</h3>
+
+            <p>
+              Sharik is my OG friend. I always felt like he was that one
+              online friend who was genuinely great to have around.
+              We’d always be fucking around, talking shit, and having fun.
+            </p>
+
+            <p>
+              I don’t think I could ever be sad while talking to him.
+              He was, and honestly still is, fucking funny.
+              Sharik is an OG, and that’s just it.
+            </p>
+
+          </div>
+
+
+          <div class="friend">
+
+            <div class="friend-meta">
+              <span>03 / ONLINE</span>
+              <span>2024 ARCHIVE</span>
+            </div>
+
+            <h3>Daksh</h3>
+
+            <p>
+              Daksh is one of my closest friends. He was probably the
+              biggest menace back in 2024.
+            </p>
+
+            <p>
+              Like, bro, I genuinely miss the 2024 version of Daksh.
+              We did so much stupid shit that year, so much fucking bakchodi.
+              I don’t even know how to explain it.
+            </p>
+
+            <p>
+              He could somehow turn literally anything into a joke.
+              Nothing ever felt too serious when I was talking to him,
+              and I used to laugh so much because of that.
+              He’s still one of my favourite people, though.
+            </p>
+
+          </div>
+
+
+          <div class="friend">
+
+            <div class="friend-meta">
+              <span>04 / ONLINE</span>
+              <span>NO, NOT LIKE THAT</span>
+            </div>
+
+            <h3>Diksha</h3>
+
+            <p>
+              Diksha is the third one. I found her through the same place
+              where I met Sharik. Basically, where I found Sharik,
+              I found Diksha too.
+            </p>
+
+            <p>
+              Me and her actually started off with us arguing a lot.
+              But slowly, things started getting better. Eventually,
+              we just became friends online, and she turned out to be
+              a pretty good friend.
+            </p>
+
+            <p>
+              She’s funny, easy to talk to, and honestly just a good
+              person to have around.
+            </p>
+
+            <p>
+              And before anyone gets the wrong idea, no, I wasn’t in love
+              with her. I could never be in love with her.
+              We literally end up fighting every time.
+              She’s just not my type, and honestly, I feel like we’d
+              always end up arguing anyway.
+            </p>
+
+            <p>
+              That’s just how we are.
+            </p>
+
+          </div>
+
+
+          <div class="friend special">
+
+            <div class="friend-meta">
+              <span>05 / CLASSIFIED</span>
+              <span>*******</span>
+            </div>
+
+            <h3>*******</h3>
+
+            <p>
+              She’s not really just a friend to me.
+              She became something way more than that over time.
+              I spent more than half a year with her, and honestly,
+              I spent more than a year thinking about her.
+            </p>
+
+            <p>
+              That’s a lot of time to have one person constantly
+              somewhere in your mind. Somehow, she became a huge part
+              of my life without me even realizing how much space
+              she had taken up.
+            </p>
+
+            <p>
+              Right now, while I’m writing this about you,
+              “The Night We Met” is playing in front of me.
+              I actually like the timing of that.
+              And honestly, I’m kind of crying on the inside
+              while writing this.
+            </p>
+
+          </div>
+
+
+          <button
+            class="back"
+            onclick="goHome()"
+          >
+            ← back to archive
+          </button>
+
+        `,
+
+
+        memories: `
+
+          <div class="content-header">
+
+            <div class="content-index">
+              02 / MEMORIES
+            </div>
+
+            <h2>
+              Memories
+            </h2>
+
+            <p>
+              this part is still being built.
+            </p>
+
+          </div>
+
+          <button
+            class="back"
+            onclick="goHome()"
+          >
+            ← back to archive
+          </button>
+
+        `,
+
+
+        music: `
+
+          <div class="content-header">
+
+            <div class="content-index">
+              03 / MUSIC
+            </div>
+
+            <h2>
+              Music
+            </h2>
+
+            <p>
+              songs that somehow became memories.
+            </p>
+
+          </div>
+
+          <button
+            class="back"
+            onclick="goHome()"
+          >
+            ← back to archive
+          </button>
+
+        `,
+
+
+        socials: `
+
+          <div class="content-header">
+
+            <div class="content-index">
+              04 / SOCIALS
+            </div>
+
+            <h2>
+              Socials
+            </h2>
+
+            <p>
+              you know where to find me.
+            </p>
+
+          </div>
+
+          <button
+            class="back"
+            onclick="goHome()"
+          >
+            ← back to archive
+          </button>
+
+        `,
+
+
+        random: `
+
+          <div class="content-header">
+
+            <div class="content-index">
+              05 / RANDOM
+            </div>
+
+            <h2>
+              Random Shit
+            </h2>
+
+            <p>
+              deep lore loading...
+            </p>
+
+          </div>
+
+          <button
+            class="back"
+            onclick="goHome()"
+          >
+            ← back to archive
+          </button>
+
+        `
+
+      };
+
+
+      document.querySelector("main").style.display =
+        "none";
+
+
+      let box =
         document.getElementById("unlockedContent");
 
-      unlocked.classList.remove("active");
 
-      unlocked.innerHTML = "";
+      if (!box) {
 
-      document.getElementById("sections").style.display = "flex";
+        box =
+          document.createElement("div");
+
+        box.id =
+          "unlockedContent";
+
+        document.body.appendChild(box);
+
+      }
+
+
+      box.innerHTML =
+        content[section];
+
+
+      window.scrollTo({
+        top: 0,
+        behavior: "instant"
+      });
+
+    }
+
+
+    function goHome() {
+
+      const box =
+        document.getElementById("unlockedContent");
+
+
+      if (box) {
+        box.remove();
+      }
+
+
+      document.querySelector("main").style.display =
+        "block";
+
 
       window.scrollTo({
         top: 0,
@@ -946,24 +1194,34 @@
 
     document
       .getElementById("passwordInput")
-      .addEventListener("keydown", function(event) {
+      .addEventListener(
+        "keydown",
+        function(event) {
 
-        if (event.key === "Enter") {
-          checkPassword();
+          if (event.key === "Enter") {
+            checkPassword();
+          }
+
+          if (event.key === "Escape") {
+            closeModal();
+          }
+
         }
-
-      });
+      );
 
 
     document
       .getElementById("passwordModal")
-      .addEventListener("click", function(event) {
+      .addEventListener(
+        "click",
+        function(event) {
 
-        if (event.target === this) {
-          closeModal();
+          if (event.target === this) {
+            closeModal();
+          }
+
         }
-
-      });
+      );
 
   </script>
 
