@@ -1,8 +1,8 @@
 {
   "name": "inside-deeps-world",
-  "main": "_worker.js",
+  "main": "src/index.js",
   "compatibility_date": "2026-09-04",
   "assets": {
-    "directory": "."
+    "directory": "./public"
   }
 }
