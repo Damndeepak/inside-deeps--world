@@ -3,8 +3,9 @@ export default {
     const url = new URL(request.url);
 
     // =========================
-    // EXISTING PASSWORD SYSTEM
+    // PASSWORD CHECK
     // =========================
+
     if (
       url.pathname === "/api/check-password" &&
       request.method === "POST"
@@ -38,7 +39,7 @@ export default {
           success: true
         });
 
-      } catch (error) {
+      } catch {
         return Response.json(
           { success: false },
           { status: 400 }
@@ -46,16 +47,21 @@ export default {
       }
     }
 
+
     // =========================
-    // GET /api/user
+    // USER
     // =========================
+
     if (
       url.pathname === "/api/user" &&
       request.method === "GET"
     ) {
       try {
-        const cookies = request.headers.get("Cookie") || "";
-        const match = cookies.match(/deep_user=([^;]+)/);
+        const cookies =
+          request.headers.get("Cookie") || "";
+
+        const match =
+          cookies.match(/deep_user=([^;]+)/);
 
         if (match) {
           const user = await env.DB
@@ -74,13 +80,18 @@ export default {
         }
 
         const id = crypto.randomUUID();
+
         const username =
           "User" +
-          Math.floor(100000 + Math.random() * 900000);
+          Math.floor(
+            100000 + Math.random() * 900000
+          );
 
         await env.DB
           .prepare(
-            "INSERT INTO users (id, username, created_at) VALUES (?, ?, ?)"
+            `INSERT INTO users
+            (id, username, created_at)
+            VALUES (?, ?, ?)`
           )
           .bind(
             id,
@@ -99,13 +110,15 @@ export default {
           }),
           {
             headers: {
-              "Content-Type": "application/json",
-              "Set-Cookie": `deep_user=${id}; Path=/; Max-Age=31536000; SameSite=Lax`
+              "Content-Type":
+                "application/json",
+              "Set-Cookie":
+                `deep_user=${id}; Path=/; Max-Age=31536000; SameSite=Lax`
             }
           }
         );
 
-      } catch (error) {
+      } catch {
         return Response.json(
           {
             success: false,
@@ -116,20 +129,28 @@ export default {
       }
     }
 
+
     // =========================
-    // POST /api/conversations
+    // CREATE CONVERSATION
     // =========================
+
     if (
       url.pathname === "/api/conversations" &&
       request.method === "POST"
     ) {
       try {
-        const cookies = request.headers.get("Cookie") || "";
-        const match = cookies.match(/deep_user=([^;]+)/);
+        const cookies =
+          request.headers.get("Cookie") || "";
+
+        const match =
+          cookies.match(/deep_user=([^;]+)/);
 
         if (!match) {
           return Response.json(
-            { success: false, error: "User not found" },
+            {
+              success: false,
+              error: "User not found"
+            },
             { status: 401 }
           );
         }
@@ -143,16 +164,46 @@ export default {
 
         if (!user) {
           return Response.json(
-            { success: false, error: "User not found" },
+            {
+              success: false,
+              error: "User not found"
+            },
             { status: 401 }
           );
         }
 
-        const conversationId = crypto.randomUUID();
+        /*
+          We use ONE existing conversation as the
+          shared conversation container.
+
+          If none exists, create one.
+        */
+
+        const existing =
+          await env.DB
+            .prepare(
+              `SELECT id
+               FROM conversations
+               ORDER BY created_at ASC
+               LIMIT 1`
+            )
+            .first();
+
+        if (existing) {
+          return Response.json({
+            success: true,
+            conversation_id: "all"
+          });
+        }
+
+        const conversationId =
+          crypto.randomUUID();
 
         await env.DB
           .prepare(
-            "INSERT INTO conversations (id, user_id, created_at) VALUES (?, ?, ?)"
+            `INSERT INTO conversations
+            (id, user_id, created_at)
+            VALUES (?, ?, ?)`
           )
           .bind(
             conversationId,
@@ -163,10 +214,10 @@ export default {
 
         return Response.json({
           success: true,
-          conversation_id: conversationId
+          conversation_id: "all"
         });
 
-      } catch (error) {
+      } catch {
         return Response.json(
           {
             success: false,
@@ -177,26 +228,37 @@ export default {
       }
     }
 
+
     // =========================
-    // POST /api/messages
+    // SEND MESSAGE
     // =========================
+
     if (
       url.pathname === "/api/messages" &&
       request.method === "POST"
     ) {
       try {
-        const cookies = request.headers.get("Cookie") || "";
-        const match = cookies.match(/deep_user=([^;]+)/);
+        const cookies =
+          request.headers.get("Cookie") || "";
+
+        const match =
+          cookies.match(/deep_user=([^;]+)/);
 
         if (!match) {
           return Response.json(
-            { success: false, error: "User not found" },
+            {
+              success: false,
+              error: "User not found"
+            },
             { status: 401 }
           );
         }
 
-        const { conversation_id, message, parent_id } =
-          await request.json();
+        const {
+          conversation_id,
+          message,
+          parent_id
+        } = await request.json();
 
         if (
           !conversation_id ||
@@ -204,7 +266,10 @@ export default {
           !message.trim()
         ) {
           return Response.json(
-            { success: false, error: "Message is required" },
+            {
+              success: false,
+              error: "Message is required"
+            },
             { status: 400 }
           );
         }
@@ -218,36 +283,134 @@ export default {
 
         if (!user) {
           return Response.json(
-            { success: false, error: "User not found" },
+            {
+              success: false,
+              error: "User not found"
+            },
             { status: 401 }
           );
         }
 
-        const conversation = await env.DB
-          .prepare(
-            "SELECT id FROM conversations WHERE id = ?"
-          )
-          .bind(conversation_id)
-          .first();
+        /*
+          "all" means the shared conversation.
 
-        if (!conversation) {
+          Find the real conversation where the
+          message will be stored.
+        */
+
+        let realConversation;
+
+        if (conversation_id === "all") {
+          realConversation =
+            await env.DB
+              .prepare(
+                `SELECT id
+                 FROM conversations
+                 ORDER BY created_at ASC
+                 LIMIT 1`
+              )
+              .first();
+
+          /*
+            Safety fallback if database has no
+            conversation yet.
+          */
+
+          if (!realConversation) {
+            const newConversationId =
+              crypto.randomUUID();
+
+            await env.DB
+              .prepare(
+                `INSERT INTO conversations
+                (id, user_id, created_at)
+                VALUES (?, ?, ?)`
+              )
+              .bind(
+                newConversationId,
+                user.id,
+                new Date().toISOString()
+              )
+              .run();
+
+            realConversation = {
+              id: newConversationId
+            };
+          }
+
+        } else {
+          realConversation =
+            await env.DB
+              .prepare(
+                `SELECT id
+                 FROM conversations
+                 WHERE id = ?`
+              )
+              .bind(conversation_id)
+              .first();
+        }
+
+        if (!realConversation) {
           return Response.json(
-            { success: false, error: "Conversation not found" },
+            {
+              success: false,
+              error: "Conversation not found"
+            },
             { status: 404 }
           );
         }
 
-        const messageId = crypto.randomUUID();
+
+        // =========================
+        // REPLY VALIDATION
+        // =========================
+
+        if (parent_id) {
+          const parent =
+            await env.DB
+              .prepare(
+                `SELECT id
+                 FROM messages
+                 WHERE id = ?`
+              )
+              .bind(parent_id)
+              .first();
+
+          if (!parent) {
+            return Response.json(
+              {
+                success: false,
+                error: "Parent message not found"
+              },
+              { status: 400 }
+            );
+          }
+        }
+
+
+        // =========================
+        // INSERT MESSAGE
+        // =========================
+
+        const messageId =
+          crypto.randomUUID();
 
         await env.DB
           .prepare(
             `INSERT INTO messages
-            (id, conversation_id, sender_id, message, parent_id, created_at)
+            (
+              id,
+              conversation_id,
+              sender_id,
+              message,
+              parent_id,
+              created_at
+            )
             VALUES (?, ?, ?, ?, ?, ?)`
           )
           .bind(
             messageId,
-            conversation_id,
+            realConversation.id,
             user.id,
             message.trim(),
             parent_id || null,
@@ -260,7 +423,7 @@ export default {
           message_id: messageId
         });
 
-      } catch (error) {
+      } catch {
         return Response.json(
           {
             success: false,
@@ -271,46 +434,167 @@ export default {
       }
     }
 
+
     // =========================
-    // GET /api/conversations
+    // DELETE MESSAGE
     // =========================
+
+    const messageMatch =
+      url.pathname.match(
+        /^\/api\/messages\/([^/]+)$/
+      );
+
+    if (
+      messageMatch &&
+      request.method === "DELETE"
+    ) {
+      try {
+        const cookies =
+          request.headers.get("Cookie") || "";
+
+        const match =
+          cookies.match(/deep_user=([^;]+)/);
+
+        if (!match) {
+          return Response.json(
+            {
+              success: false,
+              error: "User not found"
+            },
+            { status: 401 }
+          );
+        }
+
+        const messageId =
+          messageMatch[1];
+
+        const message =
+          await env.DB
+            .prepare(
+              `SELECT id, sender_id
+               FROM messages
+               WHERE id = ?`
+            )
+            .bind(messageId)
+            .first();
+
+        if (!message) {
+          return Response.json(
+            {
+              success: false,
+              error: "Message not found"
+            },
+            { status: 404 }
+          );
+        }
+
+        if (message.sender_id !== match[1]) {
+          return Response.json(
+            {
+              success: false,
+              error: "Not allowed"
+            },
+            { status: 403 }
+          );
+        }
+
+
+        /*
+          If this message has replies,
+          turn those replies into root messages
+          before deleting the parent.
+
+          This prevents replies from disappearing.
+        */
+
+        await env.DB
+          .prepare(
+            `UPDATE messages
+             SET parent_id = NULL
+             WHERE parent_id = ?`
+          )
+          .bind(messageId)
+          .run();
+
+        await env.DB
+          .prepare(
+            `DELETE FROM messages
+             WHERE id = ?`
+          )
+          .bind(messageId)
+          .run();
+
+        return Response.json({
+          success: true
+        });
+
+      } catch {
+        return Response.json(
+          {
+            success: false,
+            error: "Could not delete message"
+          },
+          { status: 500 }
+        );
+      }
+    }
+
+
+    // =========================
+    // GET ALL CONVERSATIONS
+    // =========================
+
     if (
       url.pathname === "/api/conversations" &&
       request.method === "GET"
     ) {
       try {
-        const result = await env.DB
-          .prepare(`
-            SELECT
-              c.id,
-              u.username,
-              c.created_at,
-              (
-                SELECT m.message
-                FROM messages m
-                WHERE m.conversation_id = c.id
-                ORDER BY m.created_at DESC
-                LIMIT 1
-              ) AS last_message,
-              (
-                SELECT m.created_at
-                FROM messages m
-                WHERE m.conversation_id = c.id
-                ORDER BY m.created_at DESC
-                LIMIT 1
-              ) AS last_message_time
-            FROM conversations c
-            JOIN users u ON u.id = c.user_id
-            ORDER BY c.created_at DESC
-          `)
-          .all();
+
+        /*
+          IMPORTANT:
+
+          Instead of returning every individual
+          conversation as a separate box, return
+          ONE shared conversation.
+        */
+
+        const latest =
+          await env.DB
+            .prepare(
+              `SELECT
+                m.message,
+                m.created_at,
+                u.username
+               FROM messages m
+               JOIN users u
+                 ON u.id = m.sender_id
+               ORDER BY m.created_at DESC
+               LIMIT 1`
+            )
+            .first();
 
         return Response.json({
           success: true,
-          conversations: result.results
+
+          conversations: [
+            {
+              id: "all",
+              username: "Everyone",
+              created_at:
+                latest?.created_at ||
+                new Date().toISOString(),
+
+              last_message:
+                latest?.message ||
+                "No messages yet",
+
+              last_message_time:
+                latest?.created_at || null
+            }
+          ]
         });
 
-      } catch (error) {
+      } catch {
         return Response.json(
           {
             success: false,
@@ -321,9 +605,11 @@ export default {
       }
     }
 
+
     // =========================
-    // GET /api/conversations/:id
+    // GET SHARED CONVERSATION
     // =========================
+
     const conversationMatch =
       url.pathname.match(
         /^\/api\/conversations\/([^/]+)$/
@@ -334,31 +620,89 @@ export default {
       request.method === "GET"
     ) {
       try {
-        const conversationId =
+        const requestedId =
           conversationMatch[1];
 
-        const result = await env.DB
-          .prepare(`
-            SELECT
-              m.id,
-              m.message,
-              m.parent_id,
-              m.created_at,
-              u.username
-            FROM messages m
-            JOIN users u ON u.id = m.sender_id
-            WHERE m.conversation_id = ?
-            ORDER BY m.created_at ASC
-          `)
-          .bind(conversationId)
-          .all();
+        let result;
+
+        if (requestedId === "all") {
+
+          /*
+            Load EVERY message from EVERY
+            existing conversation.
+
+            This is what makes the whole thing
+            one shared conversation.
+          */
+
+          result =
+            await env.DB
+              .prepare(
+                `SELECT
+                  m.id,
+                  m.message,
+                  m.parent_id,
+                  m.created_at,
+                  m.sender_id,
+                  u.username,
+
+                  pu.username AS parent_username
+
+                 FROM messages m
+
+                 JOIN users u
+                   ON u.id = m.sender_id
+
+                 LEFT JOIN messages pm
+                   ON pm.id = m.parent_id
+
+                 LEFT JOIN users pu
+                   ON pu.id = pm.sender_id
+
+                 ORDER BY m.created_at ASC`
+              )
+              .all();
+
+        } else {
+
+          result =
+            await env.DB
+              .prepare(
+                `SELECT
+                  m.id,
+                  m.message,
+                  m.parent_id,
+                  m.created_at,
+                  m.sender_id,
+                  u.username,
+
+                  pu.username AS parent_username
+
+                 FROM messages m
+
+                 JOIN users u
+                   ON u.id = m.sender_id
+
+                 LEFT JOIN messages pm
+                   ON pm.id = m.parent_id
+
+                 LEFT JOIN users pu
+                   ON pu.id = pm.sender_id
+
+                 WHERE m.conversation_id = ?
+
+                 ORDER BY m.created_at ASC`
+              )
+              .bind(requestedId)
+              .all();
+        }
 
         return Response.json({
           success: true,
           messages: result.results
         });
 
-      } catch (error) {
+      } catch {
         return Response.json(
           {
             success: false,
@@ -368,6 +712,11 @@ export default {
         );
       }
     }
+
+
+    // =========================
+    // ASSETS
+    // =========================
 
     return env.ASSETS.fetch(request);
   }
