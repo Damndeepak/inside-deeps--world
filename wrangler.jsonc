@@ -4,5 +4,12 @@
   "compatibility_date": "2026-09-04",
   "assets": {
     "directory": "./public"
-  }
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "inside-deeps--world",
+      "database_id": "65e5e51e-0155-4ba5-9076-6970034e2359"
+    }
+  ]
 }
