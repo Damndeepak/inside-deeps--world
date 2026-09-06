@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
   <title>Inside Deep's World</title>
 
   <style>
@@ -12,431 +13,321 @@
       padding: 0;
     }
 
-    :root {
-      --bg: #050505;
-      --card: rgba(18, 18, 20, 0.72);
-      --line: rgba(255,255,255,.09);
-      --muted: #8d8d94;
-      --text: #f5f5f7;
-    }
-
     body {
       min-height: 100vh;
-      background:
-        radial-gradient(circle at 50% -10%, rgba(255,255,255,.09), transparent 34%),
-        radial-gradient(circle at 10% 80%, rgba(255,255,255,.035), transparent 28%),
-        var(--bg);
-      color: var(--text);
-      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont,
-        "Segoe UI", Arial, sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 34px 18px;
-      overflow-x: hidden;
-    }
-
-    body::before {
-      content: "";
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      background-image:
-        linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px);
-      background-size: 48px 48px;
-      mask-image: linear-gradient(to bottom, black, transparent 85%);
+      background: #050505;
+      color: #f5f5f5;
+      font-family: Arial, Helvetica, sans-serif;
+      padding: 40px 18px;
     }
 
     .container {
       width: 100%;
       max-width: 720px;
-      position: relative;
-      z-index: 1;
+      margin: 0 auto;
     }
 
     .hero {
       text-align: center;
-      margin-bottom: 34px;
-      animation: rise .7s ease both;
+      margin-bottom: 38px;
     }
 
     .eyebrow {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      color: #77777d;
-      font-size: 10px;
-      font-weight: 700;
-      letter-spacing: 2.8px;
-      text-transform: uppercase;
-      margin-bottom: 16px;
-    }
-
-    .eyebrow::before,
-    .eyebrow::after {
-      content: "";
-      width: 22px;
-      height: 1px;
-      background: #333338;
+      font-size: 11px;
+      letter-spacing: 3px;
+      color: #777;
+      margin-bottom: 14px;
     }
 
     h1 {
-      font-size: clamp(42px, 9vw, 72px);
-      line-height: .98;
-      font-weight: 760;
-      letter-spacing: -3.5px;
-      margin-bottom: 17px;
-      background: linear-gradient(180deg, #fff 0%, #bdbdc2 100%);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
+      font-size: clamp(34px, 8vw, 58px);
+      line-height: 1;
+      letter-spacing: -2px;
+      margin-bottom: 15px;
     }
 
     .subtitle {
-      color: #a1a1a8;
+      color: #999;
       font-size: 14px;
-      line-height: 1.65;
-      margin-bottom: 5px;
+      line-height: 1.6;
+      max-width: 500px;
+      margin: 0 auto;
     }
 
     .hint-info {
-      color: #65656c;
+      margin-top: 10px;
+      color: #555;
       font-size: 12px;
-      line-height: 1.5;
     }
 
     .sections {
       display: flex;
       flex-direction: column;
-      gap: 11px;
+      gap: 12px;
     }
 
-    .section-btn {
+    .section-button {
       width: 100%;
-      min-height: 70px;
-      padding: 17px 20px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border: 1px solid var(--line);
-      border-radius: 18px;
-      background: linear-gradient(
-        135deg,
-        rgba(25,25,27,.82),
-        rgba(12,12,13,.78)
-      );
-      box-shadow:
-        inset 0 1px 0 rgba(255,255,255,.035),
-        0 12px 35px rgba(0,0,0,.16);
-      color: #f4f4f5;
-      font-size: 15px;
-      font-weight: 650;
-      letter-spacing: -.15px;
+      border: 1px solid #202020;
+      background: #0b0b0b;
+      color: #f5f5f5;
+      padding: 18px 20px;
+      border-radius: 14px;
       cursor: pointer;
       text-align: left;
-      transition:
-        transform .22s ease,
-        border-color .22s ease,
-        background .22s ease,
-        box-shadow .22s ease;
-      position: relative;
-      overflow: hidden;
+      font-size: 15px;
+      transition: 0.2s ease;
     }
 
-    .section-btn::after {
-      content: "↗";
-      color: #6d6d74;
-      font-size: 16px;
-      transition: transform .22s ease, color .22s ease;
+    .section-button:hover {
+      background: #111;
+      border-color: #333;
+      transform: translateY(-1px);
     }
 
-    .section-btn::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(
-        100deg,
-        transparent 20%,
-        rgba(255,255,255,.055),
-        transparent 80%
-      );
-      transform: translateX(-110%);
-      transition: transform .55s ease;
+    .section-button:active {
+      transform: translateY(0);
     }
 
-    .section-btn:hover {
-      transform: translateY(-3px);
-      border-color: rgba(255,255,255,.18);
-      background: linear-gradient(
-        135deg,
-        rgba(30,30,32,.92),
-        rgba(14,14,15,.88)
-      );
-      box-shadow:
-        inset 0 1px 0 rgba(255,255,255,.05),
-        0 18px 45px rgba(0,0,0,.27);
-    }
-
-    .section-btn:hover::before {
-      transform: translateX(110%);
-    }
-
-    .section-btn:hover::after {
-      transform: translate(2px,-2px);
-      color: #aaaab0;
-    }
-
-    /* THE UNSENT PROJECT */
+    /* UNSENT PROJECT */
 
     .unsent-link {
-      width: 100%;
-      min-height: 86px;
-      padding: 12px 16px;
       display: flex;
       align-items: center;
-      gap: 15px;
+      gap: 14px;
+      width: 100%;
+      margin-top: 12px;
+      padding: 13px;
       text-decoration: none;
-      border: 1px solid var(--line);
-      border-radius: 18px;
-      background: linear-gradient(
-        135deg,
-        rgba(25,25,27,.82),
-        rgba(12,12,13,.78)
-      );
-      box-shadow:
-        inset 0 1px 0 rgba(255,255,255,.035),
-        0 12px 35px rgba(0,0,0,.16);
-      color: #f4f4f5;
-      transition:
-        transform .22s ease,
-        border-color .22s ease,
-        background .22s ease,
-        box-shadow .22s ease;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .unsent-link::after {
-      content: "↗";
-      margin-left: auto;
-      color: #6d6d74;
-      font-size: 16px;
-      transition: transform .22s ease, color .22s ease;
+      color: inherit;
+      background: #0b0b0b;
+      border: 1px solid #202020;
+      border-radius: 14px;
+      transition: 0.2s ease;
     }
 
     .unsent-link:hover {
-      transform: translateY(-3px);
-      border-color: rgba(255,255,255,.18);
-      background: linear-gradient(
-        135deg,
-        rgba(30,30,32,.92),
-        rgba(14,14,15,.88)
-      );
-      box-shadow:
-        inset 0 1px 0 rgba(255,255,255,.05),
-        0 18px 45px rgba(0,0,0,.27);
-    }
-
-    .unsent-link:hover::after {
-      transform: translate(2px,-2px);
-      color: #aaaab0;
+      background: #111;
+      border-color: #333;
+      transform: translateY(-1px);
     }
 
     .unsent-icon {
-      width: 58px;
-      height: 58px;
-      min-width: 58px;
-      border-radius: 14px;
+      width: 54px;
+      height: 54px;
+      border-radius: 12px;
       object-fit: cover;
-      object-position: center;
-      background: #f4f1e7;
-      border: 1px solid rgba(255,255,255,.12);
+      flex-shrink: 0;
     }
 
     .unsent-text {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
       min-width: 0;
     }
 
     .unsent-title {
       font-size: 15px;
-      font-weight: 700;
-      letter-spacing: -.15px;
+      font-weight: 600;
+      margin-bottom: 5px;
     }
 
     .unsent-subtitle {
-      color: #85858c;
+      color: #777;
       font-size: 12px;
-      line-height: 1.4;
     }
 
-    /* MODAL */
+    /* PASSWORD MODAL */
 
-    .modal {
-      display: none;
+    .modal-overlay {
       position: fixed;
       inset: 0;
-      z-index: 10;
-      background: rgba(0,0,0,.76);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      justify-content: center;
+      background: rgba(0, 0, 0, 0.78);
+      backdrop-filter: blur(8px);
+      display: none;
       align-items: center;
+      justify-content: center;
       padding: 20px;
+      z-index: 1000;
     }
 
-    .modal-box {
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal {
       width: 100%;
-      max-width: 410px;
-      background: linear-gradient(
-        145deg,
-        rgba(25,25,27,.96),
-        rgba(10,10,11,.97)
-      );
-      border: 1px solid rgba(255,255,255,.12);
-      border-radius: 24px;
-      padding: 30px;
-      text-align: center;
-      box-shadow:
-        0 30px 90px rgba(0,0,0,.55),
-        inset 0 1px 0 rgba(255,255,255,.05);
-      animation: modalIn .22s ease both;
+      max-width: 390px;
+      background: #0c0c0c;
+      border: 1px solid #252525;
+      border-radius: 18px;
+      padding: 24px;
+      box-shadow: 0 20px 80px rgba(0, 0, 0, 0.5);
     }
 
-    .modal-box h2 {
-      margin-bottom: 9px;
-      font-size: 24px;
-      letter-spacing: -.7px;
+    .modal h2 {
+      font-size: 20px;
+      margin-bottom: 8px;
     }
 
-    .modal-box p {
-      color: #85858c;
-      font-size: 13px;
-      margin-bottom: 20px;
-      line-height: 1.55;
+    .modal-hint {
+      color: #777;
+      font-size: 12px;
+      line-height: 1.5;
+      margin-bottom: 18px;
     }
 
-    input {
+    .password-input {
       width: 100%;
-      padding: 15px;
-      border-radius: 13px;
-      border: 1px solid #2c2c30;
-      background: #080809;
+      background: #050505;
+      border: 1px solid #292929;
       color: white;
+      border-radius: 10px;
+      padding: 13px;
       outline: none;
-      font-size: 15px;
-      margin-bottom: 11px;
-      transition: border-color .2s ease, box-shadow .2s ease;
+      font-size: 14px;
+      margin-bottom: 10px;
     }
 
-    input:focus {
-      border-color: #66666d;
-      box-shadow: 0 0 0 4px rgba(255,255,255,.035);
+    .password-input:focus {
+      border-color: #555;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 9px;
+    }
+
+    .modal-actions button {
+      flex: 1;
+      border: 1px solid #292929;
+      border-radius: 10px;
+      padding: 12px;
+      cursor: pointer;
+      font-size: 13px;
     }
 
     .unlock-btn {
+      background: #f5f5f5;
+      color: #050505;
+    }
+
+    .cancel-btn {
+      background: #111;
+      color: #aaa;
+    }
+
+    .status {
+      min-height: 18px;
+      font-size: 12px;
+      margin-bottom: 10px;
+      color: #777;
+    }
+
+    .status.success {
+      color: #8f8;
+    }
+
+    .status.error {
+      color: #f77;
+    }
+
+    /* CONTENT MODAL */
+
+    .content-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.82);
+      backdrop-filter: blur(9px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      z-index: 1100;
+    }
+
+    .content-modal.active {
+      display: flex;
+    }
+
+    .content-box {
       width: 100%;
-      padding: 14px;
-      border: 1px solid #fff;
-      border-radius: 13px;
-      background: #f4f4f4;
-      color: #070707;
+      max-width: 680px;
+      max-height: 85vh;
+      overflow-y: auto;
+      background: #0b0b0b;
+      border: 1px solid #242424;
+      border-radius: 20px;
+      padding: 25px;
+    }
+
+    .content-box::-webkit-scrollbar {
+      width: 5px;
+    }
+
+    .content-box::-webkit-scrollbar-thumb {
+      background: #333;
+      border-radius: 10px;
+    }
+
+    .content-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 15px;
+      margin-bottom: 24px;
+    }
+
+    .content-header h2 {
+      font-size: 24px;
+    }
+
+    .close-content {
+      border: 1px solid #292929;
+      background: #111;
+      color: #aaa;
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 17px;
+    }
+
+    .content-text {
+      color: #c7c7c7;
       font-size: 14px;
-      font-weight: 750;
-      cursor: pointer;
-      transition: transform .18s ease, opacity .18s ease;
+      line-height: 1.8;
     }
 
-    .unlock-btn:hover {
-      transform: translateY(-1px);
-      opacity: .9;
+    .content-text p {
+      margin-bottom: 20px;
     }
 
-    .close-btn {
-      margin-top: 15px;
-      background: none;
-      border: none;
-      color: #6e6e75;
-      cursor: pointer;
-      font-size: 13px;
+    .content-text p:last-child {
+      margin-bottom: 0;
     }
 
-    .error {
-      color: #ff7373;
-      font-size: 12px;
-      margin-top: 11px;
-      display: none;
+    .footer {
+      text-align: center;
+      color: #444;
+      font-size: 11px;
+      margin-top: 38px;
     }
 
-    .success {
-      color: #8cffaa;
-      font-size: 12px;
-      margin-top: 11px;
-      display: none;
-    }
-
-    @keyframes rise {
-      from {
-        opacity: 0;
-        transform: translateY(12px);
-      }
-
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    @keyframes modalIn {
-      from {
-        opacity: 0;
-        transform: translateY(10px) scale(.98);
-      }
-
-      to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-      }
-    }
-
-    @media (max-width: 500px) {
+    @media (max-width: 520px) {
       body {
-        padding: 25px 15px;
-        align-items: flex-start;
-        padding-top: 70px;
+        padding: 28px 14px;
       }
 
-      h1 {
-        letter-spacing: -2.5px;
+      .content-box {
+        padding: 20px;
       }
 
-      .hero {
-        margin-bottom: 28px;
+      .content-header h2 {
+        font-size: 21px;
       }
 
-      .section-btn {
-        min-height: 64px;
-        border-radius: 16px;
-      }
-
-      .unsent-link {
-        min-height: 76px;
-        border-radius: 16px;
-      }
-
-      .unsent-icon {
-        width: 50px;
-        height: 50px;
-        min-width: 50px;
-        border-radius: 12px;
-      }
-
-      .modal-box {
-        padding: 25px 20px;
-        border-radius: 21px;
+      .content-text {
+        font-size: 13px;
+        line-height: 1.75;
       }
     }
   </style>
@@ -444,30 +335,27 @@
 
 <body>
 
-  <div class="container">
+  <main class="container">
 
     <section class="hero">
       <div class="eyebrow">PRIVATE • PERSONAL • DEEP</div>
 
       <h1>Inside Deep's World</h1>
 
-      <p class="subtitle">
+      <div class="subtitle">
         Every section has its own password and its own hint.
-      </p>
+      </div>
 
-      <p class="hint-info">
+      <div class="hint-info">
         You’ll need the right password to unlock each section.
-      </p>
+      </div>
     </section>
 
+    <section class="sections">
 
-    <div class="sections">
-
-      <!-- PASSWORD SECTION -->
-      <button class="section-btn" onclick="openModal('people')">
+      <button class="section-button" data-section="people">
         Ppl I fw ❤️
       </button>
-
 
       <!-- THE UNSENT PROJECT -->
       <a
@@ -476,7 +364,6 @@
         target="_blank"
         rel="noopener noreferrer"
       >
-
         <img
           class="unsent-icon"
           src="Screenshot_2026-09-06-16-12-05-888_com.android.vending-edit.jpg"
@@ -492,66 +379,106 @@
             The Unsent Project
           </div>
         </div>
-
       </a>
 
-
-      <!-- OTHER PASSWORD SECTIONS -->
-      <button class="section-btn" onclick="openModal('memories')">
+      <button class="section-button" data-section="memories">
         Memories
       </button>
 
-      <button class="section-btn" onclick="openModal('music')">
+      <button class="section-button" data-section="music">
         Music
       </button>
 
-      <button class="section-btn" onclick="openModal('socials')">
+      <button class="section-button" data-section="socials">
         Socials
       </button>
 
-      <button class="section-btn" onclick="openModal('random')">
+      <button class="section-button" data-section="random">
         Random Shit
       </button>
+
+    </section>
+
+    <div class="footer">
+      Inside Deep's World
+    </div>
+
+  </main>
+
+
+  <!-- PASSWORD MODAL -->
+
+  <div class="modal-overlay" id="passwordModal">
+
+    <div class="modal">
+
+      <h2>Unlock section</h2>
+
+      <div class="modal-hint" id="modalHint">
+        You’ll need the right password to unlock this section.
+      </div>
+
+      <input
+        id="passwordInput"
+        class="password-input"
+        type="password"
+        placeholder="Enter password"
+        autocomplete="off"
+      />
+
+      <div class="status" id="status"></div>
+
+      <div class="modal-actions">
+
+        <button
+          class="cancel-btn"
+          id="cancelButton"
+          type="button"
+        >
+          Cancel
+        </button>
+
+        <button
+          class="unlock-btn"
+          id="unlockButton"
+          type="button"
+        >
+          Unlock
+        </button>
+
+      </div>
 
     </div>
 
   </div>
 
 
-  <!-- PASSWORD MODAL -->
+  <!-- CONTENT MODAL -->
 
-  <div class="modal" id="passwordModal">
+  <div class="content-modal" id="contentModal">
 
-    <div class="modal-box">
+    <div class="content-box">
 
-      <h2 id="modalTitle">
-        Unlock
-      </h2>
+      <div class="content-header">
 
-      <p id="modalHint"></p>
+        <h2 id="contentTitle">
+          Section
+        </h2>
 
-      <input
-        type="password"
-        id="passwordInput"
-        placeholder="Enter password"
-        autocomplete="off"
-      />
+        <button
+          class="close-content"
+          id="closeContent"
+          type="button"
+        >
+          ×
+        </button>
 
-      <button class="unlock-btn" onclick="checkPassword()">
-        Unlock
-      </button>
-
-      <div class="error" id="errorMessage">
-        Wrong password.
       </div>
 
-      <div class="success" id="successMessage">
-        Unlocked.
-      </div>
-
-      <button class="close-btn" onclick="closeModal()">
-        Close
-      </button>
+      <div
+        class="content-text"
+        id="contentText"
+      ></div>
 
     </div>
 
@@ -560,7 +487,9 @@
 
   <script>
 
-    let currentSection = "";
+    /*
+      SECTION HINTS
+    */
 
     const sectionData = {
 
@@ -592,81 +521,182 @@
     };
 
 
-    function openModal(section) {
+    /*
+      ACTUAL SECTION CONTENT
+    */
 
-      currentSection = section;
+    const sectionContent = {
 
-      document.getElementById("modalTitle").textContent =
-        sectionData[section].title;
+      people: [
+        `I got five friends. One in real life, and four online.`,
 
-      document.getElementById("modalHint").textContent =
-        "Hint: " + sectionData[section].hint;
+        `The one I know in real life is Om. The four I met online are Sharik, Daksh, Diksha, and *******.`,
 
-      document.getElementById("passwordInput").value = "";
+        `Sharik is my OG friend. I always felt like he was that one online friend who was genuinely great to have around. We’d always be fucking around, talking shit, and having fun. I don’t think I could ever be sad while talking to him. He was, and honestly still is, fucking funny. Sharik is an OG, and that’s just it.`,
 
-      document.getElementById("errorMessage").style.display =
-        "none";
+        `Daksh is one of my closest friends. He was probably the biggest menace back in 2024. Like, bro, I genuinely miss the 2024 version of Daksh. We did so much stupid shit that year, so much fucking bakchodi. I don’t even know how to explain it. He could somehow turn literally anything into a joke. Nothing ever felt too serious when I was talking to him, and I used to laugh so much because of that. He’s still one of my favourite people, though.`,
 
-      document.getElementById("successMessage").style.display =
-        "none";
+        `Diksha is the third one. I found her through the same place where I met Sharik. Basically, where I found Sharik, I found Diksha too. Me and her actually started off with us arguing a lot. But slowly, things started getting better. Eventually, we just became friends online, and she turned out to be a pretty good friend. She’s funny, easy to talk to, and honestly just a good person to have around.`,
 
-      document.getElementById("passwordModal").style.display =
-        "flex";
+        `And then there’s *******.`,
 
-      setTimeout(() => {
+        `She’s not really just a friend to me. She became something way more than that over time. I spent more than half a year with her, and honestly, I spent more than a year thinking about her.`,
 
-        document.getElementById("passwordInput").focus();
+        `That’s a lot of time to have one person constantly somewhere in your mind. Somehow, she became a huge part of my life without me even realizing how much space she had taken up.`,
 
-      }, 100);
+        `And then there’s Om.`,
 
+        `He’s the only one I know in real life, and he’s been a part of my life in a completely different way from the others. Having someone you actually know outside the screen just hits different. He’s one of those people who makes the whole “friend” thing feel real.`
+
+      ],
+
+      memories: [
+        `Private memories go here.`,
+        `This section is for things that matter to me and moments I want to keep here.`
+      ],
+
+      music: [
+        `Music I listen to.`,
+        `This is where the songs, artists, albums, and random phases can live.`
+      ],
+
+      socials: [
+        `My socials.`,
+        `This section is for the accounts and places where you can find me online.`
+      ],
+
+      random: [
+        `Random shit.`,
+        `Random things from the Deep lore that don't really belong anywhere else.`
+      ]
+
+    };
+
+
+    /*
+      ELEMENTS
+    */
+
+    const passwordModal =
+      document.getElementById("passwordModal");
+
+    const passwordInput =
+      document.getElementById("passwordInput");
+
+    const modalHint =
+      document.getElementById("modalHint");
+
+    const status =
+      document.getElementById("status");
+
+    const unlockButton =
+      document.getElementById("unlockButton");
+
+    const cancelButton =
+      document.getElementById("cancelButton");
+
+    const contentModal =
+      document.getElementById("contentModal");
+
+    const contentTitle =
+      document.getElementById("contentTitle");
+
+    const contentText =
+      document.getElementById("contentText");
+
+    const closeContent =
+      document.getElementById("closeContent");
+
+
+    let currentSection = null;
+
+
+    /*
+      OPEN PASSWORD MODAL
+    */
+
+    document
+      .querySelectorAll(".section-button")
+      .forEach(button => {
+
+        button.addEventListener("click", () => {
+
+          currentSection =
+            button.dataset.section;
+
+          const data =
+            sectionData[currentSection];
+
+          modalHint.textContent =
+            data.hint;
+
+          passwordInput.value = "";
+
+          status.textContent = "";
+
+          status.className = "status";
+
+          passwordModal.classList.add("active");
+
+          setTimeout(() => {
+            passwordInput.focus();
+          }, 100);
+
+        });
+
+      });
+
+
+    /*
+      CLOSE PASSWORD MODAL
+    */
+
+    function closePasswordModal() {
+      passwordModal.classList.remove("active");
+      passwordInput.value = "";
+      status.textContent = "";
+      status.className = "status";
     }
 
 
-    function closeModal() {
-
-      document.getElementById("passwordModal").style.display =
-        "none";
-
-      currentSection = "";
-
-    }
+    cancelButton.addEventListener(
+      "click",
+      closePasswordModal
+    );
 
 
-    async function checkPassword() {
+    /*
+      PASSWORD CHECK
+    */
+
+    async function unlockSection() {
 
       const password =
-        document.getElementById("passwordInput").value;
-
-      const errorMessage =
-        document.getElementById("errorMessage");
-
-      const successMessage =
-        document.getElementById("successMessage");
-
-
-      errorMessage.style.display = "none";
-
-      successMessage.style.display = "none";
-
+        passwordInput.value.trim();
 
       if (!password) {
 
-        errorMessage.textContent =
+        status.textContent =
           "Enter a password.";
 
-        errorMessage.style.display =
-          "block";
+        status.className =
+          "status error";
 
         return;
-
       }
+
+      status.textContent =
+        "Checking...";
+
+      status.className =
+        "status";
 
 
       try {
 
-        const response = await fetch(
-          "/api/check-password",
-          {
+        const response =
+          await fetch("/api/check-password", {
+
             method: "POST",
 
             headers: {
@@ -677,87 +707,184 @@
               section: currentSection,
               password: password
             })
-          }
-        );
+
+          });
 
 
-        const data = await response.json();
+        const result =
+          await response.json();
 
 
-        if (data.success) {
+        if (
+          response.ok &&
+          result &&
+          result.success
+        ) {
 
-          successMessage.textContent =
+          status.textContent =
             "Unlocked.";
 
-          successMessage.style.display =
-            "block";
+          status.className =
+            "status success";
 
 
           setTimeout(() => {
 
-            closeModal();
+            closePasswordModal();
 
-            alert(
-              "Unlocked. Content will be added here."
+            openContent(
+              currentSection
             );
 
-          }, 500);
+          }, 300);
 
         } else {
 
-          errorMessage.textContent =
+          status.textContent =
             "Wrong password.";
 
-          errorMessage.style.display =
-            "block";
+          status.className =
+            "status error";
 
         }
 
       } catch (error) {
 
-        errorMessage.textContent =
+        console.error(error);
+
+        status.textContent =
           "Something went wrong. Try again.";
 
-        errorMessage.style.display =
-          "block";
+        status.className =
+          "status error";
 
       }
 
     }
 
 
-    document
-      .getElementById("passwordInput")
-      .addEventListener(
-        "keydown",
-        function(event) {
+    unlockButton.addEventListener(
+      "click",
+      unlockSection
+    );
 
-          if (event.key === "Enter") {
 
-            checkPassword();
+    /*
+      ENTER KEY
+    */
 
-          }
+    passwordInput.addEventListener(
+      "keydown",
+      event => {
 
+        if (event.key === "Enter") {
+          unlockSection();
         }
+
+        if (event.key === "Escape") {
+          closePasswordModal();
+        }
+
+      }
+    );
+
+
+    /*
+      OPEN CONTENT
+    */
+
+    function openContent(section) {
+
+      const data =
+        sectionData[section];
+
+      const content =
+        sectionContent[section];
+
+      contentTitle.textContent =
+        data.title;
+
+      contentText.innerHTML = "";
+
+
+      content.forEach(paragraph => {
+
+        const p =
+          document.createElement("p");
+
+        p.textContent =
+          paragraph;
+
+        contentText.appendChild(p);
+
+      });
+
+
+      contentModal.classList.add("active");
+
+    }
+
+
+    /*
+      CLOSE CONTENT
+    */
+
+    function closeContentModal() {
+
+      contentModal.classList.remove(
+        "active"
       );
 
+    }
 
-    document
-      .getElementById("passwordModal")
-      .addEventListener(
-        "click",
-        function(event) {
 
-          if (event.target === this) {
+    closeContent.addEventListener(
+      "click",
+      closeContentModal
+    );
 
-            closeModal();
 
-          }
+    /*
+      CLICK OUTSIDE CONTENT
+    */
+
+    contentModal.addEventListener(
+      "click",
+      event => {
+
+        if (
+          event.target === contentModal
+        ) {
+
+          closeContentModal();
 
         }
-      );
+
+      }
+    );
+
+
+    /*
+      ESCAPE KEY
+    */
+
+    document.addEventListener(
+      "keydown",
+      event => {
+
+        if (
+          event.key === "Escape" &&
+          contentModal.classList.contains("active")
+        ) {
+
+          closeContentModal();
+
+        }
+
+      }
+    );
 
   </script>
 
 </body>
-</html>
+          </html>
