@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>DEEP // GLITCH RUN</title>
+<style>
+:root{color-scheme:dark;--bg:#050608;--panel:#0b0e13;--line:#202630;--text:#f2f5f7;--muted:#7e8793;--accent:#9cffea;--danger:#ff657a}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+body{overflow-x:hidden}
+#app{width:min(100%,620px);margin:auto;padding:18px 14px 28px}
+header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px}
+.kicker{font:700 11px/1.2 ui-monospace,SFMono-Regular,monospace;letter-spacing:.16em;color:var(--muted)}
+h1{font-size:22px;letter-spacing:.04em;margin:4px 0 0}
+#status{font:700 10px ui-monospace,monospace;color:var(--accent);letter-spacing:.1em}
+#gameShell{position:relative;width:100%;aspect-ratio:9/15.5;background:#030507;border:1px solid var(--line);overflow:hidden;border-radius:16px;touch-action:none}
+canvas{display:block;width:100%;height:100%}
+.hud{position:absolute;inset:12px;pointer-events:none;display:flex;justify-content:space-between;align-items:flex-start}
+.hud b{display:block;font:700 24px ui-monospace,monospace}
+.hud span{font:700 9px ui-monospace,monospace;color:var(--muted);letter-spacing:.12em}
+#event{position:absolute;top:16%;left:0;right:0;text-align:center;font:800 13px ui-monospace,monospace;letter-spacing:.18em;opacity:0;transition:opacity .12s;pointer-events:none}
+#event.show{opacity:1}
+#overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(3,5,7,.82);padding:22px}
+.card{width:min(100%,360px);border:1px solid var(--line);background:rgba(10,13,18,.96);padding:24px;border-radius:14px;text-align:center}
+.card .tiny{font:700 10px ui-monospace,monospace;color:var(--muted);letter-spacing:.14em}
+.card h2{font-size:27px;margin:8px 0}
+.card p{color:var(--muted);font-size:13px;line-height:1.5;margin:8px 0 18px}
+button{border:1px solid #303844;background:#11161d;color:var(--text);border-radius:10px;padding:13px 18px;font:700 12px ui-monospace,monospace;letter-spacing:.08em;cursor:pointer}
+button:active{transform:scale(.98)}
+#name{width:100%;padding:13px;border-radius:10px;border:1px solid #303844;background:#070a0e;color:var(--text);font:600 14px ui-monospace,monospace;outline:none;margin-bottom:10px}
+#name:focus{border-color:var(--accent)}
+#leaderboard{margin-top:12px;border:1px solid var(--line);border-radius:14px;padding:14px;background:var(--panel)}
+.lbhead{display:flex;justify-content:space-between;margin-bottom:8px}
+.lbhead span{font:700 10px ui-monospace,monospace;color:var(--muted);letter-spacing:.13em}
+.row{display:grid;grid-template-columns:34px 1fr auto;gap:8px;padding:9px 0;border-top:1px solid #171c23;font:600 12px ui-monospace,monospace}
+.row:first-child{border-top:0}
+.rank{color:var(--muted)}
+.score{color:var(--accent)}
+#hint{font:10px ui-monospace,monospace;color:#606a76;text-align:center;margin-top:10px}
+.hidden{display:none!important}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<main id="app">
+<header>
+  <div><div class="kicker">DEEP // ARCADE</div><h1>GLITCH RUN</h1></div><button id="tutorialBtn" type="button" style="padding:8px 10px;font-size:10px">HOW TO PLAY</button>
+  <div id="status">READY</div>
+</header>
+
+<section id="gameShell" aria-label="Glitch Run game">
+  <canvas id="game"></canvas>
+  <div class="hud"><div><span>SCORE</span><b id="score">0</b></div><div style="text-align:right"><span>BEST</span><b id="best">0</b></div></div>
+  <div id="event">GLITCH</div>
+  <div id="overlay">
+    <div class="card" id="startCard">
+      <div class="tiny">SURVIVE THE CORRUPTION</div>
+      <h2>GLITCH RUN</h2>
+      <p>Drag the node. Avoid the blocks. The world changes its rules as your score climbs.</p><p id="playerNote" class="tiny"></p>
+      <button id="start">START RUN</button>
+    </div>
+    <div class="card hidden" id="gameOverCard">
+      <div class="tiny">RUN TERMINATED</div>
+      <h2 id="finalScore">0</h2>
+      <p id="finalMessage">The system survived longer than you did.</p>
+      <input id="name" maxlength="32" autocomplete="name" placeholder="REAL NAME" aria-label="Real name">
+      <button id="submit">SAVE SCORE</button>
+      <button id="again" class="hidden">PLAY AGAIN</button>
+    </div>
+  </div>
+</section>
+
+<section id="leaderboard">
+  <div class="lbhead"><span>WORLD RECORD</span><span>TOP 5</span></div>
+  <div id="rows"></div>
+</section>
+<div id="hint">PHONE: DRAG ANYWHERE INSIDE THE GAME • DESKTOP: MOVE POINTER</div>
+
+<div id="tutorial" class="hidden" style="margin-top:12px;border:1px solid var(--line);border-radius:14px;background:var(--panel);padding:16px">
+  <div style="font:700 10px ui-monospace,monospace;color:var(--muted);letter-spacing:.14em">TUTORIAL // 01</div>
+  <h3 style="margin:6px 0 10px;font-size:18px">how to survive</h3>
+  <div style="display:grid;gap:9px;font-size:12px;line-height:1.45;color:#b6bec8">
+    <div><b style="color:var(--text)">1. DRAG</b> • touch and drag anywhere inside the game to move the node.</div>
+    <div><b style="color:var(--text)">2. DODGE</b> • avoid the falling outlined blocks. You only lose when your node actually touches one.</div>
+    <div><b style="color:var(--text)">3. SURVIVE</b> • your score rises with time, and the world gets faster.</div>
+    <div><b style="color:var(--text)">4. GLITCHES</b> • watch the warning text. Some events can temporarily flip your controls.</div>
+    <div><b style="color:var(--text)">5. RECORD</b> • your first game asks for your real name. Later scores save automatically under that name.</div>
+  </div>
+</div>
+</main>
+
+<script>
+(() => {
+"use strict";
+const API="/api/arcade/leaderboard";
+const PLAYER_KEY_NAME="deep_glitch_player_key_v1";
+let playerKey="";
+try{
+ playerKey=localStorage.getItem(PLAYER_KEY_NAME)||"";
+ if(!/^[a-zA-Z0-9_-]{16,80}$/.test(playerKey))playerKey="";
+ if(!playerKey){
+   const bytes=new Uint8Array(24);
+   crypto.getRandomValues(bytes);
+   playerKey=Array.from(bytes,b=>b.toString(36).padStart(2,"0")).join("").slice(0,40);
+   localStorage.setItem(PLAYER_KEY_NAME,playerKey);
+ }
+}catch(e){}
+const canvas=document.getElementById("game"),ctx=canvas.getContext("2d",{alpha:false});
+const shell=document.getElementById("gameShell"), scoreEl=document.getElementById("score"),bestEl=document.getElementById("best");
+const statusEl=document.getElementById("status"),eventEl=document.getElementById("event");
+const overlay=document.getElementById("overlay"),startCard=document.getElementById("startCard"),overCard=document.getElementById("gameOverCard"),playerNote=document.getElementById("playerNote"),tutorialBtn=document.getElementById("tutorialBtn"),tutorial=document.getElementById("tutorial");
+const finalScore=document.getElementById("finalScore"),finalMessage=document.getElementById("finalMessage");
+const nameEl=document.getElementById("name"),startBtn=document.getElementById("start"),submitBtn=document.getElementById("submit"),againBtn=document.getElementById("again"),rows=document.getElementById("rows");
+
+const KEY="deep_glitch_local_scores_v1", NAME_KEY="deep_glitch_player_name_v1";
+let scores=[], savedName="";
+try{scores=JSON.parse(localStorage.getItem(KEY)||"[]")}catch(e){scores=[]}
+try{savedName=(localStorage.getItem(NAME_KEY)||"").trim()}catch(e){savedName=""}
+if(!Array.isArray(scores))scores=[];
+scores=scores.filter(x=>x&&typeof x.name==="string"&&Number.isFinite(x.score)).slice(0,20);
+
+let W=0,H=0,dpr=1,running=false,raf=0,last=0,elapsed=0,score=0,best=0;
+let px=0,py=0,targetX=0,targetY=0,events=[],spawnTimer=0,glitchTimer=0,glitch=0,shake=0,dragging=false;
+let particles=[];
+
+function resize(){
+ const r=shell.getBoundingClientRect(); dpr=Math.min(window.devicePixelRatio||1,2);
+ W=Math.max(1,Math.floor(r.width)); H=Math.max(1,Math.floor(r.height));
+ canvas.width=Math.floor(W*dpr);canvas.height=Math.floor(H*dpr);
+ ctx.setTransform(dpr,0,0,dpr,0,0);
+ if(!running){px=W*.5;py=H*.72;targetX=px;targetY=py}
+}
+window.addEventListener("resize",resize,{passive:true});resize();
+
+function rand(a,b){return a+Math.random()*(b-a)}
+function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
+function rectHit(a,b){
+ const cx=clamp(a.x,b.x-b.w*.5,b.x+b.w*.5);
+ const cy=clamp(a.y,b.y-b.h*.5,b.y+b.h*.5);
+ const dx=a.x-cx,dy=a.y-cy;
+ return dx*dx+dy*dy<a.r*a.r;
+}
+function difficulty(){return 1+elapsed/18}
+function showEvent(t){
+ eventEl.textContent=t;eventEl.classList.add("show");clearTimeout(showEvent.t);
+ showEvent.t=setTimeout(()=>eventEl.classList.remove("show"),420);
+}
+function addParticles(x,y,n=8){
+ for(let i=0;i<n;i++)particles.push({x,y,vx:rand(-90,90),vy:rand(-90,90),life:rand(.25,.6)});
+}
+function reset(){
+ elapsed=0;score=0;spawnTimer=.3;glitchTimer=4;glitch=0;shake=0;events=[];particles=[];
+ px=W*.5;py=H*.72;targetX=px;targetY=py;
+ scoreEl.textContent="0";statusEl.textContent="RUNNING";
+}
+function start(){
+ reset();running=true;overlay.classList.add("hidden");last=performance.now();raf=requestAnimationFrame(loop);
+}
+function end(){
+ if(!running)return;running=false;cancelAnimationFrame(raf);statusEl.textContent="GAME OVER";
+ addParticles(px,py,30);
+ finalScore.textContent=Math.floor(score).toLocaleString();
+ finalMessage.textContent=score>best?"NEW LOCAL RECORD.":"The system survived longer than you did.";
+ if(savedName){
+   saveScore(savedName);
+   overCard.classList.add("hidden");startCard.classList.remove("hidden");
+   overlay.classList.remove("hidden");
+ }else{
+   overCard.classList.remove("hidden");startCard.classList.add("hidden");overlay.classList.remove("hidden");
+   nameEl.value="";nameEl.classList.remove("hidden");submitBtn.classList.remove("hidden");againBtn.classList.add("hidden");nameEl.focus();
+ }
+ if(score>best)best=score;bestEl.textContent=Math.floor(best).toLocaleString();
+ draw();
+}
+function spawn(){
+ const size=rand(16,34)+Math.min(18,elapsed*.35);
+ const x=rand(size,W-size), y=-size;
+ const speed=rand(95,145)*difficulty();
+ events.push({x,y,w:size,h:size,speed,rot:rand(0,Math.PI),spin:rand(-2.5,2.5)});
+}
+function triggerGlitch(){
+ glitch=1;shake=1;glitchTimer=rand(4.5,7);
+ const choices=["RULE SHIFT","CONTROL FLIP","FALSE NODE","TIME WARP"];
+ showEvent(choices[Math.floor(Math.random()*choices.length)]);
+ if(Math.random()<.32)events.forEach(o=>o.speed*=.65);
+}
+function update(dt){
+ elapsed+=dt;score+=dt*100*(1+Math.min(1.5,elapsed/45));
+ scoreEl.textContent=Math.floor(score).toLocaleString();
+ if(score>best)best=score;
+ spawnTimer-=dt;glitchTimer-=dt;
+ if(spawnTimer<=0){spawn();spawnTimer=Math.max(.16,.58-elapsed*.006)*rand(.72,1.1)}
+ if(glitchTimer<=0){triggerGlitch()}
+ glitch=Math.max(0,glitch-dt*1.8);shake=Math.max(0,shake-dt*4);
+ const controlFlip=glitch>0.5&&Math.floor(elapsed/8)%2===0;
+ const tx=controlFlip?W-targetX:targetX, ty=controlFlip?H-targetY:targetY;
+ const follow=1-Math.pow(.0008,dt);
+ px+=(tx-px)*follow;py+=(ty-py)*follow;
+ const r=8.5;
+ px=clamp(px,r,W-r);py=clamp(py,r,H-r);
+ for(let i=events.length-1;i>=0;i--){
+   const o=events[i];o.y+=o.speed*dt;o.rot+=o.spin*dt;
+   if(rectHit({x:px,y:py,r},o)){end();return}
+   if(o.y-o.h>H)events.splice(i,1);
+ }
+ for(let i=particles.length-1;i>=0;i--){const p=particles[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;if(p.life<=0)particles.splice(i,1)}
+}
+function draw(){
+ ctx.fillStyle="#030507";ctx.fillRect(0,0,W,H);
+ ctx.strokeStyle="#10151b";ctx.lineWidth=1;
+ const grid=32;
+ for(let x=0;x<W;x+=grid){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}
+ for(let y=0;y<H;y+=grid){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
+ const pulse=1+Math.sin(elapsed*5)*.05;
+ ctx.save();
+ if(shake)ctx.translate(rand(-shake*2,shake*2),rand(-shake*2,shake*2));
+ for(const o of events){
+   ctx.save();ctx.translate(o.x,o.y);ctx.rotate(o.rot);
+   ctx.strokeStyle=glitch>.5?"#ff657a":"#b8c2cc";ctx.lineWidth=2;
+   ctx.strokeRect(-o.w/2,-o.h/2,o.w,o.h);
+   ctx.fillStyle=glitch>.5?"rgba(255,101,122,.08)":"rgba(184,194,204,.04)";
+   ctx.fillRect(-o.w/2,-o.h/2,o.w,o.h);ctx.restore();
+ }
+ for(const p of particles){ctx.globalAlpha=Math.max(0,p.life*2);ctx.fillStyle="#9cffea";ctx.fillRect(p.x,p.y,2,2)}
+ ctx.globalAlpha=1;
+ ctx.strokeStyle="#9cffea";ctx.lineWidth=2;ctx.beginPath();ctx.arc(px,py,9*pulse,0,Math.PI*2);ctx.stroke();
+ ctx.fillStyle="#9cffea";ctx.beginPath();ctx.arc(px,py,3.5,0,Math.PI*2);ctx.fill();
+ ctx.restore();
+ if(glitch>0){ctx.globalAlpha=glitch*.12;ctx.fillStyle="#ff657a";for(let i=0;i<5;i++)ctx.fillRect(rand(0,W),rand(0,H),rand(20,120),rand(1,3));ctx.globalAlpha=1}
+}
+function loop(t){
+ if(!running)return;
+ const dt=Math.min(.034,Math.max(.001,(t-last)/1000));last=t;
+ update(dt);draw();if(running)raf=requestAnimationFrame(loop);
+}
+function pointer(e){
+ const r=canvas.getBoundingClientRect();
+ targetX=clamp(e.clientX-r.left,0,W);targetY=clamp(e.clientY-r.top,0,H);
+}
+shell.addEventListener("pointerdown",e=>{dragging=true;shell.setPointerCapture?.(e.pointerId);pointer(e);if(!running&&overlay.classList.contains("hidden"))start()});
+shell.addEventListener("pointermove",e=>{if(dragging||e.pointerType==="mouse")pointer(e)});
+shell.addEventListener("pointerup",()=>dragging=false);
+shell.addEventListener("pointercancel",()=>dragging=false);
+
+function renderScores(list=scores){
+ rows.innerHTML="";
+ const clean=Array.isArray(list)?list.filter(x=>x&&typeof x.name==="string"&&Number.isFinite(Number(x.score))):[];
+ if(!clean.length){
+   rows.innerHTML='<div class="row"><span class="rank">--</span><span>NO RECORD YET</span><span class="score">0</span></div>';
+   return;
+ }
+ clean.slice(0,5).forEach((s,i)=>{
+   const row=document.createElement("div");row.className="row";
+   row.innerHTML=`<span class="rank">#${i+1}</span><span>${escapeHtml(s.name)}</span><span class="score">${Math.floor(Number(s.score)).toLocaleString()}</span>`;
+   rows.appendChild(row);
+ });
+}
+async function loadLeaderboard(){
+ try{
+   const res=await fetch(API,{headers:{"Accept":"application/json"}});
+   if(!res.ok)throw new Error("leaderboard request failed");
+   const data=await res.json();
+   if(data.success&&Array.isArray(data.leaderboard)){
+     scores=data.leaderboard.map(s=>({name:String(s.name),score:Number(s.score)}));
+     renderScores(scores);
+     best=scores.length?scores[0].score:0;
+     bestEl.textContent=Math.floor(best).toLocaleString();
+   }
+ }catch(e){
+   renderScores(scores);
+ }
+}
+
+function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+async function saveScore(name){
+ name=name.trim();
+ if(!name)return false;
+ savedName=name;
+ const localScore=Math.floor(score);
+ scores.push({name,score:localScore});
+ scores.sort((a,b)=>b.score-a.score);scores=scores.slice(0,20);
+ try{localStorage.setItem(KEY,JSON.stringify(scores));localStorage.setItem(NAME_KEY,savedName)}catch(e){}
+ renderScores(scores);
+
+ try{
+   const res=await fetch(API,{
+     method:"POST",
+     headers:{"Content-Type":"application/json","Accept":"application/json"},
+     body:JSON.stringify({name,score:localScore,player_key:playerKey})
+   });
+   if(!res.ok)throw new Error("submit failed");
+   const data=await res.json();
+   if(data.success&&Array.isArray(data.leaderboard)){
+     scores=data.leaderboard.map(s=>({name:String(s.name),score:Number(s.score)}));
+     renderScores(scores);
+     best=scores.length?scores[0].score:best;
+     bestEl.textContent=Math.floor(best).toLocaleString();
+   }
+   return true;
+ }catch(e){
+   return false;
+ }
+}
+
+async function save(){
+ const name=nameEl.value.trim();
+ if(!name){nameEl.focus();return}
+ submitBtn.disabled=true;
+ await saveScore(name);
+ submitBtn.disabled=false;
+ againBtn.classList.remove("hidden");
+ submitBtn.classList.add("hidden");
+ nameEl.classList.add("hidden");
+}
+startBtn.addEventListener("click",start);
+tutorialBtn.addEventListener("click",()=>{
+ tutorial.classList.toggle("hidden");
+ tutorialBtn.textContent=tutorial.classList.contains("hidden")?"HOW TO PLAY":"CLOSE TUTORIAL";
+});
+submitBtn.addEventListener("click",save);
+againBtn.addEventListener("click",()=>{start()});
+document.addEventListener("visibilitychange",()=>{if(document.hidden&&running){running=false;statusEl.textContent="PAUSED";cancelAnimationFrame(raf)}else if(!document.hidden&&!running&&statusEl.textContent==="PAUSED"){running=true;last=performance.now();statusEl.textContent="RUNNING";raf=requestAnimationFrame(loop)}});
+playerNote.textContent=savedName?"PLAYER: "+savedName:"";
+renderScores();
+best=scores.length?scores[0].score:0;bestEl.textContent=best.toLocaleString();
+draw();
+loadLeaderboard();
+})();
+</script>
+</body>
+</html>
