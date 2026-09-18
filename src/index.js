@@ -355,7 +355,8 @@ export default {
           memories: env.MEMORIES_PASSWORD,
           music: env.MUSIC_PASSWORD,
           socials: env.SOCIALS_PASSWORD,
-          random: env.RANDOM_PASSWORD
+          random: env.RANDOM_PASSWORD,
+          "voice-notes": env.VOICE_NOTES_PASSWORD
         };
 
         if (!passwords[section]) {
