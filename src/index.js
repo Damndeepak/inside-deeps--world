@@ -380,12 +380,20 @@ export default {
         const existingUser = await getUser(userId);
 
         if (existingUser) {
-          return Response.json({
-            success: true,
-            user: existingUser
-          });
-        }
-
+  return new Response(
+    JSON.stringify({
+      success: true,
+      user: existingUser
+    }),
+    {
+      headers: {
+        "Content-Type": "application/json",
+        "Cache-Control": "no-store",
+        "Set-Cookie": `deep_user=${existingUser.id}; Path=/; Max-Age=31536000; SameSite=Lax; Secure`
+      }
+    }
+  );
+}
         const id = crypto.randomUUID();
         const username =
           "User" + Math.floor(100000 + Math.random() * 900000);
@@ -405,7 +413,7 @@ export default {
           {
             headers: {
               "Content-Type": "application/json",
-              "Set-Cookie": `deep_user=${id}; Path=/; Max-Age=31536000; SameSite=Lax`
+              "Set-Cookie": `deep_user=${id}; Path=/; Max-Age=31536000; SameSite=Lax; secure
             }
           }
         );
