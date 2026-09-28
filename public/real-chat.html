@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Real Chat · Inside Deep's World</title>
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;
+  min-height:100vh;
+  background:#090b0f;
+  color:#f4f4f5;
+  font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+}
+button,input,textarea{font:inherit}
+button{cursor:pointer}
+.app{
+  width:min(100%,760px);
+  margin:auto;
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+}
+.header{
+  padding:22px 20px 16px;
+  border-bottom:1px solid #20232a;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+.brand{
+  font-size:12px;
+  letter-spacing:.18em;
+  text-transform:uppercase;
+  color:#8f96a3;
+}
+.title{
+  margin-top:5px;
+  font-size:22px;
+  font-weight:700;
+}
+.panel{
+  margin:22px 16px;
+  padding:22px;
+  border:1px solid #242832;
+  border-radius:20px;
+  background:#101319;
+}
+.hidden{display:none!important}
+.label{
+  display:block;
+  margin:16px 0 7px;
+  color:#a8aeba;
+  font-size:12px;
+  text-transform:uppercase;
+  letter-spacing:.12em;
+}
+input,textarea{
+  width:100%;
+  border:1px solid #2a2e38;
+  background:#0a0c10;
+  color:#fff;
+  border-radius:12px;
+  padding:13px 14px;
+  outline:none;
+}
+input:focus,textarea:focus{border-color:#777f8e}
+textarea{resize:vertical;min-height:80px}
+.username-wrap{position:relative}
+.username-wrap span{
+  position:absolute;
+  left:14px;
+  top:13px;
+  color:#777f8e;
+}
+.username-wrap input{padding-left:29px}
+.primary{
+  width:100%;
+  border:0;
+  border-radius:12px;
+  padding:14px;
+  margin-top:18px;
+  background:#fff;
+  color:#090b0f;
+  font-weight:700;
+}
+.primary:disabled{opacity:.45;cursor:not-allowed}
+.error{
+  margin-top:12px;
+  color:#ff7777;
+  font-size:13px;
+}
+.profile{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+.avatar{
+  width:48px;height:48px;
+  border-radius:50%;
+  background:#252a34;
+  display:grid;
+  place-items:center;
+  font-weight:700;
+}
+.profile-name{font-weight:700}
+.profile-handle{color:#858c99;font-size:13px;margin-top:3px}
+.search{
+  margin-top:22px;
+}
+.people{
+  margin-top:12px;
+  display:grid;
+  gap:8px;
+}
+.person{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:12px;
+  border:1px solid #222631;
+  border-radius:14px;
+}
+.person-info{flex:1;min-width:0}
+.person-name{font-weight:650}
+.person-handle{color:#858c99;font-size:13px;margin-top:2px}
+.chat-btn{
+  border:1px solid #343a46;
+  background:#171a21;
+  color:#fff;
+  border-radius:9px;
+  padding:8px 12px;
+  font-size:12px;
+}
+.empty{
+  color:#707784;
+  text-align:center;
+  padding:25px 10px;
+  font-size:13px;
+}
+.note{
+  color:#666d79;
+  font-size:12px;
+  line-height:1.6;
+  margin-top:15px;
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<header class="header">
+  <div>
+    <div class="brand">Inside Deep's World</div>
+    <div class="title">Real Chat</div>
+  </div>
+</header>
+
+<section id="registerPanel" class="panel">
+  <div class="title">Create your profile</div>
+  <div class="note">Use the name and username you want other people on this chat to see.</div>
+
+  <label class="label" for="name">Your name</label>
+  <input id="name" maxlength="40" placeholder="Deepu" autocomplete="name">
+
+  <label class="label" for="username">Username</label>
+  <div class="username-wrap">
+    <span>@</span>
+    <input id="username" maxlength="24" placeholder="deepu" autocomplete="username">
+  </div>
+
+  <label class="label" for="bio">Bio · optional</label>
+  <textarea id="bio" maxlength="120" placeholder="just vibing"></textarea>
+
+  <button id="register" class="primary">Continue</button>
+  <div id="registerError" class="error hidden"></div>
+
+  <div class="note">
+    Username: 3–24 characters. Letters, numbers and underscores only.
+  </div>
+</section>
+
+<section id="chatPanel" class="panel hidden">
+  <div class="profile">
+    <div id="myAvatar" class="avatar">?</div>
+    <div>
+      <div id="myName" class="profile-name"></div>
+      <div id="myUsername" class="profile-handle"></div>
+    </div>
+  </div>
+
+  <div class="search">
+    <label class="label" for="search">Find people</label>
+    <input id="search" placeholder="Search name or @username" autocomplete="off">
+  </div>
+
+  <div id="people" class="people">
+    <div class="empty">Search for someone to start a conversation.</div>
+  </div>
+</section>
+
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+
+  const registerPanel = $("registerPanel");
+  const chatPanel = $("chatPanel");
+  const registerBtn = $("register");
+  const errorBox = $("registerError");
+  const search = $("search");
+  const people = $("people");
+
+  const esc = value => String(value ?? "").replace(/[&<>"']/g, char => ({
+    "&":"&amp;",
+    "<":"&lt;",
+    ">":"&gt;",
+    '"':"&quot;",
+    "'":"&#039;"
+  }[char]));
+
+  function showError(message){
+    errorBox.textContent = message;
+    errorBox.classList.remove("hidden");
+  }
+
+  function hideError(){
+    errorBox.textContent = "";
+    errorBox.classList.add("hidden");
+  }
+
+  function showProfile(user){
+    registerPanel.classList.add("hidden");
+    chatPanel.classList.remove("hidden");
+
+    $("myName").textContent = user.name;
+    $("myUsername").textContent = "@" + user.username;
+    $("myAvatar").textContent = user.name.trim().charAt(0).toUpperCase() || "?";
+  }
+
+  async function loadMe(){
+    try{
+      const response = await fetch("/api/real-chat/me",{cache:"no-store"});
+      const data = await response.json();
+
+      if(data.connected && data.user){
+        showProfile(data.user);
+      }
+    }catch{}
+  }
+
+  registerBtn.addEventListener("click", async () => {
+    hideError();
+
+    const name = $("name").value.trim();
+    const username = $("username").value.trim().replace(/^@/,"").toLowerCase();
+    const bio = $("bio").value.trim();
+
+    if(name.length < 2){
+      showError("Enter your name.");
+      return;
+    }
+
+    if(!/^[a-z0-9_]{3,24}$/.test(username)){
+      showError("Username must be 3–24 characters using letters, numbers or underscores.");
+      return;
+    }
+
+    registerBtn.disabled = true;
+    registerBtn.textContent = "Creating...";
+
+    try{
+      const response = await fetch("/api/real-chat/register",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({name,username,bio})
+      });
+
+      const data = await response.json();
+
+      if(!response.ok || !data.success){
+        throw new Error(data.error || "Could not create profile.");
+      }
+
+      showProfile(data.user);
+    }catch(error){
+      showError(error.message || "Something went wrong.");
+    }finally{
+      registerBtn.disabled = false;
+      registerBtn.textContent = "Continue";
+    }
+  });
+
+  let searchTimer;
+
+  search.addEventListener("input", () => {
+    clearTimeout(searchTimer);
+
+    const q = search.value.trim();
+
+    if(!q){
+      people.innerHTML = '<div class="empty">Search for someone to start a conversation.</div>';
+      return;
+    }
+
+    searchTimer = setTimeout(() => findPeople(q), 250);
+  });
+
+  async function findPeople(q){
+    people.innerHTML = '<div class="empty">Searching...</div>';
+
+    try{
+      const response = await fetch(
+        "/api/real-chat/users?q=" + encodeURIComponent(q),
+        {cache:"no-store"}
+      );
+
+      const data = await response.json();
+
+      if(!response.ok || !data.success){
+        throw new Error(data.error || "Search failed.");
+      }
+
+      if(!data.users.length){
+        people.innerHTML = '<div class="empty">No people found.</div>';
+        return;
+      }
+
+      people.innerHTML = data.users.map(user => `
+        <div class="person">
+          <div class="avatar">${esc((user.name || "?").charAt(0).toUpperCase())}</div>
+          <div class="person-info">
+            <div class="person-name">${esc(user.name)}</div>
+            <div class="person-handle">@${esc(user.username)}</div>
+          </div>
+          <button class="chat-btn" data-user="${esc(user.id)}">Chat</button>
+        </div>
+      `).join("");
+
+      people.querySelectorAll("[data-user]").forEach(button => {
+        button.addEventListener("click", () => startConversation(button.dataset.user));
+      });
+
+    }catch(error){
+      people.innerHTML = `<div class="empty">${esc(error.message || "Search failed.")}</div>`;
+    }
+  }
+
+  async function startConversation(userId){
+    try{
+      const response = await fetch("/api/real-chat/conversations",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({user_id:userId})
+      });
+
+      const data = await response.json();
+
+      if(!response.ok || !data.success){
+        throw new Error(data.error || "Could not start conversation.");
+      }
+
+      alert("Conversation created. The chat screen comes next.");
+    }catch(error){
+      alert(error.message || "Could not start conversation.");
+    }
+  }
+
+  loadMe();
+})();
+</script>
+</body>
+</html>
