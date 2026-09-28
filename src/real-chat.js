@@ -287,30 +287,37 @@ export async function handleRealChat(request, env, url) {
 
       const q = (url.searchParams.get("q") || "").trim();
 
+      let result;
+
       if (!q) {
-        return json({
-          success: true,
-          users: []
-        });
+        // No search query: return all users except current user
+        result = await env.DB.prepare(`
+          SELECT id, name, username, bio, avatar_url, last_seen_at
+          FROM real_chat_users
+          WHERE id != ?
+          ORDER BY name ASC
+          LIMIT 100
+        `).bind(me.id).all();
+      } else {
+        // With search query: filter by name or username
+        const search = q.toLowerCase().replace(/^@/, "");
+
+        result = await env.DB.prepare(`
+          SELECT id, name, username, bio, avatar_url, last_seen_at
+          FROM real_chat_users
+          WHERE id != ?
+            AND (
+              lower(name) LIKE ?
+              OR lower(username) LIKE ?
+            )
+          ORDER BY name ASC
+          LIMIT 20
+        `).bind(
+          me.id,
+          `%${search}%`,
+          `%${search}%`
+        ).all();
       }
-
-      const search = q.toLowerCase().replace(/^@/, "");
-
-      const result = await env.DB.prepare(`
-        SELECT id, name, username, bio, avatar_url, last_seen_at
-        FROM real_chat_users
-        WHERE id != ?
-          AND (
-            lower(name) LIKE ?
-            OR lower(username) LIKE ?
-          )
-        ORDER BY name ASC
-        LIMIT 20
-      `).bind(
-        me.id,
-        `%${search}%`,
-        `%${search}%`
-      ).all();
 
       return json({
         success: true,
@@ -834,4 +841,33 @@ export async function handleRealChat(request, env, url) {
           DELETE FROM real_chat_reactions
           WHERE message_id = ? AND user_id = ? AND reaction = ?
         `).bind(
-          messageId
+          messageId,
+          me.id,
+          reaction
+        ).run();
+      } else {
+        await env.DB.prepare(`
+          INSERT INTO real_chat_reactions
+          (message_id, user_id, reaction, created_at)
+          VALUES (?, ?, ?, ?)
+        `).bind(
+          messageId,
+          me.id,
+          reaction,
+          new Date().toISOString()
+        ).run();
+      }
+
+      return json({
+        success: true
+      });
+    }
+
+    return null;
+  } catch (error) {
+    return json({
+      success: false,
+      error: error.message || "Internal server error"
+    }, 500);
+  }
+}
