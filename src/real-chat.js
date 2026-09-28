@@ -327,6 +327,440 @@ export async function handleRealChat(request, env, url) {
       });
     }
 
+    if (
+      url.pathname === "/api/real-chat/conversations" &&
+      request.method === "GET"
+    ) {
+      const me = await getUser(env, request);
+
+      if (!me) {
+        return json({
+          success: false,
+          error: "Register your name first."
+        }, 401);
+      }
+
+      const result = await env.DB.prepare(`
+        SELECT
+          c.id,
+          c.updated_at,
+          CASE
+            WHEN c.user_a_id = ? THEN c.user_b_id
+            ELSE c.user_a_id
+          END AS other_id,
+          u.name AS other_name,
+          u.username AS other_username,
+          u.bio AS other_bio,
+          u.avatar_url AS other_avatar
+        FROM real_chat_conversations c
+        JOIN real_chat_users u
+          ON u.id = CASE
+            WHEN c.user_a_id = ? THEN c.user_b_id
+            ELSE c.user_a_id
+          END
+        WHERE c.user_a_id = ? OR c.user_b_id = ?
+        ORDER BY c.updated_at DESC
+      `).bind(
+        me.id,
+        me.id,
+        me.id,
+        me.id
+      ).all();
+
+      return json({
+        success: true,
+        conversations: result.results || []
+      });
+    }
+
+    if (
+      url.pathname.startsWith("/api/real-chat/messages/") &&
+      request.method === "GET"
+    ) {
+      const me = await getUser(env, request);
+      const conversationId = url.pathname.split("/").pop();
+
+      if (!me) {
+        return json({
+          success: false,
+          error: "Register your name first."
+        }, 401);
+      }
+
+      const conversation = await env.DB.prepare(`
+        SELECT id
+        FROM real_chat_conversations
+        WHERE id = ?
+          AND (user_a_id = ? OR user_b_id = ?)
+      `).bind(
+        conversationId,
+        me.id,
+        me.id
+      ).first();
+
+      if (!conversation) {
+        return json({
+          success: false,
+          error: "Conversation not found."
+        }, 404);
+      }
+
+      const limit = Math.min(
+        Math.max(Number(url.searchParams.get("limit")) || 50, 1),
+        100
+      );
+
+      const result = await env.DB.prepare(`
+        SELECT
+          m.id,
+          m.sender_id,
+          u.name AS sender_name,
+          u.username AS sender_username,
+          m.message,
+          m.message_type,
+          m.reply_to_id,
+          m.edited_at,
+          m.deleted_at,
+          m.created_at,
+          COALESCE(
+            (
+              SELECT GROUP_CONCAT(r.reaction || ":" || r.user_id, "||")
+              FROM real_chat_reactions r
+              WHERE r.message_id = m.id
+            ),
+            ""
+          ) AS reactions
+        FROM real_chat_messages m
+        JOIN real_chat_users u ON u.id = m.sender_id
+        WHERE m.conversation_id = ?
+        ORDER BY m.created_at DESC
+        LIMIT ?
+      `).bind(
+        conversationId,
+        limit
+      ).all();
+
+      await env.DB.prepare(`
+        INSERT INTO real_chat_reads
+          (conversation_id, user_id, last_read_at)
+        VALUES (?, ?, ?)
+        ON CONFLICT(conversation_id, user_id)
+        DO UPDATE SET last_read_at = excluded.last_read_at
+      `).bind(
+        conversationId,
+        me.id,
+        new Date().toISOString()
+      ).run();
+
+      return json({
+        success: true,
+        messages: (result.results || []).reverse()
+      });
+    }
+
+    if (
+      url.pathname.startsWith("/api/real-chat/messages/") &&
+      request.method === "POST"
+    ) {
+      const me = await getUser(env, request);
+      const conversationId = url.pathname.split("/").pop();
+
+      if (!me) {
+        return json({
+          success: false,
+          error: "Register your name first."
+        }, 401);
+      }
+
+      const conversation = await env.DB.prepare(`
+        SELECT id
+        FROM real_chat_conversations
+        WHERE id = ?
+          AND (user_a_id = ? OR user_b_id = ?)
+      `).bind(
+        conversationId,
+        me.id,
+        me.id
+      ).first();
+
+      if (!conversation) {
+        return json({
+          success: false,
+          error: "Conversation not found."
+        }, 404);
+      }
+
+      const body = await request.json().catch(() => ({}));
+
+      const message = typeof body.message === "string"
+        ? body.message.trim()
+        : "";
+
+      const replyToId = typeof body.reply_to_id === "string"
+        ? body.reply_to_id
+        : null;
+
+      if (!message || message.length > 5000) {
+        return json({
+          success: false,
+          error: "Message must contain 1-5000 characters."
+        }, 400);
+      }
+
+      if (replyToId) {
+        const reply = await env.DB.prepare(`
+          SELECT id
+          FROM real_chat_messages
+          WHERE id = ? AND conversation_id = ?
+        `).bind(
+          replyToId,
+          conversationId
+        ).first();
+
+        if (!reply) {
+          return json({
+            success: false,
+            error: "Reply target not found."
+          }, 400);
+        }
+      }
+
+      const id = crypto.randomUUID();
+      const now = new Date().toISOString();
+
+      await env.DB.prepare(`
+        INSERT INTO real_chat_messages
+          (id, conversation_id, sender_id, message, message_type, reply_to_id, created_at)
+        VALUES (?, ?, ?, ?, 'text', ?, ?)
+      `).bind(
+        id,
+        conversationId,
+        me.id,
+        message,
+        replyToId,
+        now
+      ).run();
+
+      await env.DB.prepare(`
+        UPDATE real_chat_conversations
+        SET updated_at = ?
+        WHERE id = ?
+      `).bind(
+        now,
+        conversationId
+      ).run();
+
+      return json({
+        success: true,
+        message: {
+          id,
+          conversation_id: conversationId,
+          sender_id: me.id,
+          sender_name: me.name,
+          sender_username: me.username,
+          message,
+          message_type: "text",
+          reply_to_id: replyToId,
+          edited_at: null,
+          deleted_at: null,
+          created_at: now
+        }
+      });
+    }
+
+    if (
+      url.pathname.startsWith("/api/real-chat/message/") &&
+      request.method === "PATCH"
+    ) {
+      const me = await getUser(env, request);
+      const messageId = url.pathname.split("/").pop();
+
+      if (!me) {
+        return json({
+          success: false,
+          error: "Register your name first."
+        }, 401);
+      }
+
+      const body = await request.json().catch(() => ({}));
+      const message = typeof body.message === "string"
+        ? body.message.trim()
+        : "";
+
+      if (!message || message.length > 5000) {
+        return json({
+          success: false,
+          error: "Message must contain 1-5000 characters."
+        }, 400);
+      }
+
+      const existing = await env.DB.prepare(`
+        SELECT id
+        FROM real_chat_messages
+        WHERE id = ? AND sender_id = ? AND deleted_at IS NULL
+      `).bind(
+        messageId,
+        me.id
+      ).first();
+
+      if (!existing) {
+        return json({
+          success: false,
+          error: "Message not found."
+        }, 404);
+      }
+
+      const now = new Date().toISOString();
+
+      await env.DB.prepare(`
+        UPDATE real_chat_messages
+        SET message = ?, edited_at = ?
+        WHERE id = ?
+      `).bind(
+        message,
+        now,
+        messageId
+      ).run();
+
+      return json({
+        success: true,
+        edited_at: now
+      });
+    }
+
+    if (
+      url.pathname.startsWith("/api/real-chat/message/") &&
+      request.method === "DELETE"
+    ) {
+      const me = await getUser(env, request);
+      const messageId = url.pathname.split("/").pop();
+
+      if (!me) {
+        return json({
+          success: false,
+          error: "Register your name first."
+        }, 401);
+      }
+
+      const existing = await env.DB.prepare(`
+        SELECT id
+        FROM real_chat_messages
+        WHERE id = ? AND sender_id = ? AND deleted_at IS NULL
+      `).bind(
+        messageId,
+        me.id
+      ).first();
+
+      if (!existing) {
+        return json({
+          success: false,
+          error: "Message not found."
+        }, 404);
+      }
+
+      const now = new Date().toISOString();
+
+      await env.DB.prepare(`
+        UPDATE real_chat_messages
+        SET message = NULL, deleted_at = ?
+        WHERE id = ?
+      `).bind(
+        now,
+        messageId
+      ).run();
+
+      return json({
+        success: true,
+        deleted_at: now
+      });
+    }
+
+    if (
+      url.pathname.startsWith("/api/real-chat/message/") &&
+      url.pathname.endsWith("/react") &&
+      request.method === "POST"
+    ) {
+      const me = await getUser(env, request);
+      const parts = url.pathname.split("/");
+      const messageId = parts[parts.length - 2];
+
+      if (!me) {
+        return json({
+          success: false,
+          error: "Register your name first."
+        }, 401);
+      }
+
+      const body = await request.json().catch(() => ({}));
+      const reaction = typeof body.reaction === "string"
+        ? body.reaction.trim()
+        : "";
+
+      const allowed = ["❤️", "😂", "😭", "😭‍🔥", "👍🏻", "💀"];
+
+      if (!allowed.includes(reaction)) {
+        return json({
+          success: false,
+          error: "Unsupported reaction."
+        }, 400);
+      }
+
+      const message = await env.DB.prepare(`
+        SELECT id
+        FROM real_chat_messages
+        WHERE id = ?
+      `).bind(messageId).first();
+
+      if (!message) {
+        return json({
+          success: false,
+          error: "Message not found."
+        }, 404);
+      }
+
+      const existing = await env.DB.prepare(`
+        SELECT message_id
+        FROM real_chat_reactions
+        WHERE message_id = ? AND user_id = ? AND reaction = ?
+      `).bind(
+        messageId,
+        me.id,
+        reaction
+      ).first();
+
+      if (existing) {
+        await env.DB.prepare(`
+          DELETE FROM real_chat_reactions
+          WHERE message_id = ? AND user_id = ? AND reaction = ?
+        `).bind(
+          messageId,
+          me.id,
+          reaction
+        ).run();
+
+        return json({
+          success: true,
+          active: false
+        });
+      }
+
+      await env.DB.prepare(`
+        INSERT INTO real_chat_reactions
+          (message_id, user_id, reaction, created_at)
+        VALUES (?, ?, ?, ?)
+      `).bind(
+        messageId,
+        me.id,
+        reaction,
+        new Date().toISOString()
+      ).run();
+
+      return json({
+        success: true,
+        active: true
+      });
+    }
+
     return json({
       success: false,
       error: "Real Chat endpoint not found."
