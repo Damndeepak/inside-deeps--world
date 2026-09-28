@@ -1,11 +1,6 @@
-import { handleRealChat } from "./real-chat.js";
-
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-
-    const realChatResponse = await handleRealChat(request, env, url);
-    if (realChatResponse) return realChatResponse;
 
     function getUserId(request) {
       const cookies = request.headers.get("Cookie") || "";
