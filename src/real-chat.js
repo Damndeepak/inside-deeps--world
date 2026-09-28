@@ -1,7 +1,8 @@
 function json(data, status = 200, extraHeaders = {}) {
-  return Response.json(data, {
+  return new Response(JSON.stringify(data), {
     status,
     headers: {
+      "Content-Type": "application/json; charset=utf-8",
       "Cache-Control": "no-store",
       ...extraHeaders
     }
@@ -17,10 +18,21 @@ function getCookie(request, name) {
 }
 
 function sessionCookie(id) {
-  return `real_chat_user=${encodeURIComponent(id)}; Path=/; Max-Age=31536000; HttpOnly; Secure; SameSite=Lax`;
+  return [
+    "real_chat_user=" + encodeURIComponent(id),
+    "Path=/",
+    "Max-Age=31536000",
+    "HttpOnly",
+    "Secure",
+    "SameSite=Lax"
+  ].join("; ");
 }
 
 async function ensureRealChatTables(env) {
+  if (!env.DB) {
+    throw new Error("DB binding is missing");
+  }
+
   await env.DB.prepare(`
     CREATE TABLE IF NOT EXISTS real_chat_users (
       id TEXT PRIMARY KEY,
@@ -86,17 +98,73 @@ async function getUser(env, request) {
     SELECT id, name, username, bio, avatar_url, created_at, last_seen_at
     FROM real_chat_users
     WHERE id = ?
+    LIMIT 1
   `).bind(id).first();
 }
 
+function validUsername(username) {
+  return /^[a-z0-9_]{3,24}$/.test(username);
+}
+
+function userData(user) {
+  if (!user) return null;
+
+  return {
+    id: user.id,
+    name: user.name,
+    username: user.username,
+    bio: user.bio || "",
+    avatar_url: user.avatar_url || "",
+    created_at: user.created_at,
+    last_seen_at: user.last_seen_at
+  };
+}
+
 export async function handleRealChat(request, env, url) {
-  if (!url.pathname.startsWith("/api/real-chat/")) return null;
+  if (!url.pathname.startsWith("/api/real-chat/")) {
+    return null;
+  }
 
   try {
     await ensureRealChatTables(env);
 
+    if (url.pathname === "/api/real-chat/me" && request.method === "GET") {
+      const user = await getUser(env, request);
+
+      if (!user) {
+        return json({
+          success: true,
+          connected: false,
+          user: null
+        });
+      }
+
+      const now = new Date().toISOString();
+
+      await env.DB.prepare(`
+        UPDATE real_chat_users
+        SET last_seen_at = ?
+        WHERE id = ?
+      `).bind(now, user.id).run();
+
+      user.last_seen_at = now;
+
+      return json({
+        success: true,
+        connected: true,
+        user: userData(user)
+      });
+    }
+
     if (url.pathname === "/api/real-chat/register" && request.method === "POST") {
-      const body = await request.json().catch(() => ({}));
+      const body = await request.json().catch(() => null);
+
+      if (!body || typeof body !== "object") {
+        return json({
+          success: false,
+          error: "Invalid request body."
+        }, 400);
+      }
 
       const name = typeof body.name === "string"
         ? body.name.trim().replace(/\s+/g, " ")
@@ -117,7 +185,7 @@ export async function handleRealChat(request, env, url) {
         }, 400);
       }
 
-      if (!/^[a-z0-9_]{3,24}$/.test(username)) {
+      if (!validUsername(username)) {
         return json({
           success: false,
           error: "Username must be 3-24 characters using letters, numbers or underscores."
@@ -127,7 +195,10 @@ export async function handleRealChat(request, env, url) {
       const currentId = getCookie(request, "real_chat_user");
 
       const taken = await env.DB.prepare(`
-        SELECT id FROM real_chat_users WHERE username = ? LIMIT 1
+        SELECT id
+        FROM real_chat_users
+        WHERE username = ?
+        LIMIT 1
       `).bind(username).first();
 
       if (taken && taken.id !== currentId) {
@@ -141,7 +212,10 @@ export async function handleRealChat(request, env, url) {
 
       if (currentId) {
         const existing = await env.DB.prepare(`
-          SELECT id FROM real_chat_users WHERE id = ?
+          SELECT id
+          FROM real_chat_users
+          WHERE id = ?
+          LIMIT 1
         `).bind(currentId).first();
 
         if (existing) {
@@ -149,16 +223,23 @@ export async function handleRealChat(request, env, url) {
             UPDATE real_chat_users
             SET name = ?, username = ?, bio = ?, last_seen_at = ?
             WHERE id = ?
-          `).bind(name, username, bio, now, currentId).run();
+          `).bind(
+            name,
+            username,
+            bio,
+            now,
+            currentId
+          ).run();
+
+          const updated = await env.DB.prepare(`
+            SELECT id, name, username, bio, avatar_url, created_at, last_seen_at
+            FROM real_chat_users
+            WHERE id = ?
+          `).bind(currentId).first();
 
           return json({
             success: true,
-            user: {
-              id: currentId,
-              name,
-              username,
-              bio
-            }
+            user: userData(updated)
           });
         }
       }
@@ -184,33 +265,13 @@ export async function handleRealChat(request, env, url) {
           id,
           name,
           username,
-          bio
+          bio,
+          avatar_url: "",
+          created_at: now,
+          last_seen_at: now
         }
       }, 200, {
         "Set-Cookie": sessionCookie(id)
-      });
-    }
-
-    if (url.pathname === "/api/real-chat/me" && request.method === "GET") {
-      const user = await getUser(env, request);
-
-      if (!user) {
-        return json({
-          success: true,
-          connected: false
-        });
-      }
-
-      await env.DB.prepare(`
-        UPDATE real_chat_users
-        SET last_seen_at = ?
-        WHERE id = ?
-      `).bind(new Date().toISOString(), user.id).run();
-
-      return json({
-        success: true,
-        connected: true,
-        user
       });
     }
 
@@ -226,24 +287,29 @@ export async function handleRealChat(request, env, url) {
 
       const q = (url.searchParams.get("q") || "").trim();
 
-      if (q.length < 1) {
+      if (!q) {
         return json({
           success: true,
           users: []
         });
       }
 
+      const search = q.toLowerCase().replace(/^@/, "");
+
       const result = await env.DB.prepare(`
         SELECT id, name, username, bio, avatar_url, last_seen_at
         FROM real_chat_users
         WHERE id != ?
-          AND (name LIKE ? OR username LIKE ?)
+          AND (
+            lower(name) LIKE ?
+            OR lower(username) LIKE ?
+          )
         ORDER BY name ASC
         LIMIT 20
       `).bind(
         me.id,
-        `%${q}%`,
-        `%${q.toLowerCase().replace(/^@/, "")}%`
+        `%${search}%`,
+        `%${search}%`
       ).all();
 
       return json({
@@ -281,6 +347,7 @@ export async function handleRealChat(request, env, url) {
         SELECT id, name, username, bio, avatar_url, last_seen_at
         FROM real_chat_users
         WHERE id = ?
+        LIMIT 1
       `).bind(otherId).first();
 
       if (!other) {
@@ -322,7 +389,7 @@ export async function handleRealChat(request, env, url) {
         success: true,
         conversation: {
           id: conversation.id,
-          user: other
+          user: userData(other)
         }
       });
     }
@@ -373,12 +440,13 @@ export async function handleRealChat(request, env, url) {
       });
     }
 
-    if (
-      url.pathname.startsWith("/api/real-chat/messages/") &&
-      request.method === "GET"
-    ) {
+    const messagesMatch = url.pathname.match(
+      /^\/api\/real-chat\/messages\/([^/]+)$/
+    );
+
+    if (messagesMatch && request.method === "GET") {
       const me = await getUser(env, request);
-      const conversationId = url.pathname.split("/").pop();
+      const conversationId = messagesMatch[1];
 
       if (!me) {
         return json({
@@ -392,6 +460,7 @@ export async function handleRealChat(request, env, url) {
         FROM real_chat_conversations
         WHERE id = ?
           AND (user_a_id = ? OR user_b_id = ?)
+        LIMIT 1
       `).bind(
         conversationId,
         me.id,
@@ -405,10 +474,8 @@ export async function handleRealChat(request, env, url) {
         }, 404);
       }
 
-      const limit = Math.min(
-        Math.max(Number(url.searchParams.get("limit")) || 50, 1),
-        100
-      );
+      const requestedLimit = Number(url.searchParams.get("limit")) || 50;
+      const limit = Math.min(Math.max(requestedLimit, 1), 100);
 
       const result = await env.DB.prepare(`
         SELECT
@@ -424,11 +491,14 @@ export async function handleRealChat(request, env, url) {
           m.created_at,
           COALESCE(
             (
-              SELECT GROUP_CONCAT(r.reaction || ":" || r.user_id, "||")
+              SELECT GROUP_CONCAT(
+                r.reaction || ':' || r.user_id,
+                '||'
+              )
               FROM real_chat_reactions r
               WHERE r.message_id = m.id
             ),
-            ""
+            ''
           ) AS reactions
         FROM real_chat_messages m
         JOIN real_chat_users u ON u.id = m.sender_id
@@ -440,17 +510,25 @@ export async function handleRealChat(request, env, url) {
         limit
       ).all();
 
+      const now = new Date().toISOString();
+
       await env.DB.prepare(`
         INSERT INTO real_chat_reads
-          (conversation_id, user_id, last_read_at)
+        (conversation_id, user_id, last_read_at)
         VALUES (?, ?, ?)
         ON CONFLICT(conversation_id, user_id)
         DO UPDATE SET last_read_at = excluded.last_read_at
       `).bind(
         conversationId,
         me.id,
-        new Date().toISOString()
+        now
       ).run();
+
+      await env.DB.prepare(`
+        UPDATE real_chat_users
+        SET last_seen_at = ?
+        WHERE id = ?
+      `).bind(now, me.id).run();
 
       return json({
         success: true,
@@ -458,12 +536,9 @@ export async function handleRealChat(request, env, url) {
       });
     }
 
-    if (
-      url.pathname.startsWith("/api/real-chat/messages/") &&
-      request.method === "POST"
-    ) {
+    if (messagesMatch && request.method === "POST") {
       const me = await getUser(env, request);
-      const conversationId = url.pathname.split("/").pop();
+      const conversationId = messagesMatch[1];
 
       if (!me) {
         return json({
@@ -477,6 +552,7 @@ export async function handleRealChat(request, env, url) {
         FROM real_chat_conversations
         WHERE id = ?
           AND (user_a_id = ? OR user_b_id = ?)
+        LIMIT 1
       `).bind(
         conversationId,
         me.id,
@@ -512,6 +588,7 @@ export async function handleRealChat(request, env, url) {
           SELECT id
           FROM real_chat_messages
           WHERE id = ? AND conversation_id = ?
+          LIMIT 1
         `).bind(
           replyToId,
           conversationId
@@ -530,7 +607,7 @@ export async function handleRealChat(request, env, url) {
 
       await env.DB.prepare(`
         INSERT INTO real_chat_messages
-          (id, conversation_id, sender_id, message, message_type, reply_to_id, created_at)
+        (id, conversation_id, sender_id, message, message_type, reply_to_id, created_at)
         VALUES (?, ?, ?, ?, 'text', ?, ?)
       `).bind(
         id,
@@ -545,10 +622,7 @@ export async function handleRealChat(request, env, url) {
         UPDATE real_chat_conversations
         SET updated_at = ?
         WHERE id = ?
-      `).bind(
-        now,
-        conversationId
-      ).run();
+      `).bind(now, conversationId).run();
 
       return json({
         success: true,
@@ -568,12 +642,13 @@ export async function handleRealChat(request, env, url) {
       });
     }
 
-    if (
-      url.pathname.startsWith("/api/real-chat/message/") &&
-      request.method === "PATCH"
-    ) {
+    const messageMatch = url.pathname.match(
+      /^\/api\/real-chat\/message\/([^/]+)$/
+    );
+
+    if (messageMatch && request.method === "PATCH") {
       const me = await getUser(env, request);
-      const messageId = url.pathname.split("/").pop();
+      const messageId = messageMatch[1];
 
       if (!me) {
         return json({
@@ -598,6 +673,7 @@ export async function handleRealChat(request, env, url) {
         SELECT id
         FROM real_chat_messages
         WHERE id = ? AND sender_id = ? AND deleted_at IS NULL
+        LIMIT 1
       `).bind(
         messageId,
         me.id
@@ -628,12 +704,9 @@ export async function handleRealChat(request, env, url) {
       });
     }
 
-    if (
-      url.pathname.startsWith("/api/real-chat/message/") &&
-      request.method === "DELETE"
-    ) {
+    if (messageMatch && request.method === "DELETE") {
       const me = await getUser(env, request);
-      const messageId = url.pathname.split("/").pop();
+      const messageId = messageMatch[1];
 
       if (!me) {
         return json({
@@ -646,6 +719,7 @@ export async function handleRealChat(request, env, url) {
         SELECT id
         FROM real_chat_messages
         WHERE id = ? AND sender_id = ? AND deleted_at IS NULL
+        LIMIT 1
       `).bind(
         messageId,
         me.id
@@ -675,14 +749,13 @@ export async function handleRealChat(request, env, url) {
       });
     }
 
-    if (
-      url.pathname.startsWith("/api/real-chat/message/") &&
-      url.pathname.endsWith("/react") &&
-      request.method === "POST"
-    ) {
+    const reactionMatch = url.pathname.match(
+      /^\/api\/real-chat\/message\/([^/]+)\/react$/
+    );
+
+    if (reactionMatch && request.method === "POST") {
       const me = await getUser(env, request);
-      const parts = url.pathname.split("/");
-      const messageId = parts[parts.length - 2];
+      const messageId = reactionMatch[1];
 
       if (!me) {
         return json({
@@ -696,7 +769,14 @@ export async function handleRealChat(request, env, url) {
         ? body.reaction.trim()
         : "";
 
-      const allowed = ["❤️", "😂", "😭", "😭‍🔥", "👍🏻", "💀"];
+      const allowed = [
+        "❤️",
+        "😂",
+        "😭",
+        "😭‍🔥",
+        "👍🏻",
+        "💀"
+      ];
 
       if (!allowed.includes(reaction)) {
         return json({
@@ -706,9 +786,10 @@ export async function handleRealChat(request, env, url) {
       }
 
       const message = await env.DB.prepare(`
-        SELECT id
+        SELECT id, conversation_id
         FROM real_chat_messages
         WHERE id = ?
+        LIMIT 1
       `).bind(messageId).first();
 
       if (!message) {
@@ -718,10 +799,30 @@ export async function handleRealChat(request, env, url) {
         }, 404);
       }
 
+      const access = await env.DB.prepare(`
+        SELECT id
+        FROM real_chat_conversations
+        WHERE id = ?
+          AND (user_a_id = ? OR user_b_id = ?)
+        LIMIT 1
+      `).bind(
+        message.conversation_id,
+        me.id,
+        me.id
+      ).first();
+
+      if (!access) {
+        return json({
+          success: false,
+          error: "You cannot react to this message."
+        }, 403);
+      }
+
       const existing = await env.DB.prepare(`
         SELECT message_id
         FROM real_chat_reactions
         WHERE message_id = ? AND user_id = ? AND reaction = ?
+        LIMIT 1
       `).bind(
         messageId,
         me.id,
@@ -733,43 +834,4 @@ export async function handleRealChat(request, env, url) {
           DELETE FROM real_chat_reactions
           WHERE message_id = ? AND user_id = ? AND reaction = ?
         `).bind(
-          messageId,
-          me.id,
-          reaction
-        ).run();
-
-        return json({
-          success: true,
-          active: false
-        });
-      }
-
-      await env.DB.prepare(`
-        INSERT INTO real_chat_reactions
-          (message_id, user_id, reaction, created_at)
-        VALUES (?, ?, ?, ?)
-      `).bind(
-        messageId,
-        me.id,
-        reaction,
-        new Date().toISOString()
-      ).run();
-
-      return json({
-        success: true,
-        active: true
-      });
-    }
-
-    return json({
-      success: false,
-      error: "Real Chat endpoint not found."
-    }, 404);
-
-  } catch (error) {
-    return json({
-      success: false,
-      error: "Real Chat is temporarily unavailable."
-    }, 500);
-  }
-}
+          messageId
