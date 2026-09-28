@@ -196,7 +196,7 @@ textarea{resize:vertical;min-height:80px}
   </div>
 
   <div id="people" class="people">
-    <div class="empty">Search for someone to start a conversation.</div>
+    <div class="empty">Loading people...</div>
   </div>
 </section>
 
@@ -213,7 +213,7 @@ textarea{resize:vertical;min-height:80px}
   const search = $("search");
   const people = $("people");
 
-  const esc = value => String(value ?? "").replace(/[&<>"']/g, char => ({
+  const esc = value => String(value ?? "").replace(/[&<>\"']/g, char => ({
     "&":"&amp;",
     "<":"&lt;",
     ">":"&gt;",
@@ -238,6 +238,8 @@ textarea{resize:vertical;min-height:80px}
     $("myName").textContent = user.name;
     $("myUsername").textContent = "@" + user.username;
     $("myAvatar").textContent = user.name.trim().charAt(0).toUpperCase() || "?";
+
+    findPeople("");
   }
 
   async function loadMe(){
@@ -301,7 +303,7 @@ textarea{resize:vertical;min-height:80px}
     const q = search.value.trim();
 
     if(!q){
-      people.innerHTML = '<div class="empty">Search for someone to start a conversation.</div>';
+      findPeople("");
       return;
     }
 
@@ -309,14 +311,13 @@ textarea{resize:vertical;min-height:80px}
   });
 
   async function findPeople(q){
-    people.innerHTML = '<div class="empty">Searching...</div>';
+    const query = typeof q === "string" ? q.trim() : "";
+    const url = query ? "/api/real-chat/users?q=" + encodeURIComponent(query) : "/api/real-chat/users";
+
+    people.innerHTML = '<div class="empty">Loading people...</div>';
 
     try{
-      const response = await fetch(
-        "/api/real-chat/users?q=" + encodeURIComponent(q),
-        {cache:"no-store"}
-      );
-
+      const response = await fetch(url,{cache:"no-store"});
       const data = await response.json();
 
       if(!response.ok || !data.success){
@@ -335,7 +336,7 @@ textarea{resize:vertical;min-height:80px}
             <div class="person-name">${esc(user.name)}</div>
             <div class="person-handle">@${esc(user.username)}</div>
           </div>
-          <button class="chat-btn" data-user="${esc(user.id)}">Chat</button>
+          <button class="chat-btn" data-user="${esc(user.id)}">DM</button>
         </div>
       `).join("");
 
