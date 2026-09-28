@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#090b0f">
+<title>Real Chat · Inside Deep's World</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:#090b0f;color:#f5f5f7;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+button,input,textarea{font:inherit}
+button{cursor:pointer}
+button:disabled{opacity:.45;cursor:not-allowed}
+a{color:inherit}
+.app{width:min(100%,860px);min-height:100vh;margin:auto;display:flex;flex-direction:column;background:#090b0f}
+.top{position:sticky;top:0;z-index:20;background:rgba(9,11,15,.94);backdrop-filter:blur(16px);border-bottom:1px solid #20232a;padding:17px 18px 14px}
+.toprow{display:flex;align-items:center;gap:12px}
+.back{width:40px;height:40px;border:1px solid #292c34;border-radius:13px;background:#11141a;color:#fff;font-size:21px}
+.brand{font:600 10px/1.2 monospace;letter-spacing:.18em;text-transform:uppercase;color:#818895}
+.title{font-size:22px;font-weight:800;margin-top:4px}
+.status{margin-left:auto;font:500 10px monospace;color:#666}
+.main{padding:18px;flex:1}
+.card{border:1px solid #252831;border-radius:22px;background:#0e1116;padding:18px}
+.hidden{display:none!important}
+label{display:block;font:500 10px monospace;letter-spacing:.12em;text-transform:uppercase;color:#777;margin:0 0 7px}
+input,textarea{width:100%;border:1px solid #2b2f38;background:#11141a;color:#fff;border-radius:13px;padding:13px 14px;outline:none}
+input:focus,textarea:focus{border-color:#555b67}
+textarea{resize:none;min-height:48px;max-height:140px}
+.field{margin-bottom:13px}
+.primary{width:100%;border:0;border-radius:13px;padding:13px 15px;background:#f4f4f5;color:#090b0f;font-weight:800}
+.muted{color:#747b87;font-size:12px;line-height:1.5}
+.err{color:#ff7777;font-size:12px;margin-top:10px}
+.success{color:#8be28b;font-size:12px;margin-top:10px}
+.tabs{display:flex;gap:8px;margin-bottom:14px}
+.tab{flex:1;padding:11px;border:1px solid #292d36;border-radius:12px;background:#101319;color:#9ba1ad}
+.tab.active{background:#1a1e26;color:#fff;border-color:#3a3f4a}
+.search{position:relative;margin-bottom:14px}
+.search input{padding-left:40px}
+.searchIcon{position:absolute;left:14px;top:12px;color:#777}
+.user{display:flex;align-items:center;gap:12px;padding:13px 4px;border-bottom:1px solid #1e2128}
+.user:last-child{border-bottom:0}
+.avatar{width:44px;height:44px;border-radius:14px;background:#181b22;border:1px solid #30343e;display:grid;place-items:center;font-weight:800;flex:none}
+.userinfo{min-width:0;flex:1}
+.name{font-weight:750}
+.username{color:#777;font:11px monospace;margin-top:3px}
+.bio{color:#858b96;font-size:11px;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.open{border:1px solid #30343e;background:#171a21;color:#fff;border-radius:10px;padding:8px 10px;font-size:11px}
+.chat{height:calc(100vh - 115px);min-height:520px;display:flex;flex-direction:column}
+.chathead{display:flex;align-items:center;gap:12px;padding-bottom:13px;border-bottom:1px solid #242730}
+.chathead .back{display:block}
+.chatmeta{min-width:0}
+.chatmeta .name{font-size:15px}
+.messages{flex:1;overflow:auto;padding:18px 2px;display:flex;flex-direction:column;gap:7px}
+.msgrow{display:flex}
+.msgrow.mine{justify-content:flex-end}
+.bubble{max-width:min(78%,560px);padding:10px 12px;border-radius:16px;background:#171a21;border:1px solid #292d36;position:relative}
+.mine .bubble{background:#252a33}
+.msgtext{font-size:14px;line-height:1.45;white-space:pre-wrap;word-break:break-word}
+.time{font:9px monospace;color:#737986;margin-top:5px}
+.deleted{font-style:italic;color:#777}
+.reactions{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}
+.react{font-size:12px;border:1px solid #30343d;background:#11141a;color:#fff;border-radius:10px;padding:3px 6px}
+.composer{border-top:1px solid #242730;padding-top:12px;display:flex;gap:8px;align-items:flex-end}
+.composer textarea{flex:1}
+.send{width:48px;height:48px;border-radius:14px;border:0;background:#f4f4f5;color:#090b0f;font-size:18px}
+.chatActions{display:flex;gap:5px;margin-top:5px}
+.smallbtn{border:1px solid #30343d;background:#11141a;color:#aaa;border-radius:8px;padding:4px 7px;font-size:9px}
+.empty{text-align:center;color:#666;padding:40px 10px;font-size:12px}
+.rowhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px}
+.rowhead h2{font-size:14px;margin:0}
+.profile{display:flex;gap:12px;align-items:center;padding-bottom:16px;margin-bottom:16px;border-bottom:1px solid #242730}
+.logout{margin-left:auto;border:1px solid #30343d;background:#11141a;color:#999;border-radius:10px;padding:8px 10px;font-size:10px}
+.convo{display:flex;align-items:center;gap:12px;padding:13px 2px;border-bottom:1px solid #1e2128;cursor:pointer}
+.convo:last-child{border-bottom:0}
+.convoInfo{flex:1;min-width:0}
+.convoTime{font:9px monospace;color:#666}
+#toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#f4f4f5;color:#090b0f;border-radius:12px;padding:10px 14px;font-size:12px;font-weight:700;z-index:50;display:none;max-width:90%}
+@media(max-width:600px){.main{padding:12px}.top{padding-left:13px;padding-right:13px}.chat{height:calc(100vh - 91px);min-height:0}.bubble{max-width:84%}}
+</style>
+</head>
+<body>
+<div class="app">
+<header class="top">
+  <div class="toprow">
+    <button class="back" onclick="location.href='./index.html'" aria-label="Back">‹</button>
+    <div>
+      <div class="brand">Inside Deep's World</div>
+      <div class="title">Real Chat</div>
+    </div>
+    <div id="status" class="status">offline</div>
+  </div>
+</header>
+
+<main class="main">
+  <section id="registerView" class="card hidden">
+    <div class="rowhead"><h2>Create your chat identity</h2></div>
+    <p class="muted">Use your own name and a unique @username. No phone, email or password required.</p>
+    <div class="field"><label>Name</label><input id="regName" maxlength="40" placeholder="Your name"></div>
+    <div class="field"><label>@Username</label><input id="regUsername" maxlength="24" autocapitalize="none" placeholder="your_username"></div>
+    <div class="field"><label>Bio · optional</label><input id="regBio" maxlength="120" placeholder="A little about you"></div>
+    <button class="primary" id="registerBtn">Enter Real Chat</button>
+    <div id="regError" class="err hidden"></div>
+  </section>
+
+  <section id="homeView" class="hidden">
+    <div class="card">
+      <div class="profile">
+        <div id="meAvatar" class="avatar">?</div>
+        <div class="userinfo">
+          <div id="meName" class="name"></div>
+          <div id="meUsername" class="username"></div>
+          <div id="meBio" class="bio"></div>
+        </div>
+        <button class="logout" id="editBtn">Edit</button>
+      </div>
+      <div class="tabs">
+        <button class="tab active" id="peopleTab">Find People</button>
+        <button class="tab" id="chatsTab">Conversations</button>
+      </div>
+      <div id="peoplePanel">
+        <div class="search"><span class="searchIcon">⌕</span><input id="searchInput" placeholder="Search name or @username"></div>
+        <div id="peopleList"><div class="empty">Search for someone to start a private chat.</div></div>
+      </div>
+      <div id="chatsPanel" class="hidden">
+        <div id="chatList"><div class="empty">No conversations yet.</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="chatView" class="card chat hidden">
+    <div class="chathead">
+      <button class="back" id="chatBack" aria-label="Back">‹</button>
+      <div id="chatAvatar" class="avatar">?</div>
+      <div class="chatmeta">
+        <div id="chatName" class="name"></div>
+        <div id="chatUsername" class="username"></div>
+      </div>
+    </div>
+    <div id="messages" class="messages"></div>
+    <form id="composer" class="composer">
+      <textarea id="messageInput" maxlength="5000" rows="1" placeholder="Message..."></textarea>
+      <button class="send" type="submit">↑</button>
+    </form>
+  </section>
+</main>
+</div>
+<div id="toast"></div>
+
+<script>
+const $=id=>document.getElementById(id);
+let me=null,currentConversation=null,currentOther=null,pollTimer=null,searchTimer=null;
+
+function initials(name){return (name||"?").trim().split(/\s+/).slice(0,2).map(x=>x[0]).join("").toUpperCase()||"?";}
+function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));}
+function show(id,on=true){$(id).classList.toggle("hidden",!on);}
+function toast(s){const t=$("toast");t.textContent=s;t.style.display="block";clearTimeout(toast.t);toast.t=setTimeout(()=>t.style.display="none",2200);}
+function api(path,opts={}){opts.headers={...(opts.body?{"Content-Type":"application/json"}:{}),...(opts.headers||{})};return fetch(path,opts).then(async r=>{const d=await r.json().catch(()=>({success:false,error:"Invalid server response"}));if(!r.ok)throw new Error(d.error||"Request failed");return d;});}
+function setStatus(s){$("status").textContent=s;}
+
+async function boot(){
+  try{
+    const d=await api("/api/real-chat/me");
+    if(d.connected){me=d.user;renderMe();show("registerView",false);show("homeView",true);setStatus("online");loadConversations();}
+    else{show("registerView",true);setStatus("new user");}
+  }catch(e){show("registerView",true);$("regError").textContent=e.message;show("regError");setStatus("error");}
+}
+function renderMe(){
+  $("meAvatar").textContent=initials(me.name);
+  $("meName").textContent=me.name;
+  $("meUsername").textContent="@"+me.username;
+  $("meBio").textContent=me.bio||"";
+}
+$("registerBtn").onclick=async()=>{
+  const name=$("regName").value.trim(),username=$("regUsername").value.trim(),bio=$("regBio").value.trim();
+  $("regError").classList.add("hidden");
+  try{
+    const d=await api("/api/real-chat/register",{method:"POST",body:JSON.stringify({name,username,bio})});
+    me=d.user;renderMe();show("registerView",false);show("homeView",true);setStatus("online");loadConversations();toast("You're in.");
+  }catch(e){$("regError").textContent=e.message;show("regError");}
+};
+$("editBtn").onclick=()=>{
+  $("regName").value=me.name;$("regUsername").value=me.username;$("regBio").value=me.bio||"";
+  $("registerBtn").textContent="Save changes";show("homeView",false);show("registerView",true);
+};
+$("peopleTab").onclick=()=>{ $("peopleTab").classList.add("active");$("chatsTab").classList.remove("active");show("peoplePanel",true);show("chatsPanel",false); };
+$("chatsTab").onclick=()=>{ $("chatsTab").classList.add("active");$("peopleTab").classList.remove("active");show("peoplePanel",false);show("chatsPanel",true);loadConversations(); };
+
+$("searchInput").oninput=()=>{
+  clearTimeout(searchTimer);
+  const q=$("searchInput").value.trim();
+  if(!q){$("peopleList").innerHTML='<div class="empty">Search for someone to start a private chat.</div>';return;}
+  searchTimer=setTimeout(()=>searchUsers(q),250);
+};
+async function searchUsers(q){
+  try{
+    const d=await api("/api/real-chat/users?q="+encodeURIComponent(q));
+    if(!d.users.length){$("peopleList").innerHTML='<div class="empty">No people found.</div>';return;}
+    $("peopleList").innerHTML=d.users.map(u=>`
+      <div class="user">
+        <div class="avatar">${esc(initials(u.name))}</div>
+        <div class="userinfo"><div class="name">${esc(u.name)}</div><div class="username">@${esc(u.username)}</div><div class="bio">${esc(u.bio||"")}</div></div>
+        <button class="open" onclick="startChat('${u.id}')">Chat</button>
+      </div>`).join("");
+  }catch(e){$("peopleList").innerHTML='<div class="err">'+esc(e.message)+'</div>';}
+}
+async function startChat(userId){
+  try{
+    const d=await api("/api/real-chat/conversations",{method:"POST",body:JSON.stringify({user_id:userId})});
+    openChat(d.conversation.id,d.conversation.user);
+  }catch(e){toast(e.message);}
+}
+async function loadConversations(){
+  try{
+    const d=await api("/api/real-chat/conversations");
+    if(!d.conversations.length){$("chatList").innerHTML='<div class="empty">No conversations yet. Find someone and say hi.</div>';return;}
+    $("chatList").innerHTML=d.conversations.map(c=>`
+      <div class="convo" onclick='openChat(${JSON.stringify(c.id)},${JSON.stringify({id:c.other_id,name:c.other_name,username:c.other_username,bio:c.other_bio,avatar_url:c.other_avatar})})'>
+        <div class="avatar">${esc(initials(c.other_name))}</div>
+        <div class="convoInfo"><div class="name">${esc(c.other_name)}</div><div class="username">@${esc(c.other_username)}</div></div>
+        <div class="convoTime">${new Date(c.updated_at).toLocaleDateString()}</div>
+      </div>`).join("");
+  }catch(e){$("chatList").innerHTML='<div class="err">'+esc(e.message)+'</div>';}
+}
+function openChat(id,user){
+  currentConversation=id;currentOther=user;
+  $("chatAvatar").textContent=initials(user.name);
+  $("chatName").textContent=user.name;
+  $("chatUsername").textContent="@"+user.username;
+  show("homeView",false);show("chatView",true);loadMessages();startPolling();
+}
+$("chatBack").onclick=()=>{stopPolling();show("chatView",false);show("homeView",true);loadConversations();};
+async function loadMessages(){
+  if(!currentConversation)return;
+  try{
+    const d=await api("/api/real-chat/messages/"+encodeURIComponent(currentConversation)+"?limit=100");
+    renderMessages(d.messages||[]);
+  }catch(e){$("messages").innerHTML='<div class="empty">'+esc(e.message)+'</div>';}
+}
+function renderMessages(list){
+  const box=$("messages");
+  const wasBottom=box.scrollHeight-box.scrollTop-box.clientHeight<80;
+  box.innerHTML=list.length?list.map(m=>{
+    const mine=m.sender_id===me.id;
+    const deleted=!!m.deleted_at;
+    const reactions=(m.reactions||"").split("||").filter(Boolean).map(x=>x.split(":")[0]);
+    return `<div class="msgrow ${mine?"mine":""}">
+      <div class="bubble">
+        <div class="msgtext ${deleted?"deleted":""}">${deleted?"Message deleted":esc(m.message)}</div>
+        <div class="time">${new Date(m.created_at).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})}${m.edited_at&&!deleted?" · edited":""}</div>
+        ${!deleted?`<div class="reactions">${["❤️","😂","😭","😭‍🔥","👍🏻","💀"].map(r=>`<button class="react" onclick="reactMsg('${m.id}',${JSON.stringify(r)})">${r}</button>`).join("")}</div>`:""}
+        ${mine&&!deleted?`<div class="chatActions"><button class="smallbtn" onclick="editMsg('${m.id}',${JSON.stringify(m.message||"")} )">edit</button><button class="smallbtn" onclick="deleteMsg('${m.id}')">delete</button></div>`:""}
+      </div>
+    </div>`;
+  }).join(""):'<div class="empty">No messages yet. Start the conversation.</div>';
+  if(wasBottom)box.scrollTop=box.scrollHeight;
+}
+$("composer").onsubmit=async e=>{
+  e.preventDefault();
+  const input=$("messageInput"),message=input.value.trim();
+  if(!message||!currentConversation)return;
+  input.value="";
+  try{await api("/api/real-chat/messages/"+encodeURIComponent(currentConversation),{method:"POST",body:JSON.stringify({message})});await loadMessages();}
+  catch(err){input.value=message;toast(err.message);}
+};
+$("messageInput").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();$("composer").requestSubmit();}});
+async function reactMsg(id,reaction){try{await api("/api/real-chat/message/"+id+"/react",{method:"POST",body:JSON.stringify({reaction})});await loadMessages();}catch(e){toast(e.message);}}
+async function editMsg(id,old){
+  const next=prompt("Edit message",old);if(next===null||!next.trim()||next.trim()===old)return;
+  try{await api("/api/real-chat/message/"+id,{method:"PATCH",body:JSON.stringify({message:next.trim()})});await loadMessages();}catch(e){toast(e.message);}
+}
+async function deleteMsg(id){
+  if(!confirm("Delete this message?"))return;
+  try{await api("/api/real-chat/message/"+id,{method:"DELETE"});await loadMessages();}catch(e){toast(e.message);}
+}
+function startPolling(){stopPolling();pollTimer=setInterval(()=>{if(currentConversation)loadMessages();},4000);}
+function stopPolling(){if(pollTimer){clearInterval(pollTimer);pollTimer=null;}}
+boot();
+</script>
+</body>
+</html>
