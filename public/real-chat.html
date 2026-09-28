@@ -213,7 +213,7 @@ textarea{resize:vertical;min-height:80px}
   const search = $("search");
   const people = $("people");
 
-  const esc = value => String(value ?? "").replace(/[&<>\"']/g, char => ({
+  const esc = value => String(value ?? "").replace(/[&<>"']/g, char => ({
     "&":"&amp;",
     "<":"&lt;",
     ">":"&gt;",
@@ -318,6 +318,7 @@ textarea{resize:vertical;min-height:80px}
 
     try{
       const response = await fetch(url,{cache:"no-store"});
+
       const data = await response.json();
 
       if(!response.ok || !data.success){
