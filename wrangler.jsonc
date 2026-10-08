@@ -6,6 +6,9 @@
     "directory": "./public",
     "binding": "ASSETS"
   },
+  "vars": {
+    "LASTFM_USERNAME": "damndeepak"
+  },
   "d1_databases": [
     {
       "binding": "DB",
