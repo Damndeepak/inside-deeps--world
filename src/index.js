@@ -181,6 +181,251 @@ export default {
       }
     }
 
+    // ---------------------------------------------------------------
+    // Last.fm: visitors can connect their own Last.fm account.
+    // Only the verified username is stored (own table, hashed owner
+    // token). Session keys and the shared secret are never stored/exposed.
+    // ---------------------------------------------------------------
+    const LFM_MAX_USERS = 15;
+    const LFM_USER_RE = /^[A-Za-z0-9_-]{2,15}$/;
+
+    async function lfmMd5(text) {
+      const buf = await crypto.subtle.digest("MD5", new TextEncoder().encode(text));
+      return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
+    }
+
+    async function lfmSha256(text) {
+      const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+      return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
+    }
+
+    async function lfmEnsureConnTable() {
+      await env.DB.prepare(`
+        CREATE TABLE IF NOT EXISTS lastfm_connections (
+          username TEXT PRIMARY KEY COLLATE NOCASE,
+          owner_hash TEXT NOT NULL,
+          connected_at TEXT NOT NULL
+        )
+      `).run();
+    }
+
+    function lfmOwnerCookie(request) {
+      const cookies = request.headers.get("Cookie") || "";
+      const m = cookies.match(/(?:^|;\s*)lfm_owner=([A-Za-z0-9_-]{20,100})/);
+      return m ? m[1] : null;
+    }
+
+    function lfmMessagePage(title, text, status) {
+      return new Response(`<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title>
+<style>body{margin:0;background:#080808;color:#fff;font-family:system-ui,sans-serif;display:grid;place-items:center;min-height:100vh;text-align:center}main{max-width:420px;padding:32px}h1{font-size:26px;margin:0 0 10px}p{color:#aaa;line-height:1.6}a{color:#fff}</style></head>
+<body><main><h1>${title}</h1><p>${text}</p><p><a href="/">back to Inside Deep's World</a></p></main></body></html>`, {
+        status,
+        headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" }
+      });
+    }
+
+    // Step 1: send the visitor to Last.fm to approve access
+    if (url.pathname === "/lastfm/login" && request.method === "GET") {
+      if (!env.LASTFM_API_KEY || !env.LASTFM_SHARED_SECRET) {
+        return lfmMessagePage("Not available", "Last.fm login is not set up yet.", 503);
+      }
+      const auth = new URL("https://www.last.fm/api/auth/");
+      auth.searchParams.set("api_key", env.LASTFM_API_KEY);
+      auth.searchParams.set("cb", `${url.origin}/lastfm/callback`);
+      return Response.redirect(auth.toString(), 302);
+    }
+
+    // Step 2: Last.fm sends the visitor back with a token; verify who they are
+    if (url.pathname === "/lastfm/callback" && request.method === "GET") {
+      try {
+        if (!env.LASTFM_API_KEY || !env.LASTFM_SHARED_SECRET) {
+          return lfmMessagePage("Not available", "Last.fm login is not set up yet.", 503);
+        }
+
+        const token = url.searchParams.get("token") || "";
+        if (!/^[A-Za-z0-9_-]{16,64}$/.test(token)) {
+          return lfmMessagePage("Could not connect", "Missing or invalid Last.fm token. Please try again.", 400);
+        }
+
+        const sig = await lfmMd5(
+          "api_key" + env.LASTFM_API_KEY +
+          "method" + "auth.getSession" +
+          "token" + token +
+          env.LASTFM_SHARED_SECRET
+        );
+
+        const api = new URL("https://ws.audioscrobbler.com/2.0/");
+        api.searchParams.set("method", "auth.getSession");
+        api.searchParams.set("api_key", env.LASTFM_API_KEY);
+        api.searchParams.set("token", token);
+        api.searchParams.set("api_sig", sig);
+        api.searchParams.set("format", "json");
+
+        const res = await fetch(api.toString());
+        const data = await res.json().catch(() => null);
+        const username = data?.session?.name;
+
+        if (!res.ok || !username || !LFM_USER_RE.test(username)) {
+          return lfmMessagePage("Could not connect", "Last.fm did not confirm your account. Please try again.", 502);
+        }
+
+        await lfmEnsureConnTable();
+
+        const existing = await env.DB
+          .prepare("SELECT username FROM lastfm_connections WHERE username = ?")
+          .bind(username)
+          .first();
+
+        if (!existing) {
+          const count = await env.DB
+            .prepare("SELECT COUNT(*) AS n FROM lastfm_connections")
+            .first();
+          if (Number(count?.n || 0) >= LFM_MAX_USERS) {
+            return lfmMessagePage("List is full", "The list is full right now. Please try again later.", 409);
+          }
+        }
+
+        const bytes = new Uint8Array(32);
+        crypto.getRandomValues(bytes);
+        const ownerToken = [...bytes].map(b => b.toString(16).padStart(2, "0")).join("");
+        const ownerHash = await lfmSha256(ownerToken);
+
+        await env.DB.prepare(`
+          INSERT INTO lastfm_connections (username, owner_hash, connected_at)
+          VALUES (?, ?, ?)
+          ON CONFLICT(username) DO UPDATE SET
+            owner_hash = excluded.owner_hash,
+            connected_at = excluded.connected_at
+        `).bind(username, ownerHash, new Date().toISOString()).run();
+
+        return new Response(null, {
+          status: 302,
+          headers: {
+            "Location": "/",
+            "Cache-Control": "no-store",
+            "Set-Cookie": `lfm_owner=${ownerToken}; Path=/; Max-Age=31536000; HttpOnly; Secure; SameSite=Lax`
+          }
+        });
+      } catch {
+        return lfmMessagePage("Something went wrong", "Could not connect Last.fm right now. Please try again.", 500);
+      }
+    }
+
+    // Who am I? (used for the Connect / Disconnect button)
+    if (url.pathname === "/api/lastfm/me" && request.method === "GET") {
+      const headers = { "Cache-Control": "no-store" };
+      try {
+        const cookie = lfmOwnerCookie(request);
+        if (!cookie) return Response.json({ connected: false }, { headers });
+
+        await lfmEnsureConnTable();
+        const row = await env.DB
+          .prepare("SELECT username FROM lastfm_connections WHERE owner_hash = ?")
+          .bind(await lfmSha256(cookie))
+          .first();
+
+        return Response.json(
+          row ? { connected: true, username: row.username } : { connected: false },
+          { headers }
+        );
+      } catch {
+        return Response.json({ connected: false }, { headers });
+      }
+    }
+
+    // Disconnect: only the browser that connected can remove its entry
+    if (url.pathname === "/api/lastfm/disconnect" && request.method === "POST") {
+      const headers = {
+        "Cache-Control": "no-store",
+        "Set-Cookie": "lfm_owner=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax"
+      };
+      try {
+        const cookie = lfmOwnerCookie(request);
+        if (!cookie) return Response.json({ success: false }, { status: 401, headers });
+
+        await lfmEnsureConnTable();
+        await env.DB
+          .prepare("DELETE FROM lastfm_connections WHERE owner_hash = ?")
+          .bind(await lfmSha256(cookie))
+          .run();
+
+        return Response.json({ success: true }, { headers });
+      } catch {
+        return Response.json({ success: false }, { status: 500, headers });
+      }
+    }
+
+    // Public list of connected listeners (username + now playing / last played)
+    if (url.pathname === "/api/lastfm/listeners" && request.method === "GET") {
+      const headers = { "Cache-Control": "no-store" };
+      try {
+        if (!env.LASTFM_API_KEY) {
+          return Response.json({ listeners: [] }, { headers });
+        }
+
+        await lfmEnsureConnTable();
+        const rows = await env.DB
+          .prepare("SELECT username FROM lastfm_connections ORDER BY connected_at ASC LIMIT ?")
+          .bind(LFM_MAX_USERS)
+          .all();
+
+        const owner = String(env.LASTFM_USERNAME || "").toLowerCase();
+        const names = (rows.results || [])
+          .map(r => r.username)
+          .filter(n => n && n.toLowerCase() !== owner);
+
+        const settled = await Promise.allSettled(names.map(async name => {
+          const api = new URL("https://ws.audioscrobbler.com/2.0/");
+          api.searchParams.set("method", "user.getrecenttracks");
+          api.searchParams.set("user", name);
+          api.searchParams.set("api_key", env.LASTFM_API_KEY);
+          api.searchParams.set("format", "json");
+          api.searchParams.set("limit", "1");
+
+          const res = await fetch(api.toString(), {
+            cf: { cacheTtl: 15, cacheEverything: true }
+          });
+          if (!res.ok) return null;
+          const data = await res.json();
+          if (data?.error) return null;
+
+          const raw = data?.recenttracks?.track;
+          const item = Array.isArray(raw) ? raw[0] : raw;
+          const base = { username: name, profile: `https://www.last.fm/user/${encodeURIComponent(name)}` };
+          if (!item) return { ...base, playing: false, track: null, played_at: null };
+
+          const images = Array.isArray(item.image) ? item.image : [];
+          const image =
+            (images.find(i => i.size === "extralarge") ||
+              images[images.length - 1] ||
+              {})["#text"] || "";
+          const uts = Number(item.date?.uts || 0);
+
+          return {
+            ...base,
+            playing: item["@attr"]?.nowplaying === "true",
+            track: {
+              name: item.name || "Unknown track",
+              artist: item.artist?.["#text"] || item.artist?.name || "",
+              image,
+              url: item.url || ""
+            },
+            played_at: uts > 0 ? uts : null
+          };
+        }));
+
+        const listeners = settled
+          .filter(s => s.status === "fulfilled" && s.value)
+          .map(s => s.value)
+          .sort((a, b) => Number(b.playing) - Number(a.playing));
+
+        return Response.json({ listeners }, { headers });
+      } catch {
+        return Response.json({ listeners: [] }, { headers });
+      }
+    }
+
     // Password-protected sections
     if (url.pathname === "/api/check-password" && request.method === "POST") {
       try {
