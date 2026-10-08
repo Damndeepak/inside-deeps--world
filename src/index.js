@@ -948,6 +948,379 @@ export default {
       }
     }
 
+    // ---------------------------------------------------------------
+    // Chat v2 (additive): read-only feed, polling state, image sharing
+    // (R2), inline delete, admin delete. Never alters or drops existing
+    // message data. Old /api/messages and /api/conversations routes are
+    // left exactly as they were.
+    // ---------------------------------------------------------------
+    const CHAT_MAX_TEXT = 1000;
+    const CHAT_MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+    const CHAT_MAX_UPLOAD_BYTES = 8.5 * 1024 * 1024;
+    const CHAT_MSG_LIMIT = { count: 20, windowMs: 5 * 60 * 1000 };
+    const CHAT_IMG_LIMIT = { count: 10, windowMs: 60 * 60 * 1000 };
+    const chatHeaders = { "Cache-Control": "no-store" };
+
+    async function ensureChatSchema() {
+      if (globalThis.__chatSchemaReady) return;
+      await env.DB.batch([
+        env.DB.prepare(`
+          CREATE TABLE IF NOT EXISTS message_images (
+            message_id TEXT PRIMARY KEY,
+            r2_key TEXT NOT NULL,
+            content_type TEXT NOT NULL,
+            size INTEGER NOT NULL,
+            created_at TEXT NOT NULL
+          )
+        `),
+        env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_messages_created ON messages(created_at)"),
+        env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_messages_sender_created ON messages(sender_id, created_at)")
+      ]);
+      globalThis.__chatSchemaReady = true;
+    }
+
+    function chatSniffImage(bytes) {
+      const b = bytes;
+      if (b.length > 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return "image/jpeg";
+      if (b.length > 7 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47 &&
+          b[4] === 0x0d && b[5] === 0x0a && b[6] === 0x1a && b[7] === 0x0a) return "image/png";
+      if (b.length > 5 && b[0] === 0x47 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x38 &&
+          (b[4] === 0x37 || b[4] === 0x39) && b[5] === 0x61) return "image/gif";
+      if (b.length > 11 && b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 &&
+          b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50) return "image/webp";
+      return null;
+    }
+
+    async function chatIsAdmin(request) {
+      const given = request.headers.get("X-Admin-Key") || "";
+      const real = env.ADMIN_KEY || "";
+      if (real.length < 12 || !given) return false;
+      const enc = new TextEncoder();
+      const [a, b] = await Promise.all([
+        crypto.subtle.digest("SHA-256", enc.encode(given)),
+        crypto.subtle.digest("SHA-256", enc.encode(real))
+      ]);
+      const x = new Uint8Array(a), y = new Uint8Array(b);
+      let diff = 0;
+      for (let i = 0; i < x.length; i++) diff |= x[i] ^ y[i];
+      return diff === 0;
+    }
+
+    // Light check used by the page to know when something changed
+    if (url.pathname === "/api/chat/state" && request.method === "GET") {
+      try {
+        await ensureChatSchema();
+        const row = await env.DB
+          .prepare("SELECT COUNT(*) AS n, MAX(created_at) AS latest FROM messages")
+          .first();
+        return Response.json(
+          { success: true, count: Number(row?.n || 0), latest: row?.latest || null },
+          { headers: chatHeaders }
+        );
+      } catch {
+        return Response.json({ success: false }, { status: 500, headers: chatHeaders });
+      }
+    }
+
+    // Read-only feed: no writes, no merging. Shows every message in the table.
+    if (url.pathname === "/api/chat" && request.method === "GET") {
+      try {
+        await ensureChatSchema();
+        const userId = getUserId(request);
+        const me = userId ? await getUser(userId) : null;
+
+        const limit = Math.min(Math.max(parseInt(url.searchParams.get("limit") || "100", 10) || 100, 1), 200);
+        const before = url.searchParams.get("before");
+
+        const result = await env.DB
+          .prepare(`
+            SELECT
+              m.id,
+              m.message,
+              m.parent_id,
+              m.created_at,
+              m.sender_id,
+              COALESCE(u.username, 'Unknown') AS username,
+              (mi.message_id IS NOT NULL) AS has_image,
+              pm.id AS p_id,
+              pm.sender_id AS p_sender_id,
+              COALESCE(pu.username, 'Unknown') AS p_username,
+              SUBSTR(pm.message, 1, 80) AS p_snippet,
+              (pmi.message_id IS NOT NULL) AS p_has_image
+            FROM messages m
+            LEFT JOIN users u ON u.id = m.sender_id
+            LEFT JOIN message_images mi ON mi.message_id = m.id
+            LEFT JOIN messages pm ON pm.id = m.parent_id
+            LEFT JOIN users pu ON pu.id = pm.sender_id
+            LEFT JOIN message_images pmi ON pmi.message_id = pm.id
+            ${before ? "WHERE m.created_at < ?" : ""}
+            ORDER BY m.created_at DESC, m.id DESC
+            LIMIT ?
+          `)
+          .bind(...(before ? [before, limit + 1] : [limit + 1]))
+          .all();
+
+        const rows = result.results || [];
+        const hasMore = rows.length > limit;
+        const page = rows.slice(0, limit).reverse();
+
+        const messages = page.map(r => ({
+          id: r.id,
+          message: r.message || "",
+          created_at: r.created_at,
+          username: r.username,
+          mine: Boolean(userId) && r.sender_id === userId,
+          image: Boolean(r.has_image),
+          parent: r.parent_id
+            ? (r.p_id
+                ? {
+                    id: r.p_id,
+                    username: r.p_username,
+                    snippet: r.p_snippet || "",
+                    image: Boolean(r.p_has_image)
+                  }
+                : { id: r.parent_id, deleted: true })
+            : null
+        }));
+
+        return Response.json({
+          success: true,
+          me: me ? { username: me.username } : null,
+          has_more: hasMore,
+          messages
+        }, { headers: chatHeaders });
+      } catch {
+        return Response.json(
+          { success: false, error: "Could not load chat" },
+          { status: 500, headers: chatHeaders }
+        );
+      }
+    }
+
+    // Send a message (text and/or one image)
+    if (url.pathname === "/api/chat/send" && request.method === "POST") {
+      let storedKey = null;
+      try {
+        const userId = getUserId(request);
+        const user = await getUser(userId);
+        if (!user) {
+          return Response.json({ success: false, error: "User not found" }, { status: 401, headers: chatHeaders });
+        }
+
+        await ensureChatSchema();
+
+        const declared = Number(request.headers.get("Content-Length") || 0);
+        if (declared > CHAT_MAX_UPLOAD_BYTES) {
+          return Response.json({ success: false, error: "Image is too large" }, { status: 413, headers: chatHeaders });
+        }
+
+        let text = "";
+        let parentId = null;
+        let file = null;
+
+        const ctype = request.headers.get("Content-Type") || "";
+        if (ctype.includes("multipart/form-data")) {
+          const form = await request.formData();
+          text = typeof form.get("message") === "string" ? form.get("message").trim() : "";
+          parentId = typeof form.get("parent_id") === "string" && form.get("parent_id") ? form.get("parent_id") : null;
+          const f = form.get("image");
+          if (f && typeof f === "object" && typeof f.arrayBuffer === "function" && f.size > 0) file = f;
+        } else {
+          const body = await request.json();
+          text = typeof body.message === "string" ? body.message.trim() : "";
+          parentId = body.parent_id || null;
+        }
+
+        if (text.length > CHAT_MAX_TEXT) {
+          return Response.json({ success: false, error: "Message is too long" }, { status: 400, headers: chatHeaders });
+        }
+        if (!text && !file) {
+          return Response.json({ success: false, error: "Message is required" }, { status: 400, headers: chatHeaders });
+        }
+
+        // Spam limits
+        const now = Date.now();
+        const msgCount = await env.DB
+          .prepare("SELECT COUNT(*) AS n FROM messages WHERE sender_id = ? AND created_at > ?")
+          .bind(user.id, new Date(now - CHAT_MSG_LIMIT.windowMs).toISOString())
+          .first();
+        if (Number(msgCount?.n || 0) >= CHAT_MSG_LIMIT.count) {
+          return Response.json({ success: false, error: "Slow down a little" }, { status: 429, headers: chatHeaders });
+        }
+
+        let bytes = null;
+        let imageType = null;
+        if (file) {
+          if (!env.CHAT_IMAGES) {
+            return Response.json({ success: false, error: "Images are not enabled yet" }, { status: 503, headers: chatHeaders });
+          }
+          if (file.size > CHAT_MAX_IMAGE_BYTES) {
+            return Response.json({ success: false, error: "Image is too large" }, { status: 413, headers: chatHeaders });
+          }
+          bytes = new Uint8Array(await file.arrayBuffer());
+          imageType = chatSniffImage(bytes);
+          if (!imageType) {
+            return Response.json({ success: false, error: "Only JPG, PNG, WebP or GIF images" }, { status: 415, headers: chatHeaders });
+          }
+
+          const imgCount = await env.DB
+            .prepare(`
+              SELECT COUNT(*) AS n
+              FROM message_images mi
+              JOIN messages m ON m.id = mi.message_id
+              WHERE m.sender_id = ? AND mi.created_at > ?
+            `)
+            .bind(user.id, new Date(now - CHAT_IMG_LIMIT.windowMs).toISOString())
+            .first();
+          if (Number(imgCount?.n || 0) >= CHAT_IMG_LIMIT.count) {
+            return Response.json({ success: false, error: "Image limit reached, try later" }, { status: 429, headers: chatHeaders });
+          }
+        }
+
+        if (parentId) {
+          const parent = await env.DB
+            .prepare("SELECT id FROM messages WHERE id = ?")
+            .bind(parentId)
+            .first();
+          if (!parent) {
+            return Response.json({ success: false, error: "Parent message not found" }, { status: 400, headers: chatHeaders });
+          }
+        }
+
+        // Main conversation (read-only lookup; created only if none exists)
+        let main = await env.DB
+          .prepare("SELECT id FROM conversations ORDER BY created_at ASC LIMIT 1")
+          .first();
+        let conversationId = main?.id;
+        if (!conversationId) {
+          conversationId = crypto.randomUUID();
+          await env.DB
+            .prepare("INSERT INTO conversations (id, user_id, created_at) VALUES (?, ?, ?)")
+            .bind(conversationId, user.id, new Date().toISOString())
+            .run();
+        }
+
+        const messageId = crypto.randomUUID();
+        const createdAt = new Date().toISOString();
+
+        const statements = [
+          env.DB
+            .prepare(`
+              INSERT INTO messages (id, conversation_id, sender_id, message, parent_id, created_at)
+              VALUES (?, ?, ?, ?, ?, ?)
+            `)
+            .bind(messageId, conversationId, user.id, text, parentId, createdAt)
+        ];
+
+        if (file) {
+          storedKey = `chat/${messageId}`;
+          await env.CHAT_IMAGES.put(storedKey, bytes, { httpMetadata: { contentType: imageType } });
+          statements.push(
+            env.DB
+              .prepare(`
+                INSERT INTO message_images (message_id, r2_key, content_type, size, created_at)
+                VALUES (?, ?, ?, ?, ?)
+              `)
+              .bind(messageId, storedKey, imageType, bytes.length, createdAt)
+          );
+        }
+
+        await env.DB.batch(statements);
+
+        return Response.json({
+          success: true,
+          message_id: messageId,
+          created_at: createdAt,
+          image: Boolean(file)
+        }, { headers: chatHeaders });
+      } catch {
+        if (storedKey && env.CHAT_IMAGES) {
+          try { await env.CHAT_IMAGES.delete(storedKey); } catch {}
+        }
+        return Response.json(
+          { success: false, error: "Could not send message" },
+          { status: 500, headers: chatHeaders }
+        );
+      }
+    }
+
+    // Serve a message's image
+    const chatImageMatch = url.pathname.match(/^\/api\/chat\/image\/([A-Za-z0-9_-]{1,64})$/);
+    if (chatImageMatch && request.method === "GET") {
+      try {
+        if (!env.CHAT_IMAGES) return new Response("Not found", { status: 404 });
+        await ensureChatSchema();
+
+        const row = await env.DB
+          .prepare("SELECT r2_key, content_type FROM message_images WHERE message_id = ?")
+          .bind(chatImageMatch[1])
+          .first();
+        if (!row) return new Response("Not found", { status: 404 });
+
+        const object = await env.CHAT_IMAGES.get(row.r2_key);
+        if (!object) return new Response("Not found", { status: 404 });
+
+        return new Response(object.body, {
+          headers: {
+            "Content-Type": row.content_type,
+            "Cache-Control": "public, max-age=86400",
+            "X-Content-Type-Options": "nosniff",
+            "Content-Security-Policy": "default-src 'none'; sandbox"
+          }
+        });
+      } catch {
+        return new Response("Not found", { status: 404 });
+      }
+    }
+
+    // Is this browser an admin? (page shows delete buttons on every message)
+    if (url.pathname === "/api/chat/admin/check" && request.method === "GET") {
+      return Response.json({ admin: await chatIsAdmin(request) }, { headers: chatHeaders });
+    }
+
+    // Delete a message (+ its image). Owner or admin only.
+    const chatDeleteMatch = url.pathname.match(/^\/api\/chat\/message\/([A-Za-z0-9_-]{1,64})$/);
+    if (chatDeleteMatch && request.method === "DELETE") {
+      try {
+        const userId = getUserId(request);
+        const admin = await chatIsAdmin(request);
+        if (!userId && !admin) {
+          return Response.json({ success: false, error: "User not found" }, { status: 401, headers: chatHeaders });
+        }
+
+        await ensureChatSchema();
+
+        const messageId = chatDeleteMatch[1];
+        const msg = await env.DB
+          .prepare("SELECT id, sender_id FROM messages WHERE id = ?")
+          .bind(messageId)
+          .first();
+        if (!msg) {
+          return Response.json({ success: false, error: "Message not found" }, { status: 404, headers: chatHeaders });
+        }
+        if (!admin && msg.sender_id !== userId) {
+          return Response.json({ success: false, error: "Not allowed" }, { status: 403, headers: chatHeaders });
+        }
+
+        const img = await env.DB
+          .prepare("SELECT r2_key FROM message_images WHERE message_id = ?")
+          .bind(messageId)
+          .first();
+        if (img && env.CHAT_IMAGES) {
+          try { await env.CHAT_IMAGES.delete(img.r2_key); } catch {}
+        }
+
+        await env.DB.batch([
+          env.DB.prepare("DELETE FROM message_images WHERE message_id = ?").bind(messageId),
+          env.DB.prepare("DELETE FROM messages WHERE id = ?").bind(messageId)
+        ]);
+
+        return Response.json({ success: true }, { headers: chatHeaders });
+      } catch {
+        return Response.json({ success: false, error: "Could not delete message" }, { status: 500, headers: chatHeaders });
+      }
+    }
+
     return env.ASSETS.fetch(request);
   }
 };
