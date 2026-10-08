@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#080808">
+
+  <title>Music Room</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      padding: 18px;
+      background:
+        radial-gradient(circle at 50% -10%, #292929 0%, #0d0d0d 42%, #050505 100%);
+      color: white;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    .header {
+      max-width: 1100px;
+      margin: 0 auto 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .title {
+      font-size: 20px;
+      font-weight: 750;
+      letter-spacing: -.4px;
+    }
+
+    .online {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #888;
+      font-size: 11px;
+    }
+
+    .online-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #1ed760;
+      box-shadow: 0 0 9px rgba(30, 215, 96, .7);
+    }
+
+    .music-grid {
+      max-width: 1100px;
+      margin: auto;
+
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .card {
+      min-width: 0;
+      padding: 10px;
+      border-radius: 17px;
+      background: rgba(25, 25, 25, .82);
+      border: 1px solid rgba(255,255,255,.07);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      transition: transform .2s ease, border-color .2s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-3px);
+      border-color: rgba(255,255,255,.16);
+    }
+
+    .art {
+      width: 100%;
+      aspect-ratio: 1;
+      display: block;
+      object-fit: cover;
+      border-radius: 12px;
+      background: #181818;
+      margin-bottom: 9px;
+    }
+
+    .user-row {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin-bottom: 5px;
+    }
+
+    .user-dot {
+      width: 6px;
+      height: 6px;
+      flex-shrink: 0;
+      border-radius: 50%;
+      background: #1ed760;
+      box-shadow: 0 0 7px rgba(30,215,96,.7);
+    }
+
+    .username {
+      color: #aaa;
+      font-size: 10px;
+      font-weight: 600;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .song {
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.2;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .artist {
+      color: #777;
+      font-size: 10px;
+      margin-top: 3px;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .bottom {
+      margin-top: 9px;
+    }
+
+    .progress {
+      width: 100%;
+      height: 2px;
+      appearance: none;
+      border-radius: 10px;
+      background: #383838;
+      overflow: hidden;
+    }
+
+    .progress::-webkit-slider-thumb {
+      appearance: none;
+      width: 0;
+      height: 0;
+      box-shadow: -300px 0 0 300px #fff;
+    }
+
+    .time {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 4px;
+      color: #666;
+      font-size: 8px;
+    }
+
+    .connect {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100%;
+      aspect-ratio: 1 / 1.28;
+      border: 1px dashed #383838;
+      border-radius: 17px;
+      background: rgba(15,15,15,.5);
+      cursor: pointer;
+      transition: .2s;
+    }
+
+    .connect:hover {
+      border-color: #666;
+      background: rgba(30,30,30,.7);
+    }
+
+    .connect-inner {
+      text-align: center;
+      color: #777;
+    }
+
+    .plus {
+      font-size: 27px;
+      font-weight: 200;
+      line-height: 1;
+      margin-bottom: 7px;
+    }
+
+    .connect-text {
+      font-size: 10px;
+      font-weight: 600;
+    }
+
+    .connect-sub {
+      margin-top: 3px;
+      font-size: 8px;
+      color: #555;
+    }
+
+    @media (max-width: 850px) {
+      .music-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 520px) {
+      body {
+        padding: 12px;
+      }
+
+      .music-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .card {
+        padding: 8px;
+        border-radius: 14px;
+      }
+
+      .art {
+        border-radius: 10px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <header class="header">
+    <div class="title">Music Room</div>
+
+    <div class="online">
+      <span class="online-dot"></span>
+      <span id="onlineCount">5 listening</span>
+    </div>
+  </header>
+
+  <main class="music-grid" id="musicGrid"></main>
+
+  <script>
+    /*
+      DEMO DATA
+
+      Abhi ye sirf UI testing ke liye hai.
+      Baad mein isi array ki jagah Cloudflare API ka
+      real Metrolist data aayega.
+    */
+
+    const listeners = [
+      {
+        username: "Deepu",
+        song: "Wasted",
+        artist: "Juice WRLD ft. Lil Uzi Vert",
+        image: "https://i.ytimg.com/vi/0O6j3V0K7KQ/maxresdefault.jpg",
+        progress: 201,
+        duration: 217,
+        playing: true
+      },
+
+      {
+        username: "Rahul",
+        song: "Starboy",
+        artist: "The Weeknd",
+        image: "https://i.ytimg.com/vi/34Na4j8AVgA/maxresdefault.jpg",
+        progress: 102,
+        duration: 230,
+        playing: true
+      },
+
+      {
+        username: "Aryan",
+        song: "FE!N",
+        artist: "Travis Scott",
+        image: "https://i.ytimg.com/vi/ugrAo8wEPiI/maxresdefault.jpg",
+        progress: 48,
+        duration: 191,
+        playing: true
+      },
+
+      {
+        username: "Kunal",
+        song: "After Hours",
+        artist: "The Weeknd",
+        image: "https://i.ytimg.com/vi/ygTZZpVkmKg/maxresdefault.jpg",
+        progress: 130,
+        duration: 361,
+        playing: true
+      },
+
+      {
+        username: "Someone",
+        song: "505",
+        artist: "Arctic Monkeys",
+        image: "https://i.ytimg.com/vi/qU9mHegkTc4/maxresdefault.jpg",
+        progress: 31,
+        duration: 253,
+        playing: true
+      }
+    ];
+
+    const grid = document.getElementById("musicGrid");
+    const onlineCount = document.getElementById("onlineCount");
+
+    function formatTime(seconds) {
+      seconds = Math.max(0, Math.floor(seconds));
+
+      const min = Math.floor(seconds / 60);
+      const sec = String(seconds % 60).padStart(2, "0");
+
+      return `${min}:${sec}`;
+    }
+
+    function createCard(listener, index) {
+      const card = document.createElement("div");
+
+      card.className = "card";
+
+      card.innerHTML = `
+        <img
+          class="art"
+          src="${listener.image}"
+          alt="${listener.song}"
+          loading="lazy"
+        >
+
+        <div class="user-row">
+          <span class="user-dot"></span>
+          <span class="username">${listener.username}</span>
+        </div>
+
+        <div class="song">${listener.song}</div>
+
+        <div class="artist">${listener.artist}</div>
+
+        <div class="bottom">
+          <input
+            class="progress"
+            type="range"
+            min="0"
+            max="${listener.duration}"
+            value="${listener.progress}"
+            disabled
+          >
+
+          <div class="time">
+            <span>${formatTime(listener.progress)}</span>
+            <span>${formatTime(listener.duration)}</span>
+          </div>
+        </div>
+      `;
+
+      return card;
+    }
+
+    listeners.forEach((listener, index) => {
+      grid.appendChild(createCard(listener, index));
+    });
+
+    /*
+      Connection placeholder.
+
+      Actual YouTube Music / Metrolist authentication
+      will be added later.
+    */
+
+    const connect = document.createElement("div");
+
+    connect.className = "connect";
+
+    connect.innerHTML = `
+      <div class="connect-inner">
+        <div class="plus">+</div>
+        <div class="connect-text">Connect</div>
+        <div class="connect-sub">YouTube Music</div>
+      </div>
+    `;
+
+    connect.onclick = () => {
+      alert(
+        "YouTube Music connection will be added in the next step."
+      );
+    };
+
+    grid.appendChild(connect);
+
+    onlineCount.textContent =
+      `${listeners.length} listening`;
+  </script>
+
+</body>
+</html>
