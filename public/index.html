@@ -178,11 +178,15 @@ h1{animation:deepTitleIn .9s cubic-bezier(.22,1,.36,1) both}
 @media(max-width:650px){.cx-card{padding:16px}.cx-bubble{max-width:86%}}
 @media(prefers-reduced-motion:reduce){.cx-in,.cx-flash .cx-bubble{animation:none}.cx-removing{transition:none}}
 </style>
+<link rel="stylesheet" href="/world.css">
+<script src="/world-theme.js"></script>
+<script src="/world-ui.js" defer></script>
 </head>
 <body>
 
 <div aria-hidden="true" class="scroll-progress"><span id="scrollProgress"></span></div>
 <main class="wrap">
+<div class="world-bar"><nav class="world-nav" aria-label="Explore"><a href="/on-repeat.html">On repeat ↗</a><a href="/memories.html">Memory wall ↗</a><a href="#worldGuestbook">Guestbook ↓</a></nav><div class="world-controls" data-theme-controls></div></div>
 <h1>Inside Deep's World</h1><p class="sub">Every section has its own password and its own hint.<br/>You’ll need the right password to unlock each section.</p>
 <section aria-label="Private sections" class="section-list">
 <button class="locked" data-section="people"><div class="row"><div><div class="title">Ppl I fw ❤️</div><div class="hint">A date that matters to me</div></div><div class="lock">⌁</div></div></button>
@@ -209,6 +213,7 @@ h1{animation:deepTitleIn .9s cubic-bezier(.22,1,.36,1) both}
 <div class="lfm-label" id="lfmLabel">last.fm // now playing</div>
 <div id="lfmBody"><div class="lfm-empty">checking what's playing...</div></div>
 </section>
+<section class="world-card" aria-label="Recent listening"><div class="world-heading"><h2>Recently in my ears</h2><a class="world-link" href="/on-repeat.html">This week ↗</a></div><div id="worldHistory" class="world-history"><p class="world-note">Loading recent tracks…</p></div></section>
 <section aria-label="Last.fm listeners" class="lfm lfm-guests" id="lfmGuests">
 <div class="lfm-label"><span class="lfm-dot"></span>last.fm // listening along</div>
 <div id="lfmGuestList"><div class="lfm-empty">loading...</div></div>
@@ -222,6 +227,7 @@ h1{animation:deepTitleIn .9s cubic-bezier(.22,1,.36,1) both}
 <div class="cx-head"><div class="cx-label"><span class="cx-dot"></span>chat // everyone</div><div class="cx-count" id="cxCount"></div></div>
 <div class="cx-id">You appear as <b id="cxMe">loading...</b>. Your real identity is never shown.</div>
 <div class="cx-tools"><button class="cx-tool" id="cxInstall" type="button" hidden>📲 Install app</button><button class="cx-tool" id="cxNotify" type="button" hidden>🔔 Notifications: off</button></div>
+<div class="cx-presence" aria-live="polite"><span id="cxOnline" data-online>checking presence…</span><span id="cxTyping"></span></div>
 <div class="cx-threadwrap">
 <div class="cx-thread" id="cxThread" role="log" aria-live="polite">
 <button class="cx-more" id="cxMore" type="button" hidden>load older messages</button>
@@ -234,15 +240,18 @@ h1{animation:deepTitleIn .9s cubic-bezier(.22,1,.36,1) both}
 <div class="cx-prev" id="cxPrev" hidden><img alt="" id="cxPrevImg"/><div class="cx-prev-name" id="cxPrevName"></div><button aria-label="Remove image" class="cx-x" id="cxPrevX" type="button">×</button></div>
 <form autocomplete="off" class="cx-form" id="cxForm">
 <button aria-label="Attach image" class="cx-attach" id="cxAttach" type="button"><svg fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 24 24" width="20"><path d="M21 12.5l-8.6 8.6a5.5 5.5 0 0 1-7.8-7.8l9-9a3.7 3.7 0 0 1 5.2 5.2l-9 9a1.8 1.8 0 0 1-2.6-2.6l8.3-8.3"/></svg></button>
+<button class="world-button cx-mic" id="cxRecord" type="button" aria-label="Record voice note" title="Record up to 60 seconds">🎙</button>
 <textarea enterkeyhint="send" id="cxInput" maxlength="1000" placeholder="Write a message..." rows="1"></textarea>
 <button class="cx-send" id="cxSend" type="submit">Send</button>
 </form>
+<div class="cx-voice-panel" id="cxVoicePanel" hidden><div class="cx-voice-status" id="cxVoiceStatus" role="status"></div><audio id="cxVoicePreview" controls preload="metadata" hidden></audio><div class="world-actions"><button class="world-button primary" id="cxVoiceSend" type="button" disabled>Send voice note</button><button class="world-button" id="cxVoiceCancel" type="button">Discard</button><small>Public chat · up to 60 seconds</small></div></div>
 <input accept="image/jpeg,image/png,image/webp,image/gif" hidden id="cxFile" type="file"/>
 <div class="cx-foot"><span id="cxCounter"></span><button class="cx-admin" id="cxAdmin" type="button">admin</button></div>
 <div class="cx-toast" id="cxToast" hidden></div>
 </section>
 <div class="cx-lightbox" hidden id="cxLightbox"><img alt="" id="cxLightImg"/></div>
 
+<section class="world-card" id="worldGuestbook" aria-label="Visitor guestbook"><div class="world-heading"><h2>You were here.</h2><button type="button" class="world-delete" data-world-admin>Admin</button></div><p class="world-note">A little note for the wall. Public, separate from the chat. Your name is optional.</p><form class="world-form" id="worldGuestForm"><input id="worldGuestName" maxlength="32" placeholder="Name or nickname (optional)" aria-label="Guestbook name"><textarea id="worldGuestText" maxlength="300" required placeholder="Leave a little trace…" aria-label="Guestbook note"></textarea><div class="world-actions"><button class="world-button primary" id="worldGuestSend" type="submit">Sign guestbook</button><small>300 characters · 5 notes per hour</small></div></form><div class="world-status" id="worldGuestStatus" role="status"></div><div class="world-guest-list" id="worldGuests"></div></section>
 </main>
 <div class="modal" id="passwordModal"><div class="box password-box"><div class="modal-head"><div><div class="modal-title" id="passwordTitle">Unlock</div><div class="modal-meta" id="passwordHint"></div></div><button class="close" onclick="closeAll()" type="button">×</button></div><form id="passwordForm"><input autocomplete="current-password" id="passwordInput" placeholder="Enter password" required="" type="password"/><button class="unlock" type="submit">Unlock</button><div class="error" id="error">Wrong password.</div></form></div></div>
 <div class="modal" id="contentModal"><div class="box"><div class="modal-head"><div><div class="modal-title" id="contentTitle"></div><div class="modal-meta">private section</div></div><button class="close" onclick="closeAll()" type="button">×</button></div><div id="content"></div></div></div>
@@ -419,7 +428,7 @@ function hue(name){let x=0;for(const c of String(name))x=(x*31+c.charCodeAt(0))%
 const tag=u=>/^User\d+$/.test(u)?u.slice(-2):String(u).slice(0,2).toUpperCase();
 const fmtSize=n=>n>=1048576?(n/1048576).toFixed(1)+" MB":Math.max(1,Math.round(n/1024))+" KB";
 const imgSrc=m=>m.localUrl||("/api/chat/image/"+encodeURIComponent(m.id));
-const snip=m=>m.message?m.message.slice(0,80):(m.image?"photo":"");
+const snip=m=>m.message?m.message.slice(0,80):(m.image?"photo":m.audio?"voice note":"");
 
 function fill(node,text){
   const re=/(https?:\/\/[^\s<>"']+)/g;let last=0,m;
@@ -454,9 +463,10 @@ function buildRow(m){
     img.addEventListener("error",()=>{media.className="cx-media broken";media.textContent="image unavailable"});
     img.src=imgSrc(m);media.append(img);bub.append(media);
   }
+  if(m.audio){const audio=h("audio","cx-voice-audio");audio.controls=true;audio.preload="none";audio.src="/api/chat/audio/"+encodeURIComponent(m.id);audio.setAttribute("aria-label","Voice note from "+m.username);bub.append(audio)}
   const text=h("div","cx-text");if(m.message)fill(text,m.message);else text.hidden=true;bub.append(text);
   const meta=h("div","cx-meta");const time=h("span","cx-time",t2(m.created_at));time.title=new Date(m.created_at).toLocaleString();
-  const st=h("span","cx-st");const acts=h("span","cx-acts");meta.append(time,st,acts);bub.append(meta);
+  const st=h("span","cx-st");const acts=h("span","cx-acts");meta.append(time,st,acts);bub.append(meta);bub.append(h("div","cx-reactions"));
   row.append(av,bub);
   row._av=av;row._name=name;row._quote=quote;row._time=time;row._st=st;row._acts=acts;
   return row;
@@ -520,6 +530,7 @@ function reconcile(animate){
   E.empty.hidden=want.length>0;
   if(!want.length)E.empty.textContent="No messages yet. Say something.";
   E.more.hidden=!S.hasMore;E.more.textContent="load older messages";
+  paintReactions();
 }
 
 const nearBottom=()=>E.thread.scrollHeight-E.thread.scrollTop-E.thread.clientHeight<90;
@@ -674,7 +685,7 @@ if(parseFloat(getComputedStyle(E.input).fontSize)<16)E.input.style.fontSize="16p
   window.addEventListener("resize",schedule,{passive:true});
   if("ResizeObserver" in window){
     const observer=new ResizeObserver(()=>{if(active)schedule()});
-    [E.form,E.reply,E.prev].forEach(el=>observer.observe(el));
+    [E.form,E.reply,E.prev,$("cxVoicePanel")].filter(Boolean).forEach(el=>observer.observe(el));
   }
 })();
 E.form.addEventListener("submit",e=>{e.preventDefault();submit()});
@@ -796,7 +807,7 @@ E.list.addEventListener("click",e=>{
     else if(a==="discard"){S.pending=S.pending.filter(x=>x.id!==id);reconcile(false)}
     return;
   }
-  if(e.target.closest("a"))return;
+  if(e.target.closest("a,audio,.cx-react"))return;
   if(row){const was=row.classList.contains("cx-sel");E.list.querySelectorAll(".cx-sel").forEach(n=>n.classList.remove("cx-sel"));if(!was)row.classList.add("cx-sel")}
 });
 
@@ -810,11 +821,119 @@ async function checkAdmin(key){
   try{const r=await fetch("/api/chat/admin/check",{headers:{"X-Admin-Key":key},cache:"no-store"});const d=await r.json();return!!d.admin}catch(e){return false}
 }
 E.admin.addEventListener("click",async()=>{
-  if(S.admin){S.admin=false;S.adminKey="";try{sessionStorage.removeItem("cxAdminKey")}catch(e){}paintAdmin();return}
+  if(S.admin){S.admin=false;S.adminKey="";try{sessionStorage.removeItem("cxAdminKey")}catch(e){}paintAdmin();window.dispatchEvent(new CustomEvent("world-admin-change"));return}
   const key=window.prompt("Admin key");if(!key)return;
-  if(await checkAdmin(key.trim())){S.admin=true;S.adminKey=key.trim();try{sessionStorage.setItem("cxAdminKey",S.adminKey)}catch(e){}paintAdmin();toast("Admin mode on")}
+  if(await checkAdmin(key.trim())){S.admin=true;S.adminKey=key.trim();try{sessionStorage.setItem("cxAdminKey",S.adminKey)}catch(e){}paintAdmin();window.dispatchEvent(new CustomEvent("world-admin-change"));toast("Admin mode on")}
   else toast("Wrong key");
 });
+
+/* ---------- reactions, presence and voice notes ---------- */
+const REACTIONS=['❤️','😂','🔥','👍'];
+let reactionState={},reactionBusy=false,communityStarted=false;
+function paintReactions(){
+  E.list.querySelectorAll('.cx-row').forEach(row=>{
+    const m=findMsg(row.dataset.id),box=row.querySelector('.cx-reactions');if(!box||!m)return;
+    box.hidden=!!m.pending;if(m.pending)return;
+    const values=reactionState[m.id]||[];
+    const signature=JSON.stringify(values);if(box.dataset.sig===signature)return;box.dataset.sig=signature;
+    box.replaceChildren();REACTIONS.forEach(emoji=>{const r=values.find(x=>x.emoji===emoji);const b=h('button','cx-react',emoji+(r?.count?' '+r.count:''));b.type='button';b.dataset.emoji=emoji;b.setAttribute('aria-label','React '+emoji);b.setAttribute('aria-pressed',String(!!r?.mine));box.append(b)});
+  });
+}
+async function loadReactions(){
+  if(document.hidden||reactionBusy||!S.ready)return;reactionBusy=true;
+  try{
+    // Prioritize the messages visible in the conversation, including loaded history.
+    const rect=E.thread.getBoundingClientRect();
+    const visible=[...E.list.querySelectorAll('.cx-row')].filter(n=>{const r=n.getBoundingClientRect();return r.bottom>=rect.top&&r.top<=rect.bottom}).map(n=>n.dataset.id);
+    const ids=[...new Set(visible.concat(S.msgs.slice(-100).map(m=>m.id)))].filter(id=>!id.startsWith('tmp-')).slice(0,100);
+    if(!ids.length)return;
+    const r=await fetch('/api/chat/reactions?ids='+encodeURIComponent(ids.join(',')),{cache:'no-store'}),d=await r.json();if(!d.success)return;
+    ids.forEach(id=>reactionState[id]=d.reactions[id]||[]);paintReactions();
+  }catch{}finally{reactionBusy=false}
+}
+E.list.addEventListener('click',async e=>{
+  const b=e.target.closest('.cx-react');if(!b)return;const row=b.closest('.cx-row');if(!row)return;
+  b.disabled=true;const active=b.getAttribute('aria-pressed')!=='true';
+  try{const r=await fetch('/api/chat/reactions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message_id:row.dataset.id,emoji:b.dataset.emoji,active})});const d=await r.json();if(!r.ok||!d.success)throw new Error(d.error||'Reaction failed');await loadReactions()}catch(e){toast(e.message)}finally{b.disabled=false}
+});
+let reactionScroll=0;E.thread.addEventListener('scroll',()=>{clearTimeout(reactionScroll);reactionScroll=setTimeout(loadReactions,250)},{passive:true});
+const online=$('cxOnline'),typing=$('cxTyping');
+let lastTyping=0,typingTimer=0,presenceBusy=false;
+function paintPresence(d){if(!d.success)return;online.textContent=d.online+' online';online.title='Active in the last minute, including you';typing.textContent=d.typing.length?d.typing.map(n=>'@'+n).join(', ')+(d.typing.length===1?' is typing…':' are typing…'):''}
+async function presence(write=false,isTyping=false,active=true){
+  if(!S.me)return;
+  if(!write&&presenceBusy)return;if(!write)presenceBusy=true;
+  try{const r=await fetch('/api/chat/presence',write?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({typing:isTyping,active}),keepalive:!active}:{cache:'no-store'});const d=await r.json();if(r.ok)paintPresence(d);else if(online)online.textContent='presence unavailable'}catch{if(online)online.textContent='presence unavailable'}finally{if(!write)presenceBusy=false}
+}
+E.input.addEventListener('input',()=>{
+  if(document.hidden)return;
+  const hasText=!!E.input.value.trim();clearTimeout(typingTimer);
+  if(!hasText){presence(true,false);return}
+  if(Date.now()-lastTyping>4000){lastTyping=Date.now();presence(true,true)}
+  typingTimer=setTimeout(()=>presence(true,false),4500);
+});
+E.input.addEventListener('blur',()=>{clearTimeout(typingTimer);presence(true,false)});
+E.form.addEventListener('submit',()=>{clearTimeout(typingTimer);presence(true,false)});
+function startCommunity(){
+  if(communityStarted)return;communityStarted=true;loadReactions();presence(true);
+  setInterval(()=>{if(!document.hidden)presence()},3000);
+  setInterval(()=>{if(!document.hidden)loadReactions()},10000);
+  setInterval(()=>{if(!document.hidden)presence(true,document.activeElement===E.input&&!!E.input.value.trim()&&Date.now()-lastTyping<5000)},20000);
+  document.addEventListener('visibilitychange',()=>{presence(true,false,!document.hidden);if(!document.hidden)loadReactions()});
+  window.addEventListener('pagehide',()=>presence(true,false,false));
+}
+window.addEventListener('world-admin-change',async()=>{
+  try{S.adminKey=sessionStorage.getItem('cxAdminKey')||''}catch{S.adminKey=''}
+  S.admin=!!S.adminKey&&await checkAdmin(S.adminKey);paintAdmin();
+});
+(()=>{
+  const mic=$('cxRecord'),panel=$('cxVoicePanel'),label=$('cxVoiceStatus'),preview=$('cxVoicePreview'),send=$('cxVoiceSend'),cancel=$('cxVoiceCancel');
+  if(!mic)return;
+  const supported=!!(navigator.mediaDevices?.getUserMedia&&window.MediaRecorder);
+  if(!supported){mic.disabled=true;mic.title='Voice recording is not supported in this browser';return}
+  let recorder=null,stream=null,chunks=[],blob=null,objectURL='',started=0,ticker=0,stopTimer=0,discard=false,opening=false,uploading=false;
+  function stopTracks(){if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;clearInterval(ticker);clearTimeout(stopTimer)}
+  function reset(){if(objectURL)URL.revokeObjectURL(objectURL);objectURL='';blob=null;chunks=[];preview.pause();preview.removeAttribute('src');preview.hidden=true;panel.hidden=true;mic.classList.remove('recording');mic.textContent='🎙';mic.setAttribute('aria-label','Record voice note');send.disabled=true;mic.disabled=false}
+  function stop(drop=false){discard=drop;if(recorder&&recorder.state!=='inactive')recorder.stop();else{stopTracks();reset()}}
+  mic.addEventListener('click',async()=>{
+    if(opening||uploading)return;
+    if(recorder&&recorder.state==='recording'){stop();return}
+    if(blob){toast('Send or discard the current voice note first');return}
+    if(S.file){toast('Send or remove the attached image first');return}
+    opening=true;mic.disabled=true;discard=false;
+    try{
+      stream=await navigator.mediaDevices.getUserMedia({audio:true});
+      if(document.hidden||discard){stopTracks();reset();return}
+      const type=['audio/mp4','audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus'].find(t=>MediaRecorder.isTypeSupported(t));
+      if(!type)throw new Error('This browser cannot record a supported audio format');
+      recorder=new MediaRecorder(stream,{mimeType:type,audioBitsPerSecond:64000});chunks=[];started=Date.now();
+      recorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
+      recorder.onerror=()=>{discard=true;stopTracks();reset();toast('Recording failed. Please try again')};
+      recorder.onstop=()=>{
+        stopTracks();mic.classList.remove('recording');mic.textContent='🎙';mic.setAttribute('aria-label','Record voice note');
+        if(discard){reset();return}
+        blob=new Blob(chunks,{type:recorder.mimeType});
+        if(!blob.size||blob.size>8*1024*1024){reset();toast('Recording is empty or too large');return}
+        objectURL=URL.createObjectURL(blob);preview.src=objectURL;preview.hidden=false;label.textContent='Preview your voice note before sending';send.disabled=false;mic.disabled=true;
+      };
+      recorder.start(250);panel.hidden=false;preview.hidden=true;send.disabled=true;label.textContent='Recording · 0:00 / 1:00';mic.textContent='■';mic.setAttribute('aria-label','Stop recording');mic.classList.add('recording');
+      ticker=setInterval(()=>{const s=Math.min(60,Math.floor((Date.now()-started)/1000));label.textContent='Recording · '+Math.floor(s/60)+':'+String(s%60).padStart(2,'0')+' / 1:00'},250);
+      stopTimer=setTimeout(()=>stop(),60000);
+    }catch(e){stopTracks();reset();toast(e.name==='NotAllowedError'?'Microphone permission is needed to record':e.message||'Could not start recording')}
+    finally{opening=false;if(!blob)mic.disabled=false}
+  });
+  cancel.addEventListener('click',()=>{if(!uploading){if(recorder?.state==='recording')stop(true);else reset()}});
+  send.addEventListener('click',async()=>{
+    if(!blob||uploading)return;
+    if(S.file){toast('Remove the attached image before sending a voice note');return}
+    uploading=true;send.disabled=true;cancel.disabled=true;label.textContent='Sending voice note…';
+    const caption=E.input.value.trim(),reply=S.replyTo?.id||'';
+    const fd=new FormData();fd.append('audio',blob,'voice.'+(blob.type.includes('mp4')?'m4a':blob.type.includes('ogg')?'ogg':'webm'));fd.append('message',caption);if(reply)fd.append('parent_id',reply);
+    try{const r=await fetch('/api/chat/voice',{method:'POST',body:fd});const d=await r.json();if(!r.ok||!d.success)throw new Error(d.error||'Voice note could not be sent');if(E.input.value.trim()===caption){E.input.value='';grow();updateSend()}if(S.replyTo?.id===reply)clearReply();reset();toast('Voice note sent');await loadFeed(await getState());toBottom(false)}catch(e){label.textContent='Not sent. Your recording is still here.';toast(e.message)}finally{uploading=false;send.disabled=!blob;cancel.disabled=false}
+  });
+  document.addEventListener('visibilitychange',()=>{if(document.hidden&&(opening||recorder?.state==='recording'))stop(true)});
+  window.addEventListener('pagehide',()=>{stop(true);stopTracks()});
+})();
 
 /* ---------- start ---------- */
 (async()=>{
@@ -822,6 +941,7 @@ E.admin.addEventListener("click",async()=>{
   try{const r=await fetch("/api/user");const d=await r.json();if(d.success&&d.user)S.me={username:d.user.username}}catch(e){}
   E.me.textContent=S.me?"@"+S.me.username:"hidden user";
   await boot();
+  startCommunity();
   if(S.adminKey&&await checkAdmin(S.adminKey)){S.admin=true;paintAdmin()}else{S.adminKey="";try{sessionStorage.removeItem("cxAdminKey")}catch(e){}}
   setInterval(poll,5000);
   document.addEventListener("visibilitychange",()=>{if(!document.hidden)poll()});

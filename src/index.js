@@ -1,3 +1,5 @@
+import { ensureFeatures, handleFeatures } from "./features.js";
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -1197,6 +1199,7 @@ export default {
     if (url.pathname === "/api/chat" && request.method === "GET") {
       try {
         await ensureChatSchema();
+        await ensureFeatures(env.DB);
         const userId = getUserId(request);
         const me = userId ? await getUser(userId) : null;
 
@@ -1213,6 +1216,7 @@ export default {
               m.sender_id,
               COALESCE(u.username, 'Unknown') AS username,
               (mi.message_id IS NOT NULL) AS has_image,
+              (ma.message_id IS NOT NULL) AS has_audio,
               pm.id AS p_id,
               pm.sender_id AS p_sender_id,
               COALESCE(pu.username, 'Unknown') AS p_username,
@@ -1221,6 +1225,7 @@ export default {
             FROM messages m
             LEFT JOIN users u ON u.id = m.sender_id
             LEFT JOIN message_images mi ON mi.message_id = m.id
+            LEFT JOIN message_audio ma ON ma.message_id = m.id
             LEFT JOIN messages pm ON pm.id = m.parent_id
             LEFT JOIN users pu ON pu.id = pm.sender_id
             LEFT JOIN message_images pmi ON pmi.message_id = pm.id
@@ -1242,6 +1247,7 @@ export default {
           username: r.username,
           mine: Boolean(userId) && r.sender_id === userId,
           image: Boolean(r.has_image),
+          audio: Boolean(r.has_audio),
           parent: r.parent_id
             ? (r.p_id
                 ? {
@@ -1483,7 +1489,12 @@ export default {
           try { await env.CHAT_IMAGES.delete(img.r2_key); } catch {}
         }
 
+        await ensureFeatures(env.DB);
+        const audio = await env.DB.prepare("SELECT r2_key FROM message_audio WHERE message_id = ?").bind(messageId).first();
+        if (audio && env.CHAT_IMAGES) await env.CHAT_IMAGES.delete(audio.r2_key);
         await env.DB.batch([
+          env.DB.prepare("DELETE FROM message_audio WHERE message_id = ?").bind(messageId),
+          env.DB.prepare("DELETE FROM message_reactions WHERE message_id = ?").bind(messageId),
           env.DB.prepare("DELETE FROM message_images WHERE message_id = ?").bind(messageId),
           env.DB.prepare("DELETE FROM messages WHERE id = ?").bind(messageId)
         ]);
@@ -1493,6 +1504,9 @@ export default {
         return Response.json({ success: false, error: "Could not delete message" }, { status: 500, headers: chatHeaders });
       }
     }
+
+    const featureResponse = await handleFeatures(request, env, ctx, { getUser, getUserId, chatIsAdmin, ensureChatSchema, notifyChat, chatSniffImage });
+    if (featureResponse) return featureResponse;
 
     return env.ASSETS.fetch(request);
   }

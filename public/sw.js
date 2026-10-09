@@ -13,7 +13,7 @@ self.addEventListener("push", (event) => {
       const m = d && d.messages && d.messages[d.messages.length - 1];
       if (m) {
         title = "@" + m.username;
-        body = m.message ? m.message.slice(0, 140) : (m.image ? "📷 Photo" : body);
+        body = m.message ? m.message.slice(0, 140) : (m.image ? "📷 Photo" : m.audio ? "🎙 Voice note" : body);
       }
     } catch (e) {}
     await self.registration.showNotification(title, {
