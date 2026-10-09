@@ -268,8 +268,25 @@ export default {
         const data = await res.json().catch(() => null);
         const username = data?.session?.name;
 
-        if (!res.ok || !username || !LFM_USER_RE.test(username)) {
-          return lfmMessagePage("Could not connect", "Last.fm did not confirm your account. Please try again.", 502);
+        // Safe to log: no session key, no secret
+        console.log("LASTFM getSession", JSON.stringify({
+          httpStatus: res.status,
+          error: data?.error,
+          message: data?.message,
+          username: username || null,
+          usernameOk: username ? LFM_USER_RE.test(username) : null
+        }));
+
+        if (!username) {
+          const msg = data?.error === 14
+            ? "Last.fm did not get your approval. Please click 'Yes, allow access' and try again."
+            : data?.error === 4 || data?.error === 15
+              ? "This login link expired or was already used. Please start again."
+              : "Last.fm did not confirm your account. Please try again.";
+          return lfmMessagePage("Could not connect", msg, 502);
+        }
+        if (!LFM_USER_RE.test(username)) {
+          return lfmMessagePage("Could not connect", "This Last.fm username format isn't supported yet.", 400);
         }
 
         await lfmEnsureConnTable();
