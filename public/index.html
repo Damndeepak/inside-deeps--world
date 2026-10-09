@@ -583,7 +583,100 @@ function updateSend(){E.send.disabled=!E.input.value.trim()&&!S.file}
 function grow(){E.input.style.height="auto";E.input.style.height=Math.min(Math.max(E.input.scrollHeight,42),140)+"px";const n=E.input.value.length;E.counter.textContent=n>800?n+" / "+MAX_TEXT:""}
 E.input.addEventListener("input",()=>{grow();updateSend()});
 E.input.addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey&&!coarse&&!e.isComposing){e.preventDefault();submit()}});
-E.input.addEventListener("focus",()=>{if(coarse)setTimeout(()=>E.form.scrollIntoView({block:"nearest",behavior:"smooth"}),300)});
+/* ---------- mobile keyboard / visual viewport ---------- */
+if(parseFloat(getComputedStyle(E.input).fontSize)<16)E.input.style.fontSize="16px";
+(()=>{
+  const vv=window.visualViewport;
+  if(!vv)return;
+  const mobile=()=>coarse||navigator.maxTouchPoints>0;
+  const saved={height:E.thread.style.height,minHeight:E.thread.style.minHeight,paddingBottom:root.style.paddingBottom};
+  const basePadding=parseFloat(getComputedStyle(root).paddingBottom)||0;
+  let extraPadding=0;
+  let baseline=vv.height,baseWidth=window.innerWidth,normalHeight=0;
+  let active=false,resized=false,pinned=false,raf=0,settle=0,timers=[];
+  let readingTop=0,ignoreScroll=false;
+  const focused=()=>document.activeElement===E.input;
+  function remember(){
+    if(active||!mobile())return;
+    baseline=vv.height;baseWidth=window.innerWidth;
+    normalHeight=E.thread.getBoundingClientRect().height;
+    pinned=nearBottom();readingTop=E.thread.scrollTop;
+  }
+  function holdScroll(){
+    ignoreScroll=true;clearTimeout(settle);
+    settle=setTimeout(()=>{ignoreScroll=false},100);
+  }
+  function restore(){
+    if(!resized)return;
+    holdScroll();
+    E.thread.style.height=saved.height;E.thread.style.minHeight=saved.minHeight;
+    root.style.paddingBottom=saved.paddingBottom;extraPadding=0;
+    E.thread.scrollTop=pinned?E.thread.scrollHeight:readingTop;
+    resized=false;
+  }
+  function fit(){
+    raf=0;
+    if(!focused()||!mobile()){
+      restore();active=false;
+      baseline=vv.height;baseWidth=window.innerWidth;
+      return;
+    }
+    // Pinch zoom is not a keyboard opening; leave zoom/panning to the browser.
+    if(Math.abs(vv.scale-1)>.05)return;
+    if(Math.abs(window.innerWidth-baseWidth)>80){
+      // Re-establish the baseline after rotation, without changing scroll intent.
+      restore();baseWidth=window.innerWidth;
+      baseline=Math.max(window.innerHeight,vv.height);
+      normalHeight=E.thread.getBoundingClientRect().height;
+    }
+    // Estimate occlusion, not a guaranteed physical keyboard measurement.
+    const keyboardHeight=Math.max(0,baseline-vv.height,window.innerHeight-vv.height);
+    const keyboardOpen=keyboardHeight>100;
+    if(keyboardOpen){
+      const chrome=root.getBoundingClientRect().height-E.thread.getBoundingClientRect().height-extraPadding;
+      const height=Math.max(0,Math.min(normalHeight,vv.height-chrome-16));
+      holdScroll();
+      E.thread.style.minHeight="0px";E.thread.style.height=height+"px";
+      // Supply scroll room when only the visual viewport shrinks (e.g. Safari).
+      extraPadding=Math.max(0,window.innerHeight-vv.height);
+      root.style.paddingBottom=(basePadding+extraPadding)+"px";
+      E.thread.scrollTop=pinned?E.thread.scrollHeight:readingTop;
+      resized=true;
+    }else restore();
+    const form=E.form.getBoundingClientRect();
+    const top=vv.offsetTop+8,bottom=vv.offsetTop+vv.height-8;
+    const delta=keyboardOpen?form.bottom-bottom:
+      (form.bottom>bottom?form.bottom-bottom:form.top<top?form.top-top:0);
+    // Instant correction avoids fighting keyboard animation and global smooth scrolling.
+    if(Math.abs(delta)>1)window.scrollTo({top:Math.max(0,window.scrollY+delta),behavior:"instant"});
+  }
+  function schedule(){if(!raf)raf=requestAnimationFrame(fit)}
+  function delayed(){
+    timers.forEach(clearTimeout);
+    timers=[80,300,600].map(ms=>setTimeout(schedule,ms));
+  }
+  E.input.addEventListener("pointerdown",remember,{passive:true});
+  E.input.addEventListener("focus",()=>{
+    if(!mobile())return;
+    remember();active=true;delayed();
+  });
+  E.input.addEventListener("blur",delayed);
+  E.input.addEventListener("input",()=>{if(active)schedule()});
+  E.thread.addEventListener("scroll",()=>{
+    if(active&&!ignoreScroll){pinned=nearBottom();readingTop=E.thread.scrollTop}
+  },{passive:true});
+  // A deliberate gesture must win even during a viewport adjustment.
+  ["touchstart","wheel"].forEach(type=>E.thread.addEventListener(type,()=>{
+    ignoreScroll=false;clearTimeout(settle);
+  },{passive:true}));
+  vv.addEventListener("resize",schedule,{passive:true});
+  vv.addEventListener("scroll",schedule,{passive:true});
+  window.addEventListener("resize",schedule,{passive:true});
+  if("ResizeObserver" in window){
+    const observer=new ResizeObserver(()=>{if(active)schedule()});
+    [E.form,E.reply,E.prev].forEach(el=>observer.observe(el));
+  }
+})();
 E.form.addEventListener("submit",e=>{e.preventDefault();submit()});
 
 function setReply(m){
