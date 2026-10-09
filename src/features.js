@@ -16,7 +16,8 @@ const headers = { 'Cache-Control': 'no-store' };
 const json = (data, status=200) => Response.json(data, {status, headers});
 const fail = (error,status=400) => json({success:false,error},status);
 const validId = id => /^[A-Za-z0-9_-]{1,64}$/.test(id || '');
-const emojis = ['❤️','😂','🔥','👍'];
+const emojis = ['😡','😂','🥺','😒'];
+const legacyEmojis = ['❤️','🔥','👍'];
 const text = (v,max) => typeof v === 'string' ? v.trim().slice(0,max) : '';
 const image = track => (track.image || []).find(i => i.size === 'extralarge')?.['#text'] || '';
 async function limit(db,k,max,ms) {
@@ -104,7 +105,7 @@ export async function handleFeatures(request,env,ctx,helpers) {
       if(method!=='POST')return fail('Method not allowed',405);
       if(!user)return fail('Reload to get a chat identity',401);
       const body=await smallJson(request);
-      if(!validId(body.message_id)||!emojis.includes(body.emoji)||typeof body.active!=='boolean')return fail('Invalid reaction');
+      if(!validId(body.message_id)||!(emojis.includes(body.emoji)||(body.active===false&&legacyEmojis.includes(body.emoji)))||typeof body.active!=='boolean')return fail('Invalid reaction');
       if(!await limit(env.DB,'reaction:'+user.id,90,60000))return fail('Slow down a little',429);
       if(!await env.DB.prepare('SELECT id FROM messages WHERE id=?').bind(body.message_id).first())return fail('Message no longer exists',404);
       if(body.active)await env.DB.prepare('INSERT OR IGNORE INTO message_reactions(message_id,user_id,emoji) VALUES(?,?,?)').bind(body.message_id,user.id,body.emoji).run();

@@ -451,7 +451,7 @@ function toast(msg){E.toast.textContent=msg;E.toast.hidden=false;clearTimeout(to
 function sigOf(m,w){return[m.parent?(m.parent.deleted?"d":[m.parent.id,m.parent.username,m.parent.snippet,m.parent.image].join("~")):"",S.admin?1:0,m.pending||"",m.mine?1:0,m.created_at].join("|")}
 
 function buildRow(m){
-  const row=h("div","cx-row"+(m.mine?" mine":""));row.dataset.id=m.id;
+  const row=h("div","cx-row"+(m.mine?" mine":""));row.dataset.id=m.id;row.tabIndex=0;
   const av=h("div","cx-avatar",tag(m.username));av.style.cssText="background:hsl("+hue(m.username)+" 32% 20%);color:hsl("+hue(m.username)+" 55% 78%)";
   const bub=h("div","cx-bubble");
   const name=h("div","cx-name","@"+m.username);
@@ -828,7 +828,7 @@ E.admin.addEventListener("click",async()=>{
 });
 
 /* ---------- reactions, presence and voice notes ---------- */
-const REACTIONS=['❤️','😂','🔥','👍'];
+const REACTIONS=['😡','😂','🥺','😒'];
 let reactionState={},reactionBusy=false,communityStarted=false;
 function paintReactions(){
   E.list.querySelectorAll('.cx-row').forEach(row=>{
@@ -836,7 +836,13 @@ function paintReactions(){
     box.hidden=!!m.pending;if(m.pending)return;
     const values=reactionState[m.id]||[];
     const signature=JSON.stringify(values);if(box.dataset.sig===signature)return;box.dataset.sig=signature;
-    box.replaceChildren();REACTIONS.forEach(emoji=>{const r=values.find(x=>x.emoji===emoji);const b=h('button','cx-react',emoji+(r?.count?' '+r.count:''));b.type='button';b.dataset.emoji=emoji;b.setAttribute('aria-label','React '+emoji);b.setAttribute('aria-pressed',String(!!r?.mine));box.append(b)});
+    box.replaceChildren();
+    const counts=h('div','cx-reaction-counts'),picker=h('div','cx-reaction-picker');
+    picker.setAttribute('role','group');picker.setAttribute('aria-label','Choose a reaction');
+    function button(emoji,r,label){const b=h('button','cx-react',label);b.type='button';b.dataset.emoji=emoji;b.setAttribute('aria-label',(r?.mine?'Remove reaction ':'React ')+emoji);b.setAttribute('aria-pressed',String(!!r?.mine));return b}
+    values.filter(r=>r.count>0).forEach(r=>{const b=button(r.emoji,r,r.emoji+' '+r.count);if(!REACTIONS.includes(r.emoji)&&!r.mine)b.disabled=true;counts.append(b)});
+    REACTIONS.forEach(emoji=>picker.append(button(emoji,values.find(r=>r.emoji===emoji),emoji)));
+    box.append(counts,picker);
   });
 }
 async function loadReactions(){
@@ -856,6 +862,7 @@ E.list.addEventListener('click',async e=>{
   b.disabled=true;const active=b.getAttribute('aria-pressed')!=='true';
   try{const r=await fetch('/api/chat/reactions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message_id:row.dataset.id,emoji:b.dataset.emoji,active})});const d=await r.json();if(!r.ok||!d.success)throw new Error(d.error||'Reaction failed');await loadReactions()}catch(e){toast(e.message)}finally{b.disabled=false}
 });
+document.addEventListener('click',e=>{if(!e.target.closest('.cx-row'))E.list.querySelectorAll('.cx-sel').forEach(row=>row.classList.remove('cx-sel'))});
 let reactionScroll=0;E.thread.addEventListener('scroll',()=>{clearTimeout(reactionScroll);reactionScroll=setTimeout(loadReactions,250)},{passive:true});
 const online=$('cxOnline'),typing=$('cxTyping');
 let lastTyping=0,typingTimer=0,presenceBusy=false;

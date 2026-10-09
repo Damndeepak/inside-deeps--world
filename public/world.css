@@ -13,3 +13,12 @@ html[data-world-theme=light]{--world-panel:#fff;--world-line:#d5d3df;--world-tex
 html[data-world-accent] :is(.cx-link,.media-mark){color:var(--world-accent)}html[data-world-accent] .cx-row.mine .cx-bubble{border-color:var(--world-accent)}html[data-world-accent] :is(.cx-send,.unlock){background:var(--world-accent);color:#111}html[data-world-accent] :is(.cx-dot,.lfm.is-playing .lfm-dot){background:var(--world-accent);box-shadow:none}
 @media(max-width:650px){.world-card{padding:20px}.world-memory-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.world-memory figcaption{padding:12px}.world-rank{grid-template-columns:20px 46px 1fr;gap:10px;padding:12px}.world-rank .plays{grid-column:3;text-align:left}.world-bar{margin-bottom:22px}.world-controls{width:100%}}
 @media(max-width:380px){.world-memory-grid{grid-template-columns:1fr}.cx-form{gap:5px}.cx-mic{width:34px}.cx-send{padding:0 10px}}
+
+/* The picker appears only on the hovered, selected or keyboard-focused message. */
+.cx-reactions{display:block;margin-top:0}
+.cx-reaction-counts,.cx-reaction-picker{gap:4px;flex-wrap:wrap;margin-top:7px}
+.cx-reaction-counts{display:flex}.cx-reaction-counts:empty{display:none}
+.cx-reaction-picker{display:none}
+.cx-row.cx-sel .cx-reaction-picker,.cx-row:focus-within .cx-reaction-picker{display:flex}
+.cx-row:focus-visible{outline:1px solid var(--world-accent);outline-offset:3px;border-radius:16px}
+@media(hover:hover) and (pointer:fine){.cx-row:hover .cx-reaction-picker{display:flex}}
