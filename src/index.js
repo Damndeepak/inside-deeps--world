@@ -1,5 +1,5 @@
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
     function getUserId(request) {
@@ -1006,6 +1006,177 @@ export default {
       return diff === 0;
     }
 
+
+    // ---------------------------------------------------------------
+    // Push notifications (additive). Payload-less Web Push signed with
+    // VAPID; the service worker fetches the newest message itself.
+    // Keys are generated once and kept in D1 (no secrets to paste).
+    // ---------------------------------------------------------------
+    const b64u = (buf) => {
+      let s = "";
+      const u = new Uint8Array(buf);
+      for (let i = 0; i < u.length; i++) s += String.fromCharCode(u[i]);
+      return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    };
+    const b64uToBytes = (str) => {
+      const p = str.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((str.length + 3) % 4);
+      const bin = atob(p);
+      return Uint8Array.from(bin, c => c.charCodeAt(0));
+    };
+
+    async function ensurePushSchema() {
+      if (globalThis.__pushSchemaReady) return;
+      await env.DB.batch([
+        env.DB.prepare(`
+          CREATE TABLE IF NOT EXISTS push_subscriptions (
+            endpoint TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL,
+            created_at TEXT NOT NULL
+          )
+        `),
+        env.DB.prepare(`
+          CREATE TABLE IF NOT EXISTS push_config (
+            k TEXT PRIMARY KEY,
+            v TEXT NOT NULL
+          )
+        `)
+      ]);
+      await env.DB
+        .prepare("CREATE INDEX IF NOT EXISTS idx_push_user ON push_subscriptions(user_id)")
+        .run();
+      globalThis.__pushSchemaReady = true;
+    }
+
+    async function getVapid() {
+      if (globalThis.__vapid) return globalThis.__vapid;
+      await ensurePushSchema();
+      let row = await env.DB.prepare("SELECT v FROM push_config WHERE k = 'vapid'").first();
+      let jwk;
+      if (row) {
+        jwk = JSON.parse(row.v);
+      } else {
+        const pair = await crypto.subtle.generateKey({ name: "ECDSA", namedCurve: "P-256" }, true, ["sign", "verify"]);
+        jwk = await crypto.subtle.exportKey("jwk", pair.privateKey);
+        await env.DB
+          .prepare("INSERT OR IGNORE INTO push_config (k, v) VALUES ('vapid', ?)")
+          .bind(JSON.stringify(jwk))
+          .run();
+        row = await env.DB.prepare("SELECT v FROM push_config WHERE k = 'vapid'").first();
+        jwk = JSON.parse(row.v);
+      }
+      const key = await crypto.subtle.importKey(
+        "jwk",
+        { kty: "EC", crv: "P-256", x: jwk.x, y: jwk.y, d: jwk.d, ext: true },
+        { name: "ECDSA", namedCurve: "P-256" },
+        false,
+        ["sign"]
+      );
+      const x = b64uToBytes(jwk.x), y = b64uToBytes(jwk.y);
+      const raw = new Uint8Array(65);
+      raw[0] = 4; raw.set(x, 1); raw.set(y, 33);
+      globalThis.__vapid = { key, publicKey: b64u(raw) };
+      return globalThis.__vapid;
+    }
+
+    async function sendPush(endpoint, vapid) {
+      const aud = new URL(endpoint).origin;
+      const enc = new TextEncoder();
+      const header = b64u(enc.encode(JSON.stringify({ typ: "JWT", alg: "ES256" })));
+      const claims = b64u(enc.encode(JSON.stringify({
+        aud,
+        exp: Math.floor(Date.now() / 1000) + 12 * 3600,
+        sub: url.origin
+      })));
+      const sig = await crypto.subtle.sign(
+        { name: "ECDSA", hash: "SHA-256" },
+        vapid.key,
+        enc.encode(header + "." + claims)
+      );
+      const jwt = header + "." + claims + "." + b64u(sig);
+      return fetch(endpoint, {
+        method: "POST",
+        headers: {
+          Authorization: "vapid t=" + jwt + ", k=" + vapid.publicKey,
+          TTL: "86400",
+          Urgency: "high",
+          "Content-Length": "0"
+        }
+      });
+    }
+
+    async function notifyChat(senderId) {
+      try {
+        await ensurePushSchema();
+        const rows = await env.DB
+          .prepare("SELECT endpoint FROM push_subscriptions WHERE user_id != ? LIMIT 200")
+          .bind(senderId)
+          .all();
+        const subs = rows.results || [];
+        if (!subs.length) return;
+        const vapid = await getVapid();
+        await Promise.all(subs.map(async (s) => {
+          try {
+            const r = await sendPush(s.endpoint, vapid);
+            if (r.status === 404 || r.status === 410) {
+              await env.DB.prepare("DELETE FROM push_subscriptions WHERE endpoint = ?").bind(s.endpoint).run();
+            }
+          } catch {}
+        }));
+      } catch {}
+    }
+
+    if (url.pathname === "/api/push/key" && request.method === "GET") {
+      try {
+        const v = await getVapid();
+        return Response.json({ success: true, key: v.publicKey }, { headers: chatHeaders });
+      } catch {
+        return Response.json({ success: false }, { status: 500, headers: chatHeaders });
+      }
+    }
+
+    if (url.pathname === "/api/push/subscribe" && request.method === "POST") {
+      try {
+        const user = await getUser(getUserId(request));
+        if (!user) return Response.json({ success: false, error: "Not signed in" }, { status: 401, headers: chatHeaders });
+        const body = await request.json();
+        const endpoint = typeof body.endpoint === "string" ? body.endpoint : "";
+        let ok = false;
+        try { ok = new URL(endpoint).protocol === "https:" && endpoint.length < 1000; } catch {}
+        if (!ok) return Response.json({ success: false, error: "Bad subscription" }, { status: 400, headers: chatHeaders });
+        await ensurePushSchema();
+        const count = await env.DB
+          .prepare("SELECT COUNT(*) AS n FROM push_subscriptions WHERE user_id = ?")
+          .bind(user.id)
+          .first();
+        if (Number(count?.n || 0) >= 5) {
+          return Response.json({ success: false, error: "Too many devices" }, { status: 429, headers: chatHeaders });
+        }
+        await env.DB
+          .prepare("INSERT OR REPLACE INTO push_subscriptions (endpoint, user_id, created_at) VALUES (?, ?, ?)")
+          .bind(endpoint, user.id, new Date().toISOString())
+          .run();
+        return Response.json({ success: true }, { headers: chatHeaders });
+      } catch {
+        return Response.json({ success: false }, { status: 500, headers: chatHeaders });
+      }
+    }
+
+    if (url.pathname === "/api/push/unsubscribe" && request.method === "POST") {
+      try {
+        const user = await getUser(getUserId(request));
+        if (!user) return Response.json({ success: false }, { status: 401, headers: chatHeaders });
+        const body = await request.json();
+        await ensurePushSchema();
+        await env.DB
+          .prepare("DELETE FROM push_subscriptions WHERE endpoint = ? AND user_id = ?")
+          .bind(String(body.endpoint || ""), user.id)
+          .run();
+        return Response.json({ success: true }, { headers: chatHeaders });
+      } catch {
+        return Response.json({ success: false }, { status: 500, headers: chatHeaders });
+      }
+    }
+
     // Light check used by the page to know when something changed
     if (url.pathname === "/api/chat/state" && request.method === "GET") {
       try {
@@ -1226,6 +1397,8 @@ export default {
         }
 
         await env.DB.batch(statements);
+
+        if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(notifyChat(user.id));
 
         return Response.json({
           success: true,
