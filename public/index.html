@@ -530,7 +530,7 @@ function reconcile(animate){
   E.empty.hidden=want.length>0;
   if(!want.length)E.empty.textContent="No messages yet. Say something.";
   E.more.hidden=!S.hasMore;E.more.textContent="load older messages";
-  paintReactions();
+  paintReactions();paintSeenBy();scheduleSeen();
 }
 
 const nearBottom=()=>E.thread.scrollHeight-E.thread.scrollTop-E.thread.clientHeight<90;
@@ -816,7 +816,7 @@ E.box.addEventListener("click",()=>{E.box.hidden=true;E.boxImg.removeAttribute("
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!E.box.hidden){E.box.hidden=true;E.boxImg.removeAttribute("src")}});
 
 /* ---------- admin ---------- */
-function paintAdmin(){E.admin.textContent=S.admin?"admin mode · exit":"admin";E.admin.classList.toggle("on",S.admin);reconcile(false)}
+function paintAdmin(){E.admin.textContent=S.admin?"admin mode · exit":"admin";E.admin.classList.toggle("on",S.admin);reconcile(false);refreshSeenAdmin()}
 async function checkAdmin(key){
   try{const r=await fetch("/api/chat/admin/check",{headers:{"X-Admin-Key":key},cache:"no-store"});const d=await r.json();return!!d.admin}catch(e){return false}
 }
@@ -942,13 +942,84 @@ window.addEventListener('world-admin-change',async()=>{
   window.addEventListener('pagehide',()=>{stop(true);stopTracks()});
 })();
 
+/* ---------- admin-only read receipts ---------- */
+let seenReaders=[],seenEpoch=0,seenFetching=false,seenTimer=0,seenSending=false,seenSent="",seenAttempt=0;
+function paintSeenBy(){
+  E.list.querySelectorAll(".cx-row").forEach(row=>{
+    const m=findMsg(row.dataset.id);let label=row.querySelector(".cx-seen");
+    if(!S.admin||!m||m.pending){if(label)label.remove();return}
+    const names=[...new Set(seenReaders.filter(r=>r.username!==m.username&&r.last_seen_at>=m.created_at).map(r=>"@"+r.username))];
+    if(!names.length){if(label)label.remove();return}
+    if(!label){label=h("div","cx-seen");label.style.cssText="font:10px/1.5 system-ui;color:var(--world-muted);margin-top:6px";row.querySelector(".cx-bubble").append(label)}
+    label.textContent="Seen by "+names.join(", ");
+  });
+}
+async function loadSeenAdmin(){
+  if(!S.admin||!S.adminKey||seenFetching||document.visibilityState!=="visible")return;
+  const epoch=seenEpoch,key=S.adminKey;seenFetching=true;
+  try{
+    const r=await fetch("/api/chat/admin/seen",{headers:{"X-Admin-Key":key},cache:"no-store"});
+    const d=await r.json();
+    if(epoch!==seenEpoch||!S.admin||key!==S.adminKey)return;
+    seenReaders=r.ok&&d.success&&Array.isArray(d.readers)?d.readers:[];paintSeenBy();
+  }catch{if(epoch===seenEpoch){seenReaders=[];paintSeenBy()}}
+  finally{seenFetching=false}
+}
+function refreshSeenAdmin(){
+  seenEpoch++;seenReaders=[];paintSeenBy();
+  if(S.admin)loadSeenAdmin();
+}
+function visibleSeenTimestamp(){
+  if(document.visibilityState!=="visible"||!S.ready)return "";
+  const vv=window.visualViewport,top=vv?vv.offsetTop:0,bottom=top+(vv?vv.height:window.innerHeight);
+  const thread=E.thread.getBoundingClientRect(),card=root.getBoundingClientRect();
+  const lo=Math.max(top,thread.top,card.top),hi=Math.min(bottom,thread.bottom,card.bottom);
+  if(hi<=lo||thread.width<=0)return "";
+  let upto="";
+  E.list.querySelectorAll(".cx-row").forEach(row=>{
+    const m=findMsg(row.dataset.id);if(!m||m.pending)return;
+    const rect=row.getBoundingClientRect();
+    if(rect.bottom>lo&&rect.top<hi&&m.created_at>upto)upto=m.created_at;
+  });
+  return upto;
+}
+function scheduleSeen(){
+  clearTimeout(seenTimer);
+  seenTimer=setTimeout(sendSeen,Math.max(250,3000-(Date.now()-seenAttempt)));
+}
+async function sendSeen(){
+  if(seenSending)return;
+  const upto=visibleSeenTimestamp();if(!upto||upto<=seenSent)return;
+  seenSending=true;seenAttempt=Date.now();
+  try{
+    const r=await fetch("/api/chat/seen",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({upto})});
+    if(r.ok){const d=await r.json();if(d.success)seenSent=upto}
+  }catch{}
+  finally{
+    seenSending=false;
+    if(document.visibilityState==="visible"&&visibleSeenTimestamp()>seenSent)scheduleSeen();
+  }
+}
+E.thread.addEventListener("scroll",scheduleSeen,{passive:true});
+window.addEventListener("scroll",scheduleSeen,{passive:true});
+window.addEventListener("resize",scheduleSeen,{passive:true});
+window.visualViewport?.addEventListener("resize",scheduleSeen,{passive:true});
+window.visualViewport?.addEventListener("scroll",scheduleSeen,{passive:true});
+document.addEventListener("visibilitychange",()=>{
+  if(document.visibilityState==="visible"){scheduleSeen();loadSeenAdmin()}else clearTimeout(seenTimer);
+});
+if("IntersectionObserver" in window)new IntersectionObserver(scheduleSeen,{threshold:[0,.1,1]}).observe(root);
+if("ResizeObserver" in window)new ResizeObserver(scheduleSeen).observe(E.list);
+E.list.addEventListener("load",scheduleSeen,true);
+setInterval(loadSeenAdmin,15000);
+
 /* ---------- start ---------- */
 (async()=>{
   grow();updateSend();
   try{const r=await fetch("/api/user");const d=await r.json();if(d.success&&d.user)S.me={username:d.user.username}}catch(e){}
   E.me.textContent=S.me?"@"+S.me.username:"hidden user";
   await boot();
-  startCommunity();
+  startCommunity();scheduleSeen();
   if(S.adminKey&&await checkAdmin(S.adminKey)){S.admin=true;paintAdmin()}else{S.adminKey="";try{sessionStorage.removeItem("cxAdminKey")}catch(e){}}
   setInterval(poll,5000);
   document.addEventListener("visibilitychange",()=>{if(!document.hidden)poll()});

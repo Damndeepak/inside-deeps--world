@@ -1196,6 +1196,55 @@ export default {
       }
     }
 
+    // Read receipts: isolated from all existing message tables.
+    async function ensureReadSchema() {
+      await env.DB.prepare(`CREATE TABLE IF NOT EXISTS chat_reads (
+        user_id TEXT PRIMARY KEY, last_seen_at TEXT NOT NULL, updated_at TEXT NOT NULL
+      )`).run();
+    }
+
+    if (url.pathname === "/api/chat/seen" && request.method === "POST") {
+      try {
+        const origin = request.headers.get("Origin");
+        if (origin && origin !== url.origin) return Response.json({ success: false }, { status: 403, headers: chatHeaders });
+        const user = await getUser(getUserId(request));
+        if (!user) return Response.json({ success: false }, { status: 401, headers: chatHeaders });
+        const { upto } = await request.json();
+        const time = typeof upto === "string" ? Date.parse(upto) : NaN;
+        if (!Number.isFinite(time) || new Date(time).toISOString() !== upto || time > Date.now()) {
+          return Response.json({ success: false, error: "Invalid seen timestamp" }, { status: 400, headers: chatHeaders });
+        }
+        const exists = await env.DB.prepare("SELECT id FROM messages WHERE created_at = ? LIMIT 1").bind(upto).first();
+        if (!exists) return Response.json({ success: false, error: "Message not found" }, { status: 400, headers: chatHeaders });
+        await ensureReadSchema();
+        const now = new Date().toISOString();
+        const result = await env.DB.prepare(`INSERT INTO chat_reads (user_id, last_seen_at, updated_at)
+          VALUES (?, ?, ?) ON CONFLICT(user_id) DO UPDATE SET
+          last_seen_at = MAX(chat_reads.last_seen_at, excluded.last_seen_at),
+          updated_at = excluded.updated_at
+          WHERE chat_reads.updated_at <= ?`)
+          .bind(user.id, upto, now, new Date(Date.now() - 3000).toISOString()).run();
+        if (!result.meta.changes) return Response.json({ success: false }, {
+          status: 429, headers: { ...chatHeaders, "Retry-After": "3" }
+        });
+        return Response.json({ success: true }, { headers: chatHeaders });
+      } catch {
+        return Response.json({ success: false }, { status: 400, headers: chatHeaders });
+      }
+    }
+
+    if (url.pathname === "/api/chat/admin/seen" && request.method === "GET") {
+      if (!await chatIsAdmin(request)) return Response.json({ success: false }, { status: 403, headers: chatHeaders });
+      try {
+        await ensureReadSchema();
+        const rows = await env.DB.prepare(`SELECT u.username, r.last_seen_at
+          FROM chat_reads r JOIN users u ON u.id = r.user_id ORDER BY r.last_seen_at DESC`).all();
+        return Response.json({ success: true, readers: rows.results }, { headers: chatHeaders });
+      } catch {
+        return Response.json({ success: false }, { status: 500, headers: chatHeaders });
+      }
+    }
+
     // Light check used by the page to know when something changed
     if (url.pathname === "/api/chat/state" && request.method === "GET") {
       try {
