@@ -165,9 +165,14 @@ h1{animation:deepTitleIn .9s cubic-bezier(.22,1,.36,1) both}
 <audio id="ufAudio" playsinline preload="metadata" webkit-playsinline><source src="./unforgettable-clip.mp3" type="audio/mpeg"/></audio>
 </section>
 
-<div style="margin-top:24px;border-radius:22px;overflow:hidden;">
-<iframe allow="autoplay" loading="lazy" src="./allgirls.html" style="display:block;width:100%;height:510px;border:0;background:#070707;" title="All Girls Are The Same"></iframe>
-</div>
+<section aria-label="All Girls Are The Same music player" class="song-player unforgettable-player allgirls-player">
+<div class="song-title">All Girls Are The Same</div>
+<div class="song-artist">Juice WRLD</div>
+<div class="uf-lyrics" id="agLyrics"></div>
+<div class="song-controls"><button aria-label="Play" class="song-play" id="agPlay" type="button">▶</button>
+<div class="song-progress"><div class="song-track" id="agTrack"><div class="song-fill" id="agFill"></div></div><div class="song-times"><span id="agTime">0:00</span><span>0:35</span></div></div></div>
+<audio id="agAudio" playsinline preload="none" webkit-playsinline></audio>
+</section>
 </main>
 <script id="media-single-player-js">
 (()=>{
@@ -424,4 +429,69 @@ render(0);
 })();
 </script>
 
+<script id="allgirls-player-js">
+(()=>{
+const a=document.getElementById("agAudio"),p=document.getElementById("agPlay"),f=document.getElementById("agFill"),t=document.getElementById("agTime"),tr=document.getElementById("agTrack"),box=document.getElementById("agLyrics");
+if(!a||!p||!f||!t||!tr||!box)return;
+const DUR=35;
+const L=[
+[0.53,["Wake","up","the","next","day","in","the","Monte","Carlo"]],
+[3.33,["With","a","new","woman,","tell","me","she","from","Colorado"]],
+[6.29,["And","she","love","women,","she'll","be","gone","by","tomorrow"]],
+[8.96,["Who","am","I","kiddin'?"]],
+[10.58,["All","this","jealousy","and","agony","that","I","sit","in"]],
+[13.46,["I'm","a","jealous","boy,","really","feel","like","John","Lennon"]],
+[16.44,["I","just","want","real","love,","guess","it's","been","a","minute"]],
+[19.40,["Pissed","off","from","the","way","that","I","don't","fit","in","I","don't","fit","in"]],
+[23.56,["Tell","me","what's","the","secret","to","love,","I","don't","get","it"]],
+[26.38,["Feel","like","I","be","runnin'","a","race,","I'm","not","winnin'"]],
+[29.41,["Ran","into","the","devil","today","and","she","grinnin'"]]
+];
+let last=-1,raf=0,audioReady=null;
+function lineAt(n){let x=-1;for(let i=0;i<L.length;i++)if(n>=L[i][0])x=i;return x}
+function render(n){
+ const active=lineAt(n);box.innerHTML="";
+ if(active<0)return;
+ for(let i=Math.max(0,active-1);i<=Math.min(L.length-1,active+1);i++){
+  const row=document.createElement("div");row.className="uf-line"+(i===active?" uf-current":"");row.style.opacity=i===active?"1":".43";
+  L[i][1].forEach((word,wi)=>{if(wi)row.appendChild(document.createTextNode(" "));[...word].forEach(ch=>{const el=document.createElement("span");el.className="uf-letter";el.textContent=ch;row.appendChild(el)})});
+  box.appendChild(row);
+ }
+ updateLetters(n);
+}
+function updateLetters(n){
+ const active=lineAt(n),row=box.querySelector(".uf-current");if(!row||active<0)return;
+ const start=L[active][0],end=active<L.length-1?L[active+1][0]:DUR;
+ const chars=[...row.querySelectorAll(".uf-letter")],progress=Math.max(0,Math.min(1,(n-start)/Math.max(.05,end-start))),pos=progress*chars.length;
+ chars.forEach((ch,i)=>ch.classList.toggle("uf-lit",i<pos));
+}
+function fmt(n){n=Math.max(0,Math.floor(n));return Math.floor(n/60)+":"+String(n%60).padStart(2,"0")}
+function loadAudio(){
+ if(!audioReady)audioReady=fetch("./allgirls.html").then(r=>{if(!r.ok)throw new Error("Audio source unavailable");return r.text()}).then(source=>{
+  const match=source.match(/<audio\\b[^>]*\\bsrc=["']data:audio\\/wav;base64,([^"']+)["']/i);
+  if(!match)throw new Error("Audio track not found");
+  const raw=atob(match[1]),bytes=new Uint8Array(raw.length);
+  for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);
+  const url=URL.createObjectURL(new Blob([bytes],{type:"audio/wav"}));a.src=url;a.load();
+ });
+ return audioReady;
+}
+function tick(){
+ const n=Math.min(DUR,a.currentTime||0),li=lineAt(n);
+ if(li!==last){render(n);last=li}else updateLetters(n);
+ f.style.width=Math.min(100,n/DUR*100)+"%";t.textContent=fmt(n)+" / 0:35";
+ if(!a.paused&&!a.ended)raf=requestAnimationFrame(tick);
+}
+p.onclick=async()=>{
+ if(!a.paused){a.pause();return}
+ p.textContent="…";
+ try{await loadAudio();await a.play()}catch(e){p.textContent="▶";t.textContent="Audio unavailable"}
+};
+a.onplay=()=>{p.textContent="❚❚";cancelAnimationFrame(raf);tick()};
+a.onpause=()=>{p.textContent="▶";cancelAnimationFrame(raf)};
+a.onended=()=>{a.currentTime=0;last=-1;render(0);f.style.width="0%";t.textContent="0:00 / 0:35";p.textContent="▶"};
+tr.onclick=e=>{if(!a.duration)return;const r=tr.getBoundingClientRect();a.currentTime=Math.max(0,Math.min(DUR,((e.clientX-r.left)/r.width)*DUR));last=-1;tick()};
+render(0);
+})();
+</script>
 </body></html>
