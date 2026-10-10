@@ -1,6 +1,19 @@
 import { handleRemote } from "./remote.js";
 import { ensureFeatures, handleFeatures } from "./features.js";
 
+const nicknameSchemas = new WeakMap();
+const CHAT_SPAM_WINDOW_MS = 5 * 60 * 1000;
+const CHAT_SPAM_LIMIT = 20;
+const CHAT_SPAM_BAN_MS = 2 * 60 * 60 * 1000;
+const CHAT_NAME_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
+const CHAT_NAME_WORDS = [
+  "potato", "noodle", "pickle", "waffle", "muffin", "pretzel", "biscuit", "nugget",
+  "pancake", "taco", "burrito", "pudding", "cupcake", "meatball", "toaster", "walrus",
+  "llama", "goblin", "gremlin", "penguin", "platypus", "hamster", "pigeon", "goose",
+  "sloth", "yeti", "wombat", "narwhal", "raccoon", "cactus", "banana", "turnip",
+  "spoon", "sock", "bagel", "blob", "dumpling", "wizard"
+];
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -666,68 +679,156 @@ export default {
       }
     }
 
-    // Get or create anonymous public username
-    if (url.pathname === "/api/user" && request.method === "GET") {
-      try {
-        const userId = getUserId(request);
-        const existingUser = await getUser(userId);
+    // Chat identity: only usernames change; cookies and ownership IDs stay the same.
+    function randomNameNumber(max) {
+      const bytes = new Uint32Array(1);
+      crypto.getRandomValues(bytes);
+      return bytes[0] % max;
+    }
 
-        if (existingUser) {
-          return Response.json({
-            success: true,
-            user: existingUser
-          });
-        }
-
-        const id = crypto.randomUUID();
-        const username =
-          "User" + Math.floor(100000 + Math.random() * 900000);
-
-        await env.DB
-          .prepare(
-            "INSERT INTO users (id, username, created_at) VALUES (?, ?, ?)"
-          )
-          .bind(id, username, new Date().toISOString())
-          .run();
-
-        return new Response(
-          JSON.stringify({
-            success: true,
-            user: { id, username }
-          }),
-          {
-            headers: {
-              "Content-Type": "application/json",
-              "Set-Cookie": `deep_user=${id}; Path=/; Max-Age=31536000; SameSite=Lax`
-            }
-          }
-        );
-      } catch {
-        return Response.json(
-          {
-            success: false,
-            error: "Could not create user"
-          },
-          { status: 500 }
-        );
+    function* defaultNameCandidates() {
+      const words = [...CHAT_NAME_WORDS];
+      for (let i = 0; i < 3; i++) {
+        yield "damn_" + words.splice(randomNameNumber(words.length), 1)[0];
+      }
+      for (let i = 0; i < 24; i++) {
+        yield "damn_" + CHAT_NAME_WORDS[randomNameNumber(CHAT_NAME_WORDS.length)] + (10 + randomNameNumber(90));
+      }
+      for (let i = 0; i < 32; i++) {
+        yield "damn_human" + (100000 + randomNameNumber(900000));
       }
     }
 
-    // Optional display names keep the existing cookie/user ID and message ownership.
     async function ensureNicknameSchema() {
-      if (globalThis.__nicknameSchemaReady) return;
-      await env.DB.prepare(`CREATE TABLE IF NOT EXISTS chat_nicknames (
-        user_id TEXT PRIMARY KEY,
-        default_username TEXT NOT NULL,
-        revision INTEGER NOT NULL DEFAULT 0
-      )`).run();
-      globalThis.__nicknameSchemaReady = true;
+      if (!nicknameSchemas.has(env.DB)) {
+        const ready = (async () => {
+          await env.DB.prepare(`CREATE TABLE IF NOT EXISTS chat_nicknames (
+            user_id TEXT PRIMARY KEY,
+            default_username TEXT NOT NULL,
+            revision INTEGER NOT NULL DEFAULT 0
+          )`).run();
+          for (const column of ["last_changed", "spam_warned_at", "spam_banned_until"]) {
+            try {
+              await env.DB.prepare(`ALTER TABLE chat_nicknames ADD COLUMN ${column} INTEGER`).run();
+            } catch (error) {
+              const columns = await env.DB.prepare("PRAGMA table_info(chat_nicknames)").all();
+              if (!columns.results.some(item => item.name === column)) throw error;
+            }
+          }
+        })().catch(error => { nicknameSchemas.delete(env.DB); throw error; });
+        nicknameSchemas.set(env.DB, ready);
+      }
+      await nicknameSchemas.get(env.DB);
+    }
+
+    async function nicknameProfile(userId) {
+      return env.DB.prepare("SELECT default_username, revision, last_changed FROM chat_nicknames WHERE user_id = ?").bind(userId).first();
+    }
+
+    // Reserve both displayed names and default names, case-insensitively.
+    const availableNameSQL = `NOT EXISTS (
+      SELECT 1 FROM users WHERE username = ? COLLATE NOCASE AND id != ?
+    ) AND NOT EXISTS (
+      SELECT 1 FROM chat_nicknames WHERE default_username = ? COLLATE NOCASE AND user_id != ?
+    )`;
+
+    async function migrateDisplayName(user, username, profile) {
+      const results = await env.DB.batch([
+        env.DB.prepare(`UPDATE users SET username = ? WHERE id = ? AND username = ?
+          AND EXISTS (SELECT 1 FROM chat_nicknames WHERE user_id = ? AND revision = ?)
+          AND ${availableNameSQL}`)
+          .bind(username, user.id, user.username, user.id, profile.revision, username, user.id, username, user.id),
+        env.DB.prepare(`UPDATE chat_nicknames SET revision = revision + 1 WHERE user_id = ? AND revision = ?
+          AND EXISTS (SELECT 1 FROM users WHERE id = ? AND username = ?)
+          AND ${availableNameSQL}`)
+          .bind(user.id, profile.revision, user.id, username, username, user.id, username, user.id)
+      ]);
+      return Boolean(results[0].meta.changes);
+    }
+
+    async function migrateChatIdentity(user) {
+      await ensureNicknameSchema();
+      await env.DB.prepare("INSERT OR IGNORE INTO chat_nicknames (user_id, default_username) VALUES (?, ?)").bind(user.id, user.username).run();
+      let profile = await nicknameProfile(user.id);
+      if (!/^damn/i.test(profile.default_username)) {
+        let migrated = false;
+        for (const username of defaultNameCandidates()) {
+          const fresh = await getUser(user.id);
+          profile = await nicknameProfile(user.id);
+          if (/^damn/i.test(profile.default_username)) { migrated = true; break; }
+          const legacy = /^User\d+$/.test(fresh.username);
+          const statements = legacy ? [
+            env.DB.prepare(`UPDATE users SET username = ? WHERE id = ? AND username = ?
+              AND EXISTS (SELECT 1 FROM chat_nicknames WHERE user_id = ? AND default_username = ? AND revision = ?)
+              AND ${availableNameSQL}`)
+              .bind(username, user.id, fresh.username, user.id, profile.default_username, profile.revision, username, user.id, username, user.id),
+            env.DB.prepare(`UPDATE chat_nicknames SET default_username = ?, revision = revision + 1
+              WHERE user_id = ? AND default_username = ? AND revision = ?
+              AND EXISTS (SELECT 1 FROM users WHERE id = ? AND username = ?)
+              AND ${availableNameSQL}`)
+              .bind(username, user.id, profile.default_username, profile.revision, user.id, username, username, user.id, username, user.id)
+          ] : [
+            env.DB.prepare(`UPDATE chat_nicknames SET default_username = ?, revision = revision + 1
+              WHERE user_id = ? AND default_username = ? AND revision = ? AND ${availableNameSQL}`)
+              .bind(username, user.id, profile.default_username, profile.revision, username, user.id, username, user.id)
+          ];
+          const results = await env.DB.batch(statements);
+          if (results[results.length - 1].meta.changes) { migrated = true; break; }
+        }
+        if (!migrated) throw new Error("Could not reserve a default username");
+      }
+      user = await getUser(user.id);
+      profile = await nicknameProfile(user.id);
+      if (/^damn/i.test(user.username)) return user;
+      const legacy = /^User\d+$/.test(user.username);
+      const base = legacy ? profile.default_username : "damn_" + Array.from(user.username).slice(0, 19).join("");
+      const candidates = legacy ? [base] : [base, ...Array.from({ length: 24 }, () => Array.from(base).slice(0, 22).join("") + (10 + randomNameNumber(90)))];
+      for (const username of candidates) {
+        user = await getUser(user.id);
+        profile = await nicknameProfile(user.id);
+        if (/^damn/i.test(user.username)) return user;
+        if (await migrateDisplayName(user, username, profile)) return getUser(user.id);
+      }
+      throw new Error("Could not migrate the public username");
+    }
+
+    if (url.pathname === "/api/user" && request.method === "GET") {
+      try {
+        const existingUser = await getUser(getUserId(request));
+        if (existingUser) {
+          return Response.json({ success: true, user: await migrateChatIdentity(existingUser) }, { headers: { "Cache-Control": "no-store" } });
+        }
+        await ensureNicknameSchema();
+        const id = crypto.randomUUID();
+        for (const username of defaultNameCandidates()) {
+          const results = await env.DB.batch([
+            env.DB.prepare(`INSERT INTO users (id, username, created_at)
+              SELECT ?, ?, ? WHERE ${availableNameSQL}`)
+              .bind(id, username, new Date().toISOString(), username, id, username, id),
+            env.DB.prepare(`INSERT OR IGNORE INTO chat_nicknames (user_id, default_username)
+              SELECT id, username FROM users WHERE id = ?`).bind(id)
+          ]);
+          if (!results[0].meta.changes) continue;
+          return new Response(JSON.stringify({ success: true, user: { id, username } }), {
+            headers: {
+              "Content-Type": "application/json",
+              "Cache-Control": "no-store",
+              "Set-Cookie": `deep_user=${id}; Path=/; Max-Age=31536000; SameSite=Lax`
+            }
+          });
+        }
+        throw new Error("No username available");
+      } catch {
+        return Response.json({ success: false, error: "Could not create user" }, { status: 500, headers: { "Cache-Control": "no-store" } });
+      }
     }
 
     if (url.pathname === "/api/user/nickname" && ["GET", "POST"].includes(request.method)) {
       const reply = (body, status = 200) => Response.json(body, { status, headers: { "Cache-Control": "no-store" } });
+      const invalidName = "Use 2–24 characters: letters, numbers, dots, underscores or hyphens.";
+      const takenName = "This username is already taken.";
       try {
-        const user = await getUser(getUserId(request));
+        let user = await getUser(getUserId(request));
         if (!user) return reply({ success: false, error: "Please reload the page before choosing a nickname." }, 401);
         let nickname;
         if (request.method === "POST") {
@@ -736,29 +837,53 @@ export default {
             return reply({ success: false, error: "Invalid request." }, 403);
           }
           const raw = await request.text();
-          if (raw.length > 512) return reply({ success: false, error: "Nickname is too long." }, 400);
+          if (raw.length > 512) return reply({ success: false, error: invalidName }, 400);
           let body; try { body = JSON.parse(raw); } catch { return reply({ success: false, error: "Invalid request." }, 400); }
           if (typeof body?.nickname !== "string") return reply({ success: false, error: "Enter a nickname or leave it blank." }, 400);
           nickname = body.nickname.normalize("NFC").trim().replace(/\s+/g, " ");
+          // Keep the established allowed-character check.
           if (nickname && (Array.from(nickname).length < 2 || Array.from(nickname).length > 24 || !/^[\p{L}\p{M}\p{N} ._'-]+$/u.test(nickname))) {
-            return reply({ success: false, error: "Use 2–24 characters: letters, numbers, spaces, dots, underscores or hyphens." }, 400);
+            return reply({ success: false, error: invalidName }, 400);
           }
+          if (nickname && !/^damn/i.test(nickname)) nickname = "damn_" + nickname;
+          if (Array.from(nickname).length > 24) return reply({ success: false, error: invalidName }, 400);
         }
-        await ensureNicknameSchema();
-        await env.DB.prepare("INSERT OR IGNORE INTO chat_nicknames (user_id, default_username) VALUES (?, ?)").bind(user.id, user.username).run();
-        const profile = await env.DB.prepare("SELECT default_username FROM chat_nicknames WHERE user_id = ?").bind(user.id).first();
+        user = await migrateChatIdentity(user);
+        let profile = await nicknameProfile(user.id);
         if (request.method === "POST") {
-          const username = nickname || profile.default_username;
-          // Conditional update avoids two visitors claiming the same name concurrently.
-          const results = await env.DB.batch([
-            env.DB.prepare(`UPDATE users SET username = ? WHERE id = ? AND NOT EXISTS (
-              SELECT 1 FROM users WHERE username = ? COLLATE NOCASE AND id != ?
-            ) AND NOT EXISTS (SELECT 1 FROM chat_nicknames WHERE default_username = ? COLLATE NOCASE AND user_id != ?)`).bind(username, user.id, username, user.id, username, user.id),
-            env.DB.prepare(`UPDATE chat_nicknames SET revision = revision + 1 WHERE user_id = ?
-              AND EXISTS (SELECT 1 FROM users WHERE id = ? AND username = ?)`).bind(user.id, user.id, username)
-          ]);
-          if (!results[0].meta.changes) return reply({ success: false, error: "That nickname is taken. Try another." }, 409);
-          user.username = username;
+          const admin = await chatIsAdmin(request);
+          let saved = false;
+          for (let attempt = 0; attempt < 3; attempt++) {
+            user = await getUser(user.id);
+            profile = await nicknameProfile(user.id);
+            const username = nickname || profile.default_username;
+            const now = Date.now(), cutoff = now - CHAT_NAME_COOLDOWN_MS;
+            // Both statements repeat the eligibility and availability guards.
+            // A taken-name attempt updates neither username nor last_changed.
+            const results = await env.DB.batch([
+              env.DB.prepare(`UPDATE users SET username = ? WHERE id = ? AND username = ?
+                AND EXISTS (SELECT 1 FROM chat_nicknames WHERE user_id = ? AND revision = ?
+                  AND (? = 1 OR last_changed IS NULL OR last_changed <= ?))
+                AND ${availableNameSQL}`)
+                .bind(username, user.id, user.username, user.id, profile.revision, Number(admin), cutoff, username, user.id, username, user.id),
+              env.DB.prepare(`UPDATE chat_nicknames SET last_changed = ?, revision = revision + 1
+                WHERE user_id = ? AND revision = ? AND (? = 1 OR last_changed IS NULL OR last_changed <= ?)
+                AND EXISTS (SELECT 1 FROM users WHERE id = ? AND username = ?)
+                AND ${availableNameSQL}`)
+                .bind(now, user.id, profile.revision, Number(admin), cutoff, user.id, username, username, user.id, username, user.id)
+            ]);
+            if (results[0].meta.changes && results[1].meta.changes) { saved = true; break; }
+            const latest = await nicknameProfile(user.id);
+            if (!admin && latest.last_changed !== null && latest.last_changed > cutoff) {
+              const days = Math.max(1, Math.ceil((latest.last_changed + CHAT_NAME_COOLDOWN_MS - now) / 86400000));
+              return reply({ success: false, error: `Patience, damn_human. New name unlocks in ${days} days.` }, 429);
+            }
+            if (latest.revision !== profile.revision) continue;
+            return reply({ success: false, error: takenName }, 409);
+          }
+          if (!saved) return reply({ success: false, error: "Name changed in another tab. Reload and try again." }, 409);
+          user = await getUser(user.id);
+          profile = await nicknameProfile(user.id);
         }
         return reply({ success: true, user, nickname: user.username === profile.default_username ? "" : user.username });
       } catch {
@@ -932,6 +1057,49 @@ export default {
           },
           { status: 500 }
         );
+      }
+    }
+
+    // One persistent moderation gate for legacy text, current text/images and voice.
+    if (request.method === "POST" && ["/api/messages", "/api/chat/send", "/api/chat/voice"].includes(url.pathname)) {
+      try {
+        const origin = request.headers.get("Origin");
+        if (origin && origin !== url.origin) {
+          return Response.json({ success: false, error: "Forbidden origin" }, { status: 403 });
+        }
+        const user = await getUser(getUserId(request));
+        if (user) {
+          await ensureNicknameSchema();
+          await env.DB.prepare("INSERT OR IGNORE INTO chat_nicknames (user_id, default_username) VALUES (?, ?)")
+            .bind(user.id, user.username).run();
+          const now = Date.now();
+          const state = await env.DB.prepare("SELECT spam_banned_until FROM chat_nicknames WHERE user_id = ?").bind(user.id).first();
+          const blocked = until => Response.json({ success: false,
+            error: "Spam detected. You're banned from chat for 2 hours.", banned_until: until
+          }, { status: 429, headers: { "Cache-Control": "no-store", "Retry-After": String(Math.max(1, Math.ceil((until - now) / 1000))) } });
+          if (Number(state?.spam_banned_until || 0) > now) return blocked(state.spam_banned_until);
+          const count = await env.DB.prepare("SELECT COUNT(*) AS n FROM messages WHERE sender_id = ? AND created_at > ?")
+            .bind(user.id, new Date(now - CHAT_SPAM_WINDOW_MS).toISOString()).first();
+          if (Number(count?.n || 0) >= CHAT_SPAM_LIMIT) {
+            // A single statement serializes warning -> ban, without extending an active ban.
+            const result = await env.DB.prepare(`UPDATE chat_nicknames SET
+              spam_banned_until = CASE
+                WHEN spam_banned_until > ? THEN spam_banned_until
+                WHEN spam_warned_at > ? THEN ? ELSE NULL END,
+              spam_warned_at = CASE
+                WHEN spam_banned_until > ? THEN spam_warned_at
+                WHEN spam_warned_at > ? THEN NULL ELSE ? END
+              WHERE user_id = ? RETURNING spam_warned_at, spam_banned_until`)
+              .bind(now, now - CHAT_SPAM_BAN_MS, now + CHAT_SPAM_BAN_MS,
+                now, now - CHAT_SPAM_BAN_MS, now, user.id).first();
+            if (Number(result?.spam_banned_until || 0) > now) return blocked(result.spam_banned_until);
+            return Response.json({ success: false, error: "Spam detected",
+              warning: "Wait before sending again. Repeat spam within 2 hours causes a 2-hour chat ban."
+            }, { status: 429, headers: { "Cache-Control": "no-store", "Retry-After": "300" } });
+          }
+        }
+      } catch {
+        return Response.json({ success: false, error: "Could not check chat limits" }, { status: 503 });
       }
     }
 
@@ -1222,7 +1390,6 @@ export default {
     const CHAT_MAX_TEXT = 1000;
     const CHAT_MAX_IMAGE_BYTES = 8 * 1024 * 1024;
     const CHAT_MAX_UPLOAD_BYTES = 8.5 * 1024 * 1024;
-    const CHAT_MSG_LIMIT = { count: 20, windowMs: 5 * 60 * 1000 };
     const CHAT_IMG_LIMIT = { count: 10, windowMs: 60 * 60 * 1000 };
     const chatHeaders = { "Cache-Control": "no-store" };
 
@@ -1631,13 +1798,6 @@ export default {
 
         // Spam limits
         const now = Date.now();
-        const msgCount = await env.DB
-          .prepare("SELECT COUNT(*) AS n FROM messages WHERE sender_id = ? AND created_at > ?")
-          .bind(user.id, new Date(now - CHAT_MSG_LIMIT.windowMs).toISOString())
-          .first();
-        if (Number(msgCount?.n || 0) >= CHAT_MSG_LIMIT.count) {
-          return Response.json({ success: false, error: "Slow down a little" }, { status: 429, headers: chatHeaders });
-        }
 
         let bytes = null;
         let imageType = null;
@@ -1825,6 +1985,7 @@ export default {
     return env.ASSETS.fetch(request);
   }
 };
+
 
 
 

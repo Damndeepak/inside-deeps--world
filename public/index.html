@@ -254,7 +254,7 @@ h1{animation:deepTitleIn .9s cubic-bezier(.22,1,.36,1) both}
 <div class="cx-head"><div class="cx-label"><span class="cx-dot"></span>chat // everyone</div><div class="cx-count" id="cxCount"></div></div>
 <div class="cx-id">You appear as <b id="cxMe">loading...</b>.
 <details class="cx-nickname"><summary>Nickname (optional)</summary>
-<form id="cxNicknameForm" autocomplete="off"><label for="cxNickname">Choose a name for the public chat</label><div class="cx-nickname-fields"><input id="cxNickname" name="nickname" maxlength="24" placeholder="Leave blank to keep your random name" aria-describedby="cxNicknameHint"><button class="cx-tool" id="cxNicknameSave" type="submit" disabled>Save</button><button class="cx-tool" id="cxNicknameReset" type="button" disabled>Use random name</button></div><small id="cxNicknameHint">2–24 characters · optional · no real name needed</small><div id="cxNicknameStatus" role="status" aria-live="polite"></div></form>
+<form id="cxNicknameForm" autocomplete="off"><label for="cxNickname">Choose a name for the public chat</label><div class="cx-nickname-fields"><input id="cxNickname" name="nickname" maxlength="19" placeholder="Pick a name — damn_ is added automatically" aria-describedby="cxNicknameHint"><button class="cx-tool" id="cxNicknameSave" type="submit" disabled>Save</button><button class="cx-tool" id="cxNicknameReset" type="button" disabled>Use random name</button></div><small id="cxNicknameHint">24 characters total · damn_ added automatically · one change every 7 days</small><div id="cxNicknameStatus" role="status" aria-live="polite"></div></form>
 </details></div>
 <div class="cx-tools"><button class="cx-tool" id="cxInstall" type="button" hidden>📲 Install app</button><button class="cx-tool" id="cxNotify" type="button" hidden>🔔 Notifications: off</button></div>
 <div class="cx-presence" aria-live="polite"><span id="cxOnline" data-online>checking presence…</span><span id="cxTyping"></span></div>
@@ -793,7 +793,7 @@ async function post(p){
   try{
     const r=await fetch("/api/chat/send",{method:"POST",body:fd});
     const d=await r.json().catch(()=>({}));
-    if(!r.ok||!d.success){const e=new Error(d.error||"send failed");e.status=r.status;throw e}
+    if(!r.ok||!d.success){const e=new Error(d.warning ? d.error+". "+d.warning : d.error||"send failed");e.status=r.status;throw e}
     const real={id:d.message_id,message:p.message,created_at:d.created_at,username:p.username,mine:true,image:p.image,localUrl:p.localUrl,parent:p.parent,localAt:Date.now()};
     S.pending=S.pending.filter(x=>x!==p);
     const old=nodes.get("m:"+p.id);if(old){nodes.delete("m:"+p.id);nodes.set("m:"+real.id,old);old.dataset.id=real.id;old._sig=""}
@@ -972,7 +972,7 @@ window.addEventListener('world-admin-change',async()=>{
     uploading=true;send.disabled=true;cancel.disabled=true;label.textContent='Sending voice note…';
     const caption=E.input.value.trim(),reply=S.replyTo?.id||'';
     const fd=new FormData();fd.append('audio',blob,'voice.'+(blob.type.includes('mp4')?'m4a':blob.type.includes('ogg')?'ogg':'webm'));fd.append('message',caption);if(reply)fd.append('parent_id',reply);
-    try{const r=await fetch('/api/chat/voice',{method:'POST',body:fd});const d=await r.json();if(!r.ok||!d.success)throw new Error(d.error||'Voice note could not be sent');if(E.input.value.trim()===caption){E.input.value='';grow();updateSend()}if(S.replyTo?.id===reply)clearReply();reset();toast('Voice note sent');await loadFeed(await getState());toBottom(false)}catch(e){label.textContent='Not sent. Your recording is still here.';toast(e.message)}finally{uploading=false;send.disabled=!blob;cancel.disabled=false}
+    try{const r=await fetch('/api/chat/voice',{method:'POST',body:fd});const d=await r.json();if(!r.ok||!d.success)throw new Error(d.warning ? d.error+'. '+d.warning : d.error||'Voice note could not be sent');if(E.input.value.trim()===caption){E.input.value='';grow();updateSend()}if(S.replyTo?.id===reply)clearReply();reset();toast('Voice note sent');await loadFeed(await getState());toBottom(false)}catch(e){label.textContent='Not sent. Your recording is still here.';toast(e.message)}finally{uploading=false;send.disabled=!blob;cancel.disabled=false}
   });
   document.addEventListener('visibilitychange',()=>{if(document.hidden&&(opening||recorder?.state==='recording'))stop(true)});
   window.addEventListener('pagehide',()=>{stop(true);stopTracks()});
@@ -1052,19 +1052,23 @@ setInterval(loadSeenAdmin,15000);
 /* ---------- optional nickname ---------- */
 const nicknameInput=$("cxNickname"),nicknameSave=$("cxNicknameSave"),nicknameReset=$("cxNicknameReset"),nicknameStatus=$("cxNicknameStatus");
 let nicknameBusy=false;
+function nicknameLimit(){nicknameInput.maxLength=/^damn/i.test(nicknameInput.value)?24:19;}
+nicknameInput.addEventListener("input",nicknameLimit);
 async function loadNickname(){
-  try{const r=await fetch("/api/user/nickname",{cache:"no-store"});const d=await r.json();if(!r.ok||!d.success)throw new Error(d.error||"Could not load nickname settings.");nicknameInput.value=d.nickname||"";nicknameSave.disabled=false;nicknameReset.disabled=false;}
+  try{const r=await fetch("/api/user/nickname",{cache:"no-store"});const d=await r.json();if(!r.ok||!d.success)throw new Error(d.error||"Could not load nickname settings.");nicknameInput.value=d.nickname||"";nicknameLimit();nicknameSave.disabled=false;nicknameReset.disabled=false;}
   catch(e){nicknameStatus.textContent="Nickname settings unavailable. You can still chat with your random name.";}
 }
 async function saveNickname(value){
   if(nicknameBusy)return;nicknameBusy=true;nicknameSave.disabled=true;nicknameReset.disabled=true;nicknameInput.disabled=true;nicknameStatus.textContent="Saving…";
   try{
-    const r=await fetch("/api/user/nickname",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({nickname:value})});const d=await r.json();
+    const headers={"Content-Type":"application/json"};
+    if(S.admin&&S.adminKey)headers["X-Admin-Key"]=S.adminKey;
+    const r=await fetch("/api/user/nickname",{method:"POST",headers,body:JSON.stringify({nickname:value})});const d=await r.json();
     if(!r.ok||!d.success)throw new Error(d.error||"Could not save nickname.");
-    S.me=d.user;E.me.textContent="@"+d.user.username;nicknameInput.value=d.nickname||"";
+    S.me=d.user;E.me.textContent="@"+d.user.username;nicknameInput.value=d.nickname||"";nicknameLimit();
     for(const m of S.msgs.concat(S.pending))if(m.mine)m.username=d.user.username;
     for(const m of S.local.values())if(m.mine)m.username=d.user.username;
-    reconcile(false);nicknameStatus.textContent=d.nickname?"Nickname saved. Your messages use this name.":"Your random name is back.";
+    reconcile(false);nicknameStatus.textContent=value.trim()?"Nice. You're now "+d.user.username+".":"Back to your random name.";
     try{await loadFeed(await getState());}catch{};
   }catch(e){nicknameStatus.textContent=e.message||"Could not save nickname. Try again.";}
   finally{nicknameBusy=false;nicknameSave.disabled=false;nicknameReset.disabled=false;nicknameInput.disabled=false;}
@@ -1142,6 +1146,7 @@ async function save(sub){const r=await fetch("/api/push/subscribe",{method:"POST
 </script>
 
 </body></html>
+
 
 
 
