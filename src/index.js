@@ -178,62 +178,70 @@ export default {
     if (url.pathname === "/api/lastfm/preview" && request.method === "GET") {
       const track = (url.searchParams.get("track") || "").trim();
       const artist = (url.searchParams.get("artist") || "").trim();
-      const headers = { "Cache-Control": "public, max-age=600" };
-      if (!track || !artist || track.length > 200 || artist.length > 200) {
-        return Response.json({ preview: null }, { status: 400, headers: { "Cache-Control": "no-store" } });
-      }
+      const reply = (body, status = 200, ttl = 0) => Response.json(body, {
+        status, headers: { "Cache-Control": ttl ? `public, max-age=${ttl}` : "no-store" }
+      });
+      if (!track || !artist || track.length > 200 || artist.length > 200) return reply({ preview: null, reason: "bad_input" }, 400);
       const normalize = value => String(value || "").normalize("NFKD")
         .replace(/[\u0300-\u036f]/g, "").toLowerCase()
         .replace(/[^\p{L}\p{N}]+/gu, " ").trim().replace(/\s+/g, " ");
-      // Remove guest credits, but preserve live/remix/version labels to avoid
-      // substituting a different recording with an otherwise similar title.
+      // Guest credits and punctuation can differ; recording/version labels must still match.
       const titleKey = value => normalize(String(value || "")
         .replace(/\s*[([]\s*(?:feat\.?|ft\.?|featuring)\s+[^)\]]*[)\]]/gi, "")
-        .replace(/\s+(?:feat\.?|ft\.?|featuring)\s+.*$/i, ""));
+        .replace(/\s+(?:feat\.?|ft\.?|featuring)\s+.*$/i, "")).replace(/\s/g, "");
       const artistKey = value => normalize(String(value || "")
-        .split(/\s+(?:feat\.?|ft\.?|featuring)\s+/i)[0]);
+        .split(/\s+(?:feat\.?|ft\.?|featuring)\s+/i)[0]).replace(/^the\s+/, "").replace(/\s/g, "");
       const wantedTitle = titleKey(track), wantedArtist = artistKey(artist);
       const safeHTTPS = value => {
         try { const parsed = new URL(value); return parsed.protocol === "https:" ? parsed.href : ""; }
         catch { return ""; }
       };
-      if (!wantedTitle || !wantedArtist) {
-        return Response.json({ preview: null }, { status: 400, headers: { "Cache-Control": "no-store" } });
-      }
-      try {
-        const search = new URL("https://itunes.apple.com/search");
-        search.searchParams.set("term", track + " " + artist);
-        search.searchParams.set("media", "music");
-        search.searchParams.set("entity", "song");
-        search.searchParams.set("country", "IN");
-        search.searchParams.set("limit", "25");
-        const response = await fetch(search.toString(), {
-          signal: AbortSignal.timeout(6000),
-          cf: { cacheTtl: 600, cacheEverything: true }
-        });
-        if (!response.ok) throw new Error("Preview provider unavailable");
-        const data = await response.json();
-        let best = null, bestScore = -1;
-        for (const item of Array.isArray(data.results) ? data.results : []) {
-          if (item.kind !== "song" || !safeHTTPS(item.previewUrl)) continue;
-          if (titleKey(item.trackName) !== wantedTitle || artistKey(item.artistName) !== wantedArtist) continue;
-          const score = (normalize(item.trackName) === normalize(track) ? 4 : 0)
-            + (normalize(item.artistName) === normalize(artist) ? 2 : 0);
-          if (score > bestScore) { best = item; bestScore = score; }
+      if (!wantedTitle || !wantedArtist) return reply({ preview: null, reason: "bad_input" }, 400);
+      // Versioned, success-only cache. Never retain Apple errors or old negative results.
+      const cache = typeof caches !== "undefined" ? caches.default : null;
+      const cacheKey = new Request(`${url.origin}/__preview_cache?v=2&track=${encodeURIComponent(wantedTitle)}&artist=${encodeURIComponent(wantedArtist)}`);
+      try { const hit = cache && await cache.match(cacheKey); if (hit) return hit; } catch { /* Cache failure must not prevent lookup. */ }
+      const diagnostics = [];
+      for (const country of ["IN", "US"]) {
+        const debug = { country, status: null, resultCount: 0, rejected: { kind: 0, url: 0, title: 0, artist: 0 } };
+        diagnostics.push(debug);
+        try {
+          const search = new URL("https://itunes.apple.com/search");
+          for (const [k, v] of Object.entries({ term: track + " " + artist, media: "music", entity: "song", country, limit: "50" })) search.searchParams.set(k, v);
+          const response = await fetch(search.toString(), {
+            signal: AbortSignal.timeout(12000), cache: "no-store", cf: { cacheTtl: 0, cacheEverything: false }
+          });
+          debug.status = response.status;
+          if (!response.ok) { debug.error = "provider_error"; continue; }
+          const data = await response.json();
+          if (!Array.isArray(data.results)) { debug.error = "provider_error"; continue; }
+          debug.resultCount = data.results.length;
+          let best = null, bestScore = -1;
+          for (const item of data.results) {
+            if (item.kind !== "song") { debug.rejected.kind++; continue; }
+            if (!safeHTTPS(item.previewUrl)) { debug.rejected.url++; continue; }
+            if (titleKey(item.trackName) !== wantedTitle) { debug.rejected.title++; continue; }
+            if (artistKey(item.artistName) !== wantedArtist) { debug.rejected.artist++; continue; }
+            const score = (normalize(item.trackName) === normalize(track) ? 4 : 0) + (normalize(item.artistName) === normalize(artist) ? 2 : 0);
+            if (score > bestScore) { best = item; bestScore = score; }
+          }
+          if (!best) continue;
+          const result = reply({ preview: {
+            url: safeHTTPS(best.previewUrl), track: best.trackName, artist: best.artistName,
+            album: best.collectionName || "", storeUrl: safeHTTPS(best.trackViewUrl), duration: 30
+          }, reason: null, country, diagnostics }, 200, 600);
+          if (cache) {
+            const write = cache.put(cacheKey, result.clone()).catch(() => {});
+            if (ctx?.waitUntil) ctx.waitUntil(write); else await write;
+          }
+          return result;
+        } catch (error) {
+          debug.error = error.name === "TimeoutError" || error.name === "AbortError" ? "timeout" : "provider_error";
         }
-        return Response.json({ preview: best ? {
-          url: safeHTTPS(best.previewUrl),
-          track: best.trackName,
-          artist: best.artistName,
-          album: best.collectionName || "",
-          storeUrl: safeHTTPS(best.trackViewUrl),
-          duration: 30
-        } : null }, { headers });
-      } catch {
-        return Response.json({ preview: null, unavailable: true }, {
-          status: 502, headers: { "Cache-Control": "no-store" }
-        });
       }
+      const failed = diagnostics.filter(item => item.error);
+      const reason = failed.length ? (failed.every(item => item.error === "timeout") ? "timeout" : "provider_error") : "no_match";
+      return reply({ preview: null, reason, unavailable: !!failed.length, diagnostics }, failed.length ? 502 : 200);
     }
 
     // Last.fm: public "now playing" for Deep (API key stays server-side).
@@ -1759,6 +1767,7 @@ export default {
     return env.ASSETS.fetch(request);
   }
 };
+
 
 
 
