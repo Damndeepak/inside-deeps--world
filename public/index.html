@@ -56,13 +56,29 @@ h1{animation:deepTitleIn .9s cubic-bezier(.22,1,.36,1) both}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}h1,.sub{animation:none!important}.locked,.unsent-card,.song-player,.message-box,.conversations-section,.future-tools-section{transition:none!important}.scroll-progress{display:none}}
 </style>
 <style id="media-entry-css">
-.media-entry{margin-top:24px;padding:24px;border:1px solid #28282b;border-radius:24px;background:radial-gradient(circle at 90% 0%,rgba(150,100,255,.10),transparent 18rem),linear-gradient(145deg,rgba(255,255,255,.05),rgba(255,255,255,.012));}
-.media-entry-label{font:500 10px/1 DM Mono,monospace;letter-spacing:.18em;text-transform:uppercase;color:#666;margin-bottom:13px}
-.media-entry-card{display:flex;align-items:center;gap:16px;text-decoration:none;color:#fff;padding:18px;border:1px solid #303035;border-radius:20px;background:#0d0d0f;transition:transform .25s ease,border-color .25s ease,box-shadow .25s ease}
-.media-entry-card:hover{transform:translateY(-2px);border-color:#505056;box-shadow:0 16px 50px rgba(0,0,0,.28)}
-.media-mark{width:58px;height:58px;border-radius:15px;display:grid;place-items:center;flex:none;border:1px solid #433a5a;background:#141018;font:700 20px DM Mono,monospace;color:#c3a6ff}
-.media-text{min-width:0}.media-kicker{font:400 10px/1 DM Mono,monospace;color:#777;margin-bottom:7px}.media-name{font-size:17px;font-weight:800}.media-sub{font:400 10px/1.5 DM Mono,monospace;color:#666;margin-top:5px}
-@media(max-width:650px){.media-entry{padding:20px}.media-entry-card{padding:16px}}
+.media-entry{position:relative;isolation:isolate;overflow:hidden;margin-top:24px;padding:24px;border:1px solid #7960b5;border-radius:24px;background:radial-gradient(ellipse at 12% 0%,rgba(167,106,255,.22),transparent 70%),radial-gradient(ellipse at 100% 100%,rgba(79,213,232,.12),transparent 65%),#101018;box-shadow:0 0 28px rgba(151,99,255,.12),inset 0 1px 0 rgba(224,207,255,.12)}
+.media-entry-label{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;font:500 10px/1.4 DM Mono,monospace;letter-spacing:.14em;text-transform:uppercase;color:#c7b7e8;margin-bottom:13px}
+.media-entry-badge{padding:5px 8px;border:1px solid rgba(186,153,255,.35);border-radius:99px;background:rgba(158,102,255,.12);color:#e4d3ff;font-size:9px;letter-spacing:.12em}
+.media-entry-card{position:relative;z-index:1;display:flex;align-items:center;gap:16px;text-decoration:none;color:#fff;padding:18px;border:1px solid rgba(180,143,243,.35);border-radius:20px;background:linear-gradient(115deg,rgba(23,18,35,.86),rgba(12,19,25,.84));transition:transform .25s ease,border-color .25s ease,box-shadow .25s ease}
+.media-entry-card:hover,.media-entry-card:focus-visible{transform:translateY(-3px);border-color:#b899ef;box-shadow:0 12px 32px rgba(113,66,186,.22)}
+.media-entry-card:focus-visible{outline:2px solid #80dfed;outline-offset:4px}
+.media-entry-card:active{transform:scale(.99)}
+.media-mark{width:58px;height:58px;border-radius:15px;display:grid;place-items:center;flex:none;border:1px solid #7854a3;background:linear-gradient(145deg,#37234f,#182632);font:700 26px DM Mono,monospace;color:#ead8ff;box-shadow:0 0 18px rgba(173,112,255,.18);animation:mediaNoteFloat 4s ease-in-out infinite}
+.media-text{min-width:0;flex:1}.media-kicker{font:400 9px/1.4 DM Mono,monospace;color:#b4a2ce;margin-bottom:7px;letter-spacing:.07em}.media-name{font-size:20px;font-weight:800;letter-spacing:-.025em}.media-sub{font:400 10px/1.6 DM Mono,monospace;color:#a2a2b7;margin-top:6px}
+.media-entry-card .arrow{margin-left:auto;flex:none;color:#a4e9ee;font-size:23px;transition:transform .25s ease}
+.media-entry-card:hover .arrow,.media-entry-card:focus-visible .arrow{transform:translate(2px,-2px)}
+.media-bubbles{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.media-bubbles span{position:absolute;bottom:-48px;left:var(--left);width:var(--size);height:var(--size);border:1px solid rgba(193,160,255,.32);border-radius:50%;background:radial-gradient(circle at 30% 25%,rgba(224,205,255,.2),rgba(119,197,232,.04) 65%);animation:mediaBubbleRise var(--duration) linear infinite;animation-delay:var(--delay);opacity:0}
+.media-bubbles span:nth-child(1){--left:5%;--size:22px;--duration:12s;--delay:-3s}
+.media-bubbles span:nth-child(2){--left:22%;--size:38px;--duration:16s;--delay:-11s}
+.media-bubbles span:nth-child(3){--left:49%;--size:15px;--duration:11s;--delay:-6s}
+.media-bubbles span:nth-child(4){--left:70%;--size:30px;--duration:14s;--delay:-2s}
+.media-bubbles span:nth-child(5){--left:86%;--size:44px;--duration:18s;--delay:-13s}
+.media-bubbles span:nth-child(6){--left:95%;--size:12px;--duration:13s;--delay:-8s}
+@keyframes mediaBubbleRise{0%{transform:translate3d(0,0,0);opacity:0}12%,75%{opacity:.7}100%{transform:translate3d(-18px,-280px,0);opacity:0}}
+@keyframes mediaNoteFloat{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-3px) rotate(4deg)}}
+@media(max-width:650px){.media-entry{padding:20px}.media-entry-card{padding:16px;gap:12px}.media-name{font-size:18px}.media-mark{width:48px;height:48px}.media-kicker{font-size:8px}}
+@media(prefers-reduced-motion:reduce){.media-bubbles span,.media-mark{animation:none}.media-bubbles span{bottom:auto;top:25%;opacity:.25}.media-bubbles span:nth-child(even){top:65%}.media-entry-card,.media-entry-card .arrow{transition:none}.media-entry-card:hover,.media-entry-card:focus-visible,.media-entry-card:active,.media-entry-card:hover .arrow,.media-entry-card:focus-visible .arrow{transform:none}}
 </style>
 <style id="lastfm-now-playing-css">
 .lfm{margin-top:24px;padding:24px;border:1px solid #28282b;border-radius:24px;background:radial-gradient(circle at 88% 0%,rgba(213,16,7,.08),transparent 18rem),linear-gradient(145deg,rgba(255,255,255,.05),rgba(255,255,255,.012));box-shadow:0 25px 70px rgba(0,0,0,.30)}
@@ -198,9 +214,10 @@ h1{animation:deepTitleIn .9s cubic-bezier(.22,1,.36,1) both}
 <button class="locked" data-section="voice-notes"><div class="row"><div><div class="title">Voice Notes</div><div class="hint">If you’re that close, you know it all.</div></div><div class="lock">⌁</div></div></button>
 </section>
 <section aria-label="Music and Media" class="media-entry">
-<div class="media-entry-label">songs · lyrics · video</div>
+<div class="media-bubbles" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+<div class="media-entry-label"><span>songs · lyrics · video</span><span class="media-entry-badge">Featured</span></div>
 <a class="media-entry-card" href="./media/">
-<div class="media-mark">♪</div>
+<div class="media-mark" aria-hidden="true">♪</div>
 <div class="media-text">
 <div class="media-kicker">INSIDE DEEP'S WORLD</div>
 <div class="media-name">Music &amp; Media</div>
