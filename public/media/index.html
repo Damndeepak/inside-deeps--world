@@ -169,6 +169,45 @@ h1{animation:deepTitleIn .9s cubic-bezier(.22,1,.36,1) both}
 <iframe allow="autoplay" loading="lazy" src="./allgirls.html" style="display:block;width:100%;height:510px;border:0;background:#070707;" title="All Girls Are The Same"></iframe>
 </div>
 </main>
+<script id="media-single-player-js">
+(()=>{
+  const bound=new WeakSet();
+  function mediaDocuments(){
+    const docs=[document];
+    for(let i=0;i<docs.length;i++){
+      docs[i].querySelectorAll('iframe').forEach(frame=>{
+        try{
+          const child=frame.contentDocument;
+          if(child&&!docs.includes(child))docs.push(child);
+        }catch(e){}
+      });
+    }
+    return docs;
+  }
+  function onPlay(event){
+    const playing=event.target;
+    if(!playing.matches('audio,video'))return;
+    mediaDocuments().forEach(doc=>{
+      doc.querySelectorAll('audio,video').forEach(media=>{
+        if(media!==playing&&!media.paused)media.pause();
+      });
+    });
+  }
+  function bind(doc){
+    if(bound.has(doc))return;
+    bound.add(doc);
+    doc.addEventListener('play',onPlay,true);
+    doc.querySelectorAll('iframe').forEach(frame=>{
+      const bindChild=()=>{
+        try{if(frame.contentDocument)bind(frame.contentDocument)}catch(e){}
+      };
+      frame.addEventListener('load',bindChild);
+      bindChild();
+    });
+  }
+  bind(document);
+})();
+</script>
 <script id="deep-look-polish-js">
 (function(){
   const bar=document.getElementById("scrollProgress");
