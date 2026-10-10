@@ -1,8 +1,11 @@
+import { handleRemote } from "./remote.js";
 import { ensureFeatures, handleFeatures } from "./features.js";
 
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    const remoteResponse = await handleRemote(request, env);
+    if (remoteResponse) return remoteResponse;
 
     function getUserId(request) {
       const cookies = request.headers.get("Cookie") || "";
@@ -1822,6 +1825,7 @@ export default {
     return env.ASSETS.fetch(request);
   }
 };
+
 
 
 
