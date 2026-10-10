@@ -79,6 +79,9 @@ export async function handleRemote(request, env) {
       } else if(body.command==='beat') {
         if(!Number.isInteger(body.pad)||body.pad<0||body.pad>3) return reply({error:'Invalid pad'},400);
         payload={pad:body.pad};
+      } else if(body.command==='react') {
+        if(!Number.isInteger(body.emoji)||body.emoji<0||body.emoji>5) return reply({error:'Invalid emoji'},400);
+        payload={emoji:body.emoji};
       } else if(!['gravity','blackhole','reset'].includes(body.command)) return reply({error:'Unknown control'},400);
       // Atomic cooldown prevents overlapping requests bypassing the rate limit.
       const accepted=await env.DB.prepare('UPDATE remote_sessions SET last_command = ?, control_seen = ? WHERE id = ? AND last_command <= ? AND expires > ?').bind(now,now,id,now-250,now).run();
