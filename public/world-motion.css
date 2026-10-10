@@ -1,0 +1,21 @@
+/* Ambient motion: decorative, transform-only and shared across the site. */
+html{scroll-behavior:smooth}
+body{isolation:isolate}
+.deep-ambient{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden;contain:strict}
+.deep-ambient:before,.deep-ambient:after{content:"";position:absolute;width:85vmax;height:85vmax;border-radius:50%;background:radial-gradient(ellipse,rgba(146,92,236,.14),transparent 65%);animation:deepAurora 28s ease-in-out infinite alternate;will-change:transform}
+.deep-ambient:before{left:-38vmax;top:-38vmax}
+.deep-ambient:after{right:-40vmax;bottom:-40vmax;background:radial-gradient(ellipse,rgba(74,181,209,.11),transparent 65%);animation-duration:34s;animation-delay:-14s;animation-direction:alternate-reverse}
+.deep-mote{position:absolute;left:var(--x);top:var(--y);width:var(--size);height:var(--size);border-radius:50%;background:#d9c4ff;opacity:0;box-shadow:0 0 7px rgba(192,164,255,.3);animation:deepMote var(--duration) ease-in-out infinite;animation-delay:var(--delay)}
+.deep-ambient.deep-ambient-scene{position:absolute;z-index:1;opacity:.6}
+html[data-world-theme=light] .deep-ambient{opacity:.5}
+html[data-world-theme=light] .deep-mote{background:#7851af;box-shadow:none}
+:where(.world-button,.song-play,.locked,.unsent-card,.world-rank,.world-track,.connect,.music-nav,.close){transition:scale .18s cubic-bezier(.2,.8,.2,1),border-color .25s ease,box-shadow .25s ease}
+:where(.world-button:not(:disabled),.song-play,.close,.cx-send:not(:disabled),.unsent-card,.world-rank,.world-track,.connect):active{scale:.98;transition-duration:.12s}
+.modal.show>.box{animation:deepModalIn .24s cubic-bezier(.2,.8,.2,1) both}
+@media(hover:hover) and (pointer:fine){.world-rank,.world-track{transition:translate .25s ease,border-color .25s ease,scale .18s ease}.world-rank:hover,.world-track:hover{translate:0 -3px}}
+@keyframes deepAurora{from{transform:translate3d(0,0,0) scale(1)}to{transform:translate3d(12vw,9vh,0) scale(1.12)}}
+@keyframes deepMote{0%,100%{opacity:0;transform:translate3d(0,16px,0)}20%,75%{opacity:.3}90%{transform:translate3d(12px,-42px,0);opacity:0}}
+@keyframes deepModalIn{from{opacity:0;translate:0 8px;scale:.985}to{opacity:1;translate:0 0;scale:1}}
+html.deep-motion-paused .deep-ambient:before,html.deep-motion-paused .deep-ambient:after,html.deep-motion-paused .deep-mote,html.deep-motion-paused .media-bubbles span,html.deep-motion-paused .media-mark{animation-play-state:paused}
+@media(max-width:650px){.deep-ambient:before,.deep-ambient:after{width:110vmin;height:110vmin}.deep-ambient:before{left:-45vmin;top:-35vmin}.deep-ambient:after{right:-45vmin;bottom:-35vmin}.deep-mote:nth-child(n+7){display:none}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto!important}.deep-ambient:before,.deep-ambient:after{animation:none;will-change:auto}.deep-mote{display:none}.modal.show>.box{animation:none}:where(.world-button,.song-play,.locked,.unsent-card,.world-rank,.world-track,.connect,.music-nav,.close){transition:none!important}:where(.world-button:not(:disabled),.song-play,.close,.cx-send:not(:disabled),.unsent-card,.world-rank,.world-track,.connect):active{scale:1}.world-rank:hover,.world-track:hover{translate:none}}
