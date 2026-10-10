@@ -54,11 +54,12 @@ export default {
       return mainId;
     }
 
-    // Plain lyrics only: an iTunes clip does not expose its full-song offset.
+    // Timed lyrics belong to the full-song mode; iTunes preview offsets are unknown.
     if (url.pathname === "/api/lastfm/lyrics" && request.method === "GET") {
       const track = (url.searchParams.get("track") || "").trim();
       const artist = (url.searchParams.get("artist") || "").trim();
       const album = (url.searchParams.get("album") || "").trim();
+      const wantedDuration = Number(url.searchParams.get("duration")) || 0;
       if (!track || !artist || track.length > 200 || artist.length > 200 || album.length > 300) {
         return Response.json({ lyrics: null }, { status: 400, headers: { "Cache-Control": "no-store" } });
       }
@@ -92,16 +93,84 @@ export default {
             .replace(/^(?:\s*\[\d+:\d+(?:[.:]\d+)?\])+\s*/, "")
             .replace(/^\s*\[(?:ar|al|ti|by|offset|length|re|ve):[^\]]*\]\s*$/i, "")).join("\n").trim();
           if (!text && !item.instrumental) continue;
-          const value = (album && normalize(item.albumName) === normalize(album) ? 4 : 0) + (plain ? 2 : 0);
-          if (value > score) { best = { lyrics: text || null, instrumental: !!item.instrumental, source: "LRCLIB" }; score = value; }
+          const duration = Number(item.duration) || null;
+          const value = (album && normalize(item.albumName) === normalize(album) ? 4 : 0) + (plain ? 2 : 0) +
+            (wantedDuration && duration && Math.abs(duration - wantedDuration) <= 3 ? 10 : 0) + (wantedDuration && timed ? 3 : 0);
+          if (value > score) { best = { lyrics: text || null, syncedLyrics: timed.trim() || null, duration, instrumental: !!item.instrumental, source: "LRCLIB" }; score = value; }
         }
-        return Response.json(best || { lyrics: null, instrumental: false, source: "LRCLIB" }, {
+        return Response.json(best || { lyrics: null, syncedLyrics: null, duration: null, instrumental: false, source: "LRCLIB" }, {
           headers: { "Cache-Control": "public, max-age=600" }
         });
       } catch {
         return Response.json({ lyrics: null, unavailable: true }, {
           status: 502, headers: { "Cache-Control": "no-store" }
         });
+      }
+    }
+
+    // Full-song lookup: the API key stays server-side; cache contains public metadata only.
+    if (url.pathname === "/api/lastfm/full-song" && request.method === "GET") {
+      const track = (url.searchParams.get("track") || "").trim();
+      const artist = (url.searchParams.get("artist") || "").trim();
+      const reply = (body, status = 200, ttl = 600) => Response.json(body, {
+        status, headers: { "Cache-Control": ttl ? `public, max-age=${ttl}` : "no-store" }
+      });
+      if (!track || !artist || track.length > 200 || artist.length > 200) return reply({ video: null }, 400, 0);
+      if (!env.YOUTUBE_API_KEY) return reply({ video: null, configured: false }, 200, 0);
+      const norm = s => String(s || "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim().replace(/\s+/g, " ");
+      const credits = s => String(s || "").replace(/\s*[([]\s*(?:feat\.?|ft\.?|featuring)\s+[^)\]]*[)\]]/gi, "")
+        .replace(/\s+(?:feat\.?|ft\.?|featuring)\s+.*$/i, "").trim();
+      const cleanTitle = s => credits(String(s || "").replace(/&amp;/gi, "&").replace(/&#39;|&apos;/gi, "'")
+        .replace(/&quot;/gi, '"').replace(/\b(?:official\s+)?(?:music\s+video|audio|video|visualizer|lyric\s+video|lyrics|hd|4k)\b/gi, ""));
+      const nt = norm(credits(track)), na = norm(credits(artist));
+      if (!nt || !na) return reply({ video: null }, 400, 0);
+      const cacheKey = new Request(`${url.origin}/__full_song_cache?v=1&track=${encodeURIComponent(nt)}&artist=${encodeURIComponent(na)}`);
+      const cache = typeof caches !== "undefined" ? caches.default : null;
+      const cached = cache && await cache.match(cacheKey);
+      if (cached) return cached;
+      try {
+        const query = new URL("https://www.googleapis.com/youtube/v3/search");
+        for (const [k, v] of Object.entries({ part: "snippet", q: `${artist} ${track}`, type: "video", maxResults: "10",
+          videoEmbeddable: "true", videoSyndicated: "true", key: env.YOUTUBE_API_KEY })) query.searchParams.set(k, v);
+        const search = await fetch(query, { signal: AbortSignal.timeout(7000) });
+        if (!search.ok) throw new Error("YouTube search unavailable");
+        const data = await search.json();
+        const candidates = [];
+        for (const item of data.items || []) {
+          const id = item.id?.videoId, s = item.snippet || {}, raw = norm(s.title), title = norm(cleanTitle(s.title));
+          if (!/^[A-Za-z0-9_-]{11}$/.test(id || "")) continue;
+          const versions = ["remix", "live", "cover", "karaoke", "slowed", "sped", "reverb", "reaction", "nightcore"];
+          if (versions.some(word => new RegExp(`\\b${word}\\b`).test(raw) && !new RegExp(`\\b${word}\\b`).test(nt))) continue;
+          const channel = norm(s.channelTitle).replace(/\s+/g, ""), artistKey = na.replace(/\s+/g, "");
+          const officialChannel = [artistKey, `${artistKey}vevo`, `${artistKey}topic`, `${artistKey}official`].includes(channel);
+          // Conservative matching: artist-owned/Topic channel plus an exact cleaned title.
+          if (!officialChannel || ![nt, `${na} ${nt}`, `${nt} ${na}`].includes(title)) continue;
+          const score = (channel.endsWith("topic") ? 8 : 0) + (/official audio/i.test(s.title) ? 6 : 0) + (/official/i.test(s.title) ? 2 : 0);
+          candidates.push({ id, title: s.title, channel: s.channelTitle, score });
+        }
+        let video = null;
+        if (candidates.length) {
+          const detailsUrl = new URL("https://www.googleapis.com/youtube/v3/videos");
+          for (const [k, v] of Object.entries({ part: "contentDetails,status,snippet", id: candidates.map(x => x.id).join(","), key: env.YOUTUBE_API_KEY })) detailsUrl.searchParams.set(k, v);
+          const detailsResponse = await fetch(detailsUrl, { signal: AbortSignal.timeout(7000) });
+          if (!detailsResponse.ok) throw new Error("YouTube details unavailable");
+          const details = await detailsResponse.json();
+          const eligible = candidates.map(candidate => {
+            const d = (details.items || []).find(x => x.id === candidate.id);
+            const m = d?.contentDetails?.duration?.match(/^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?$/);
+            const duration = m ? Number(m[1] || 0) * 3600 + Number(m[2] || 0) * 60 + Number(m[3] || 0) : 0;
+            if (!duration || duration > 1800 || !d.status?.embeddable || d.status.privacyStatus !== "public" ||
+                (d.snippet?.liveBroadcastContent && d.snippet.liveBroadcastContent !== "none")) return null;
+            return { ...candidate, duration };
+          }).filter(Boolean).sort((a, b) => b.score - a.score);
+          if (eligible.length) { const { score, ...chosen } = eligible[0]; video = { ...chosen, url: `https://www.youtube.com/watch?v=${chosen.id}` }; }
+        }
+        const result = reply({ video, configured: true }, 200, video ? 86400 : 3600);
+        if (cache) { const write = cache.put(cacheKey, result.clone()); if (ctx?.waitUntil) ctx.waitUntil(write); else await write; }
+        return result;
+      } catch {
+        return reply({ video: null, unavailable: true }, 502, 0);
       }
     }
 
@@ -1690,5 +1759,6 @@ export default {
     return env.ASSETS.fetch(request);
   }
 };
+
 
 

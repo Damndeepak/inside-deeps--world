@@ -346,6 +346,113 @@ html[data-world-theme=light] #lfmPreview :is(.song-artist,.song-kicker,.song-tim
 </section>
 </section>
 <!-- Last.fm preview card: end -->
+<!-- Full-song karaoke: independent of the existing preview/saved players. -->
+<style id="full-song-style">
+#lfmFullSong[hidden],#fsCard[hidden]{display:none!important}#lfmFullSong{margin:12px 0 22px}.fs-mode{border:1px solid rgba(190,161,255,.3);border-radius:999px;background:rgba(137,87,219,.12);color:inherit;padding:10px 16px;cursor:pointer;font:inherit}.fs-head{display:flex;align-items:center;justify-content:space-between;gap:12px}.fs-close{background:transparent;border:0;color:inherit;opacity:.65;cursor:pointer;padding:12px}.fs-video{width:100%;aspect-ratio:16/9;min-height:200px;margin:16px 0;border-radius:14px;overflow:hidden;background:#08080d}.fs-video iframe{width:100%;height:100%;min-height:200px;border:0}.fs-lyrics{height:240px;overflow:auto;overscroll-behavior:contain;scrollbar-width:none;mask-image:linear-gradient(transparent,#000 16%,#000 84%,transparent);padding:85px 16px;box-sizing:border-box;text-align:center}.fs-line{padding:10px 0;min-height:32px;font-size:18px;line-height:1.45;opacity:.25;transform:scale(.94);transition:opacity .3s,transform .3s,text-shadow .3s,color .3s}.fs-line.fs-near{opacity:.5}.fs-line.fs-current{opacity:1;transform:scale(1);font-size:23px;font-weight:700;color:#eee5ff;text-shadow:0 0 18px rgba(174,126,255,.55)}.fs-lyrics.fs-plain{mask-image:none;padding:14px;text-align:left;white-space:pre-wrap;line-height:1.8}.fs-note{font-size:12px;line-height:1.6;opacity:.6;margin:10px 0}.fs-link{color:inherit;font-size:12px}#fsCard{margin-top:12px}@media(prefers-reduced-motion:reduce){.fs-line{transition:none}}@media(max-width:400px){.fs-line.fs-current{font-size:20px}}
+</style>
+<section id="lfmFullSong" aria-label="Full song and lyrics" hidden>
+<button id="fsMode" class="fs-mode" type="button" aria-expanded="false" aria-controls="fsCard">▶ Play full song · lyrics</button>
+<div id="fsCard" class="song-player" hidden>
+<div class="fs-head"><div><div class="song-kicker">FULL SONG · YOUTUBE</div><div id="fsTitle" class="song-title"></div><div id="fsArtist" class="song-artist"></div></div><button id="fsClose" class="fs-close" type="button" aria-label="Close full-song player">✕</button></div>
+<div id="fsVideo" class="fs-video"><div id="fsMount"></div></div>
+<div id="fsLyrics" class="fs-lyrics fs-plain" aria-label="Lyrics"></div>
+<p id="fsNote" class="fs-note" role="status">Tap the visible video to play. No autoplay.</p>
+<a id="fsLink" class="fs-link" target="_blank" rel="noopener noreferrer">Watch on YouTube ↗</a>
+</div></section>
+<script id="full-song-js">
+(function(){
+  'use strict';
+  const root=document.getElementById('lfmFullSong'), body=document.getElementById('lfmBody');
+  if(!root||!body)return;
+  const mode=document.getElementById('fsMode'),card=document.getElementById('fsCard'),lyrics=document.getElementById('fsLyrics'),note=document.getElementById('fsNote'),videoHost=document.getElementById('fsVideo');
+  const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let key='',epoch=0,pending=null,track=null,video=null,player=null,raf=0,lines=[],lineNodes=[],current=-1,apiPromise=null,opened=false,session=0;
+  const results=new Map();
+  function cancel(){if(raf)cancelAnimationFrame(raf);raf=0;}
+  function teardown(){cancel();if(player){try{player.destroy();}catch{}player=null;}videoHost.replaceChildren();const mount=document.createElement('div');mount.id='fsMount';videoHost.appendChild(mount);lines=[];lineNodes=[];current=-1;}
+  function close(){++session;opened=false;mode.setAttribute('aria-expanded','false');card.hidden=true;teardown();}
+  function api(){
+    if(window.YT&&window.YT.Player)return Promise.resolve();
+    if(apiPromise)return apiPromise;
+    apiPromise=new Promise((resolve,reject)=>{
+      const old=window.onYouTubeIframeAPIReady;
+      const timer=setTimeout(()=>{apiPromise=null;reject(new Error('YouTube player unavailable'));},15000);
+      window.onYouTubeIframeAPIReady=function(){clearTimeout(timer);try{if(typeof old==='function')old();}finally{resolve();}};
+      let script=document.querySelector('script[src="https://www.youtube.com/iframe_api"]');
+      if(!script){script=document.createElement('script');script.src='https://www.youtube.com/iframe_api';document.head.appendChild(script);}
+      script.addEventListener('error',()=>{clearTimeout(timer);script.remove();apiPromise=null;reject(new Error('YouTube player unavailable'));},{once:true});
+    });return apiPromise;
+  }
+  function parseLRC(text){
+    let offset=0;const offsetMatch=String(text||'').match(/\[offset:([+-]?\d+)\]/i);if(offsetMatch)offset=Number(offsetMatch[1])/1000;
+    const parsed=[];
+    for(const row of String(text||'').split(/\r?\n/)){
+      const stamps=[...row.matchAll(/\[(\d+):([0-5]?\d)(?:[.:](\d{1,3}))?\]/g)];
+      const words=row.replace(/\[[^\]]*\]/g,'').trim();
+      if(!words||!stamps.length)continue;
+      for(const stamp of stamps)parsed.push({time:Math.max(0,Number(stamp[1])*60+Number(stamp[2])+Number('0.'+(stamp[3]||'0'))-offset),text:words});
+    }return parsed.sort((a,b)=>a.time-b.time);
+  }
+  function renderAt(seconds){
+    let lo=0,hi=lines.length-1,index=-1;
+    while(lo<=hi){const mid=(lo+hi)>>1;if(lines[mid].time<=seconds){index=mid;lo=mid+1;}else hi=mid-1;}
+    if(index===current)return;current=index;
+    lineNodes.forEach((node,i)=>{node.classList.toggle('fs-current',i===index);node.classList.toggle('fs-near',Math.abs(i-index)===1&&index>=0);if(i===index)node.setAttribute('aria-current','true');else node.removeAttribute('aria-current');});
+    if(index>=0){const node=lineNodes[index];lyrics.scrollTo({top:node.getBoundingClientRect().top-lyrics.getBoundingClientRect().top+lyrics.scrollTop-lyrics.clientHeight/2+node.clientHeight/2,behavior:reduce?'auto':'smooth'});}
+    else lyrics.scrollTo({top:0,behavior:'auto'});
+  }
+  function tick(){raf=0;if(!player||!opened||document.hidden||player.getPlayerState()!==1)return;renderAt(player.getCurrentTime());raf=requestAnimationFrame(tick);}
+  function resume(){cancel();if(lines.length&&player&&opened&&!document.hidden){renderAt(player.getCurrentTime());if(player.getPlayerState()===1)raf=requestAnimationFrame(tick);}}
+  async function loadLyrics(version,token,selected,selectedVideo,signal){
+    lyrics.className='fs-lyrics fs-plain';lyrics.textContent='Loading lyrics…';
+    try{
+      const q=new URLSearchParams({track:selected.title,artist:selected.artist,album:selected.album||'',duration:String(selectedVideo.duration)});
+      const response=await fetch('/api/lastfm/lyrics?'+q,{signal});if(!response.ok)throw new Error('lyrics');const data=await response.json();
+      if(version!==epoch||token!==session||!opened)return;
+      const different=Number(data.duration)>0&&Math.abs(Number(data.duration)-selectedVideo.duration)>3;
+      lines=data.instrumental||different?[]:parseLRC(data.syncedLyrics);
+      lyrics.replaceChildren();current=-1;
+      if(data.instrumental){lyrics.textContent='instrumental';note.textContent='Instrumental · no lyrics.';}
+      else if(lines.length){lyrics.className='fs-lyrics';lineNodes=lines.map(line=>{const node=document.createElement('div');node.className='fs-line';node.textContent=line.text;lyrics.appendChild(node);return node;});note.textContent='Synced lyrics · LRCLIB. Video edits or intros can shift timing.';resume();}
+      else{lyrics.className='fs-lyrics fs-plain';lyrics.textContent=data.lyrics||'Lyrics are not available for this song yet.';note.textContent=different?'This video has a different duration. Showing plain lyrics.':'Timed lyrics unavailable · showing plain lyrics.';}
+    }catch(error){if(version===epoch&&token===session&&opened&&error.name!=='AbortError'){lyrics.textContent='Lyrics could not load. You can still play the video.';note.textContent='Lyrics service unavailable.';}}
+  }
+  mode.addEventListener('click',async()=>{
+    if(opened){close();return;}if(!video||!track)return;
+    opened=true;card.hidden=false;mode.setAttribute('aria-expanded','true');
+    const version=epoch,token=++session,selected=track,selectedVideo=video;
+    document.getElementById('fsTitle').textContent=selected.title;document.getElementById('fsArtist').textContent=selected.artist;
+    document.getElementById('fsLink').href=selectedVideo.url;
+    note.textContent='Tap the visible video to play. No autoplay.';
+    loadLyrics(version,token,selected,selectedVideo,pending.signal);
+    try{
+      await api();if(version!==epoch||token!==session||!opened)return;
+      // Opening this mode cues the video only; playback needs a tap on its visible controls.
+      player=new YT.Player('fsMount',{width:'100%',height:'100%',videoId:selectedVideo.id,playerVars:{autoplay:0,playsinline:1,origin:location.origin},events:{
+        onReady:event=>{if(version!==epoch||token!==session||!opened){event.target.destroy();return;}event.target.getIframe().title=selected.title+' — YouTube full song';resume();},
+        onStateChange:event=>{if(version!==epoch||token!==session||!opened)return;if(event.data===1)document.querySelectorAll('audio,video').forEach(media=>media.pause());resume();},
+        onError:()=>{if(version!==epoch||token!==session||!opened)return;cancel();note.textContent='This video cannot play here. Use the YouTube link or the preview player.';}
+      }});
+    }catch{if(version===epoch&&token===session&&opened)note.textContent='YouTube player could not load. Use the YouTube link or the preview player.';}
+  });
+  document.getElementById('fsClose').addEventListener('click',()=>{close();mode.focus();});
+  document.addEventListener('play',event=>{if(event.target.matches&&event.target.matches('audio,video')&&player){try{player.pauseVideo();}catch{}cancel();}},true);
+  document.addEventListener('visibilitychange',()=>document.hidden?cancel():resume());
+  async function update(){
+    const title=body.querySelector('.lfm-title')?.textContent.trim(),artist=body.querySelector('.lfm-artist')?.textContent.trim(),album=body.querySelector('.lfm-album')?.textContent.trim()||'';
+    const next=title&&artist?JSON.stringify([title,artist,album]):'';if(next===key)return;key=next;++epoch;const version=epoch;
+    if(pending)pending.abort();pending=new AbortController();close();root.hidden=true;video=null;track=title&&artist?{title,artist,album}:null;if(!track)return;
+    try{
+      const lookup=JSON.stringify([title,artist]);let data=results.get(lookup);
+      if(!data){const response=await fetch('/api/lastfm/full-song?'+new URLSearchParams({track:title,artist}),{signal:pending.signal});if(!response.ok)throw new Error('lookup');data=await response.json();if(!data.unavailable&&data.configured!==false){if(results.size>=30)results.delete(results.keys().next().value);results.set(lookup,data);}}
+      if(version!==epoch)return;
+      if(data.video&&/^[A-Za-z0-9_-]{11}$/.test(data.video.id)&&Number(data.video.duration)>0){video=data.video;root.hidden=false;}
+    }catch{ /* No safe result: keep the existing preview available. */ }
+  }
+  new MutationObserver(update).observe(body,{childList:true,subtree:true,characterData:true});update();
+})();
+</script>
+<!-- Full-song karaoke: end -->
 <section class="world-card" aria-label="Recent listening"><div class="world-heading"><h2>Recently in my ears</h2><a class="world-link" href="/on-repeat.html">This week ↗</a></div><div id="worldHistory" class="world-history"><p class="world-note">Loading recent tracks…</p></div></section>
 <section aria-label="Last.fm listeners" class="lfm lfm-guests" id="lfmGuests">
 <div class="lfm-label"><span class="lfm-dot"></span>last.fm // listening along</div>
@@ -1522,5 +1629,6 @@ document.addEventListener("visibilitychange",()=>{cancelFrame();if(!document.hid
 
 <!-- Last.fm preview controllers: end -->
 </body></html>
+
 
 
