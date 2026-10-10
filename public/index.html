@@ -202,6 +202,9 @@ h1{animation:deepTitleIn .9s cubic-bezier(.22,1,.36,1) both}
 <link rel="stylesheet" href="/world-motion.css?v=1">
 <script src="/world-motion.js?v=1" defer></script>
 
+<link rel="stylesheet" href="/remote.css?v=1">
+<script src="/remote-qr.js?v=1" defer></script>
+<script src="/remote.js?v=1" defer></script>
 </head>
 <body>
 
@@ -279,6 +282,10 @@ h1{animation:deepTitleIn .9s cubic-bezier(.22,1,.36,1) both}
 <div class="cx-lightbox" hidden id="cxLightbox"><img alt="" id="cxLightImg"/></div>
 
 <section class="world-card" id="worldGuestbook" aria-label="Visitor guestbook"><div class="world-heading"><h2>You were here.</h2><button type="button" class="world-delete" data-world-admin>Admin</button></div><p class="world-note">A little note for the wall. Public, separate from the chat. Your name is optional.</p><form class="world-form" id="worldGuestForm"><input id="worldGuestName" maxlength="32" placeholder="Name or nickname (optional)" aria-label="Guestbook name"><textarea id="worldGuestText" maxlength="300" required placeholder="Leave a little trace…" aria-label="Guestbook note"></textarea><div class="world-actions"><button class="world-button primary" id="worldGuestSend" type="submit">Sign guestbook</button><small>300 characters · 5 notes per hour</small></div></form><div class="world-status" id="worldGuestStatus" role="status"></div><div class="world-guest-list" id="worldGuests"></div></section>
+<section class="rm-entry" aria-label="Remote mode">
+  <div><div class="rm-kicker">A LITTLE EXPERIMENT</div><h2>Your phone. This screen.</h2><p>Pair your phone and quietly bend the rules.</p></div>
+  <button type="button" class="rm-button" id="remoteOpen">Remote mode ↗</button>
+</section>
 </main>
 <div class="modal" id="passwordModal"><div class="box password-box"><div class="modal-head"><div><div class="modal-title" id="passwordTitle">Unlock</div><div class="modal-meta" id="passwordHint"></div></div><button class="close" onclick="closeAll()" type="button">×</button></div><form id="passwordForm"><input autocomplete="current-password" id="passwordInput" placeholder="Enter password" required="" type="password"/><button class="unlock" type="submit">Unlock</button><div class="error" id="error">Wrong password.</div></form></div></div>
 <div class="modal" id="contentModal"><div class="box"><div class="modal-head"><div><div class="modal-title" id="contentTitle"></div><div class="modal-meta">private section</div></div><button class="close" onclick="closeAll()" type="button">×</button></div><div id="content"></div></div></div>
@@ -1135,6 +1142,7 @@ async function save(sub){const r=await fetch("/api/push/subscribe",{method:"POST
 </script>
 
 </body></html>
+
 
 
 
