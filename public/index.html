@@ -126,6 +126,7 @@ h1{animation:deepTitleIn .9s cubic-bezier(.22,1,.36,1) both}
 .cx-count{font:400 10px/1 DM Mono,monospace;color:#555}
 .cx-id{padding:11px 13px;border:1px solid #242428;border-radius:13px;color:#777;font:400 10.5px/1.6 DM Mono,monospace;margin-bottom:14px}
 .cx-id b{color:#aaa;font-weight:500}
+.cx-nickname{margin-top:8px}.cx-nickname summary{cursor:pointer;color:#b9a6ff}.cx-nickname form{margin-top:10px}.cx-nickname label{display:block;margin-bottom:7px}.cx-nickname-fields{display:flex;flex-wrap:wrap;gap:7px}.cx-nickname input{flex:1 1 220px;min-width:0;border:1px solid #35353d;border-radius:9px;background:#141416;color:#eee;padding:9px 10px;font:inherit}.cx-nickname input:focus-visible{outline:2px solid #b9a6ff;outline-offset:2px}.cx-nickname small{display:block;margin-top:6px}.cx-nickname [role=status]{margin-top:5px;overflow-wrap:anywhere}.cx-nickname button:disabled{opacity:.5;cursor:default}
 .cx-threadwrap{position:relative}
 .cx-thread{height:min(62vh,520px);min-height:300px;overflow-y:auto;overscroll-behavior:contain;padding:2px 4px 6px 0;scrollbar-width:thin;scrollbar-color:#303035 transparent}
 .cx-thread::-webkit-scrollbar{width:4px}.cx-thread::-webkit-scrollbar-thumb{background:#303035;border-radius:9px}
@@ -248,7 +249,10 @@ h1{animation:deepTitleIn .9s cubic-bezier(.22,1,.36,1) both}
 </section>
 <section aria-label="Chat" class="cx-card" id="cxChat">
 <div class="cx-head"><div class="cx-label"><span class="cx-dot"></span>chat // everyone</div><div class="cx-count" id="cxCount"></div></div>
-<div class="cx-id">You appear as <b id="cxMe">loading...</b>. Your real identity is never shown.</div>
+<div class="cx-id">You appear as <b id="cxMe">loading...</b>.
+<details class="cx-nickname"><summary>Nickname (optional)</summary>
+<form id="cxNicknameForm" autocomplete="off"><label for="cxNickname">Choose a name for the public chat</label><div class="cx-nickname-fields"><input id="cxNickname" name="nickname" maxlength="24" placeholder="Leave blank to keep your random name" aria-describedby="cxNicknameHint"><button class="cx-tool" id="cxNicknameSave" type="submit" disabled>Save</button><button class="cx-tool" id="cxNicknameReset" type="button" disabled>Use random name</button></div><small id="cxNicknameHint">2–24 characters · optional · no real name needed</small><div id="cxNicknameStatus" role="status" aria-live="polite"></div></form>
+</details></div>
 <div class="cx-tools"><button class="cx-tool" id="cxInstall" type="button" hidden>📲 Install app</button><button class="cx-tool" id="cxNotify" type="button" hidden>🔔 Notifications: off</button></div>
 <div class="cx-presence" aria-live="polite"><span id="cxOnline" data-online>checking presence…</span><span id="cxTyping"></span></div>
 <div class="cx-threadwrap">
@@ -471,7 +475,7 @@ let toastTimer=0;
 function toast(msg){E.toast.textContent=msg;E.toast.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>{E.toast.hidden=true},3200)}
 
 /* ---------- rendering ---------- */
-function sigOf(m,w){return[m.parent?(m.parent.deleted?"d":[m.parent.id,m.parent.username,m.parent.snippet,m.parent.image].join("~")):"",S.admin?1:0,m.pending||"",m.mine?1:0,m.created_at].join("|")}
+function sigOf(m,w){return[m.username,m.parent?(m.parent.deleted?"d":[m.parent.id,m.parent.username,m.parent.snippet,m.parent.image].join("~")):"",S.admin?1:0,m.pending||"",m.mine?1:0,m.created_at].join("|")}
 
 function buildRow(m){
   const row=h("div","cx-row"+(m.mine?" mine":""));row.dataset.id=m.id;row.tabIndex=0;
@@ -501,6 +505,8 @@ function paint(row,w){
   row.classList.toggle("pending",m.pending==="sending");row.classList.toggle("failed",m.pending==="failed");
   row._name.style.display=showName?"":"none";row._av.style.visibility=showName?"visible":"hidden";
   const sig=sigOf(m,w);if(row._sig===sig)return;row._sig=sig;
+  row._name.textContent="@"+m.username;row._av.textContent=tag(m.username);
+  row._av.style.cssText="background:hsl("+hue(m.username)+" 32% 20%);color:hsl("+hue(m.username)+" 55% 78%)";
   row._time.textContent=t2(m.created_at);
   const q=row._quote;q.textContent="";
   if(m.parent){
@@ -562,7 +568,7 @@ E.thread.addEventListener("scroll",()=>{if(nearBottom()){S.unseen=0;E.pill.hidde
 E.pill.addEventListener("click",()=>toBottom(true));
 
 /* ---------- data ---------- */
-async function getState(){try{const r=await fetch("/api/chat/state",{cache:"no-store"});const d=await r.json();if(d.success){E.count.textContent=d.count+(d.count===1?" message":" messages");return d.count+"|"+d.latest}}catch(e){}return null}
+async function getState(){try{const r=await fetch("/api/chat/state",{cache:"no-store"});const d=await r.json();if(d.success){E.count.textContent=d.count+(d.count===1?" message":" messages");return d.count+"|"+d.latest+"|"+(d.names_version||0)}}catch(e){}return null}
 
 function applyFeed(srv,hasMore,first){
   const before=new Set(S.msgs.map(m=>m.id)),atBottom=first||nearBottom();
@@ -585,7 +591,7 @@ async function loadFeed(sig){
   const r=await fetch("/api/chat?limit=100",{cache:"no-store"});const d=await r.json();
   if(!d.success)throw new Error("feed");
   const first=!S.ready;
-  if(d.me&&!S.me){S.me=d.me;E.me.textContent="@"+d.me.username}
+  if(d.me){S.me=d.me;E.me.textContent="@"+d.me.username}
   applyFeed(d.messages,d.has_more,first);S.ready=true;if(sig!=null)S.sig=sig;
 }
 
@@ -1036,11 +1042,35 @@ if("ResizeObserver" in window)new ResizeObserver(scheduleSeen).observe(E.list);
 E.list.addEventListener("load",scheduleSeen,true);
 setInterval(loadSeenAdmin,15000);
 
+/* ---------- optional nickname ---------- */
+const nicknameInput=$("cxNickname"),nicknameSave=$("cxNicknameSave"),nicknameReset=$("cxNicknameReset"),nicknameStatus=$("cxNicknameStatus");
+let nicknameBusy=false;
+async function loadNickname(){
+  try{const r=await fetch("/api/user/nickname",{cache:"no-store"});const d=await r.json();if(!r.ok||!d.success)throw new Error(d.error||"Could not load nickname settings.");nicknameInput.value=d.nickname||"";nicknameSave.disabled=false;nicknameReset.disabled=false;}
+  catch(e){nicknameStatus.textContent="Nickname settings unavailable. You can still chat with your random name.";}
+}
+async function saveNickname(value){
+  if(nicknameBusy)return;nicknameBusy=true;nicknameSave.disabled=true;nicknameReset.disabled=true;nicknameInput.disabled=true;nicknameStatus.textContent="Saving…";
+  try{
+    const r=await fetch("/api/user/nickname",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({nickname:value})});const d=await r.json();
+    if(!r.ok||!d.success)throw new Error(d.error||"Could not save nickname.");
+    S.me=d.user;E.me.textContent="@"+d.user.username;nicknameInput.value=d.nickname||"";
+    for(const m of S.msgs.concat(S.pending))if(m.mine)m.username=d.user.username;
+    for(const m of S.local.values())if(m.mine)m.username=d.user.username;
+    reconcile(false);nicknameStatus.textContent=d.nickname?"Nickname saved. Your messages use this name.":"Your random name is back.";
+    try{await loadFeed(await getState());}catch{};
+  }catch(e){nicknameStatus.textContent=e.message||"Could not save nickname. Try again.";}
+  finally{nicknameBusy=false;nicknameSave.disabled=false;nicknameReset.disabled=false;nicknameInput.disabled=false;}
+}
+$("cxNicknameForm").addEventListener("submit",e=>{e.preventDefault();saveNickname(nicknameInput.value);});
+nicknameReset.addEventListener("click",()=>saveNickname(""));
+
 /* ---------- start ---------- */
 (async()=>{
   grow();updateSend();
   try{const r=await fetch("/api/user");const d=await r.json();if(d.success&&d.user)S.me={username:d.user.username}}catch(e){}
   E.me.textContent=S.me?"@"+S.me.username:"hidden user";
+  if(S.me)loadNickname();
   await boot();
   startCommunity();scheduleSeen();
   if(S.adminKey&&await checkAdmin(S.adminKey)){S.admin=true;paintAdmin()}else{S.adminKey="";try{sessionStorage.removeItem("cxAdminKey")}catch(e){}}
@@ -1105,6 +1135,7 @@ async function save(sub){const r=await fetch("/api/push/subscribe",{method:"POST
 </script>
 
 </body></html>
+
 
 
 

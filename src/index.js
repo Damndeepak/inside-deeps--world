@@ -710,6 +710,59 @@ export default {
       }
     }
 
+    // Optional display names keep the existing cookie/user ID and message ownership.
+    async function ensureNicknameSchema() {
+      if (globalThis.__nicknameSchemaReady) return;
+      await env.DB.prepare(`CREATE TABLE IF NOT EXISTS chat_nicknames (
+        user_id TEXT PRIMARY KEY,
+        default_username TEXT NOT NULL,
+        revision INTEGER NOT NULL DEFAULT 0
+      )`).run();
+      globalThis.__nicknameSchemaReady = true;
+    }
+
+    if (url.pathname === "/api/user/nickname" && ["GET", "POST"].includes(request.method)) {
+      const reply = (body, status = 200) => Response.json(body, { status, headers: { "Cache-Control": "no-store" } });
+      try {
+        const user = await getUser(getUserId(request));
+        if (!user) return reply({ success: false, error: "Please reload the page before choosing a nickname." }, 401);
+        let nickname;
+        if (request.method === "POST") {
+          const origin = request.headers.get("Origin");
+          if ((origin && origin !== url.origin) || !request.headers.get("Content-Type")?.startsWith("application/json")) {
+            return reply({ success: false, error: "Invalid request." }, 403);
+          }
+          const raw = await request.text();
+          if (raw.length > 512) return reply({ success: false, error: "Nickname is too long." }, 400);
+          let body; try { body = JSON.parse(raw); } catch { return reply({ success: false, error: "Invalid request." }, 400); }
+          if (typeof body?.nickname !== "string") return reply({ success: false, error: "Enter a nickname or leave it blank." }, 400);
+          nickname = body.nickname.normalize("NFC").trim().replace(/\s+/g, " ");
+          if (nickname && (Array.from(nickname).length < 2 || Array.from(nickname).length > 24 || !/^[\p{L}\p{M}\p{N} ._'-]+$/u.test(nickname))) {
+            return reply({ success: false, error: "Use 2–24 characters: letters, numbers, spaces, dots, underscores or hyphens." }, 400);
+          }
+        }
+        await ensureNicknameSchema();
+        await env.DB.prepare("INSERT OR IGNORE INTO chat_nicknames (user_id, default_username) VALUES (?, ?)").bind(user.id, user.username).run();
+        const profile = await env.DB.prepare("SELECT default_username FROM chat_nicknames WHERE user_id = ?").bind(user.id).first();
+        if (request.method === "POST") {
+          const username = nickname || profile.default_username;
+          // Conditional update avoids two visitors claiming the same name concurrently.
+          const results = await env.DB.batch([
+            env.DB.prepare(`UPDATE users SET username = ? WHERE id = ? AND NOT EXISTS (
+              SELECT 1 FROM users WHERE username = ? COLLATE NOCASE AND id != ?
+            ) AND NOT EXISTS (SELECT 1 FROM chat_nicknames WHERE default_username = ? COLLATE NOCASE AND user_id != ?)`).bind(username, user.id, username, user.id, username, user.id),
+            env.DB.prepare(`UPDATE chat_nicknames SET revision = revision + 1 WHERE user_id = ?
+              AND EXISTS (SELECT 1 FROM users WHERE id = ? AND username = ?)`).bind(user.id, user.id, username)
+          ]);
+          if (!results[0].meta.changes) return reply({ success: false, error: "That nickname is taken. Try another." }, 409);
+          user.username = username;
+        }
+        return reply({ success: true, user, nickname: user.username === profile.default_username ? "" : user.username });
+      } catch {
+        return reply({ success: false, error: "Could not save your nickname. Try again." }, 500);
+      }
+    }
+
     // GLOBAL GLITCH RUN LEADERBOARD
     // The table is created lazily so no separate D1 migration is required.
     if (
@@ -1439,11 +1492,13 @@ export default {
     if (url.pathname === "/api/chat/state" && request.method === "GET") {
       try {
         await ensureChatSchema();
+        await ensureNicknameSchema();
         const row = await env.DB
           .prepare("SELECT COUNT(*) AS n, MAX(created_at) AS latest FROM messages")
           .first();
+        const names = await env.DB.prepare("SELECT COALESCE(SUM(revision), 0) AS version FROM chat_nicknames").first();
         return Response.json(
-          { success: true, count: Number(row?.n || 0), latest: row?.latest || null },
+          { success: true, count: Number(row?.n || 0), latest: row?.latest || null, names_version: Number(names?.version || 0) },
           { headers: chatHeaders }
         );
       } catch {
@@ -1767,6 +1822,7 @@ export default {
     return env.ASSETS.fetch(request);
   }
 };
+
 
 
 
