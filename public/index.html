@@ -251,6 +251,13 @@ html[data-world-theme=light] #lfmPreview :is(.song-artist,.song-kicker,.song-tim
 .unforgettable-player .uf-letter.uf-lit{color:#fff;text-shadow:0 0 6px #fff,0 0 14px #ff67d4,0 0 23px #9b86ff}
 @media(max-width:650px){.unforgettable-player .uf-lyrics{height:155px;margin:12px 0}.unforgettable-player .uf-line{font-size:clamp(20px,6vw,29px)}}
 </style>
+<style id="lp-synced-layout">
+/* Keep the saved synced clips in the compact Unforgettable-style layout. */
+#lfmPreview .song-player .lyrics-window{height:155px;min-height:0;margin:14px 0 15px;gap:7px;overflow:hidden}
+#lfmPreview .song-player .ref-line{padding:0;background:none;font-size:clamp(17px,4.5vw,24px);white-space:normal;flex-shrink:0}
+#lfmPreview .song-player .ref-line.current{font-size:clamp(21px,5vw,30px);font-weight:850;color:#e7e2ff}
+#lfmPreview .song-player .song-lyric.current{font-size:clamp(21px,5vw,30px);font-weight:850;line-height:1.3}
+</style>
 <!-- Last.fm preview styles: end -->
 </head>
 <body>
@@ -285,7 +292,6 @@ html[data-world-theme=light] #lfmPreview :is(.song-artist,.song-kicker,.song-tim
 <div class="lfm-label" id="lfmLabel">last.fm // now playing</div>
 <div id="lfmBody"><div class="lfm-empty">checking what's playing...</div></div>
 </section>
-<section class="world-card" aria-label="Recent listening"><div class="world-heading"><h2>Recently in my ears</h2><a class="world-link" href="/on-repeat.html">This week ↗</a></div><div id="worldHistory" class="world-history"><p class="world-note">Loading recent tracks…</p></div></section>
 <!-- Last.fm preview card: begin -->
 <section id="lfmPreview" aria-label="Preview of the Last.fm track" hidden>
 <div class="song-player" id="lpRemote">
@@ -296,7 +302,7 @@ html[data-world-theme=light] #lfmPreview :is(.song-artist,.song-kicker,.song-tim
 <div class="song-progress"><div class="song-track" id="lpSeek" role="slider" tabindex="0" aria-label="Preview position" aria-valuemin="0" aria-valuemax="30" aria-valuenow="0"><div class="lp-rail"><div class="song-fill" id="lpFill"></div></div></div><div class="song-times"><span id="lpTime">0:00 / 0:30</span></div></div></div>
 <audio id="lpAudio" playsinline preload="none"></audio>
 <div class="lp-status" id="lpNote" role="status"></div>
-<div class="lp-lyrics-panel"><div class="song-kicker">lyrics</div><div class="lp-lyrics-status" id="lpLyricsStatus" role="status"></div><div class="lp-lyrics-copy" id="lpLyricsText" tabindex="0" aria-label="Song lyrics"></div></div>
+<div class="lp-status">Synced lyrics are available for Deep’s saved clips.</div>
 <div class="lp-links"><a id="lpStore" target="_blank" rel="noopener noreferrer" hidden>Listen on Apple Music ↗</a></div>
 </div>
 <section id="lpLocalWasted" hidden aria-label="Wasted music player" class="song-player">
@@ -340,6 +346,7 @@ html[data-world-theme=light] #lfmPreview :is(.song-artist,.song-kicker,.song-tim
 </section>
 </section>
 <!-- Last.fm preview card: end -->
+<section class="world-card" aria-label="Recent listening"><div class="world-heading"><h2>Recently in my ears</h2><a class="world-link" href="/on-repeat.html">This week ↗</a></div><div id="worldHistory" class="world-history"><p class="world-note">Loading recent tracks…</p></div></section>
 <section aria-label="Last.fm listeners" class="lfm lfm-guests" id="lfmGuests">
 <div class="lfm-label"><span class="lfm-dot"></span>last.fm // listening along</div>
 <div id="lfmGuestList"><div class="lfm-empty">loading...</div></div>
@@ -1435,7 +1442,7 @@ document.addEventListener("visibilitychange",()=>{cancelFrame();if(!document.hid
   const root=document.getElementById('lfmPreview'),body=document.getElementById('lfmBody');
   if(!root||!body)return;
   const $=id=>document.getElementById(id);
-  const remote=$('lpRemote'),audio=$('lpAudio'),play=$('lpPlay'),fill=$('lpFill'),seek=$('lpSeek'),time=$('lpTime'),note=$('lpNote'),lyrics=$('lpLyricsText'),lyricsStatus=$('lpLyricsStatus'),store=$('lpStore');
+  const remote=$('lpRemote'),audio=$('lpAudio'),play=$('lpPlay'),fill=$('lpFill'),seek=$('lpSeek'),time=$('lpTime'),note=$('lpNote'),store=$('lpStore');
   const normalize=s=>String(s||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^\p{L}\p{N}]+/gu,' ').trim().replace(/\s+/g,' ');
   const titleKey=s=>normalize(String(s||'').replace(/\s*[([]\s*(?:feat\.?|ft\.?|featuring)\s+[^)\]]*[)\]]/gi,'').replace(/\s+(?:feat\.?|ft\.?|featuring)\s+.*$/i,''));
   const artistKey=s=>normalize(String(s||'').split(/\s+(?:feat\.?|ft\.?|featuring)\s+/i)[0]);
@@ -1449,7 +1456,7 @@ document.addEventListener("visibilitychange",()=>{cancelFrame();if(!document.hid
   ];
   const safeHTTPS=u=>{try{const parsed=new URL(u);return parsed.protocol==='https:'?parsed.href:''}catch{return''}};
   const fmt=n=>{n=Math.max(0,Math.floor(n||0));return Math.floor(n/60)+':'+String(n%60).padStart(2,'0')};
-  let key='',epoch=0,pending=null,lyricsPending=null,playingRequest=0;
+  let key='',epoch=0,pending=null,playingRequest=0;
   function duration(){return Number.isFinite(audio.duration)&&audio.duration>0?Math.min(30,audio.duration):30}
   function paint(){const n=Math.min(duration(),audio.currentTime||0);fill.style.width=(n/duration()*100)+'%';time.textContent=fmt(n)+' / '+fmt(duration());seek.setAttribute('aria-valuenow',String(Math.floor(n)));seek.setAttribute('aria-valuemax',String(duration()));play.textContent=audio.paused?'▶':'❚❚';play.setAttribute('aria-label',audio.paused?'Play preview':'Pause preview')}
   function stop(){
@@ -1458,24 +1465,11 @@ document.addEventListener("visibilitychange",()=>{cancelFrame();if(!document.hid
     audio.removeAttribute('src');audio.load();play.disabled=true;store.hidden=true;paint();
     local.forEach(item=>{$(item.id).hidden=true});
   }
-  async function loadLyrics(track,version){
-    const controller=new AbortController();lyricsPending=controller;
-    lyrics.textContent='';lyrics.scrollTop=0;lyricsStatus.textContent='Loading lyrics…';
-    try{
-      const response=await fetch('/api/lastfm/lyrics?'+new URLSearchParams({track:track.name,artist:track.artist,album:track.album||''}),{signal:controller.signal});
-      if(!response.ok)throw new Error('Lyrics lookup unavailable');
-      const data=await response.json();if(version!==epoch)return;
-      if(data.instrumental){lyricsStatus.textContent='Instrumental · no lyrics.';return}
-      if(typeof data.lyrics!=='string'||!data.lyrics.trim()){lyricsStatus.textContent='Lyrics are not in the library for this song yet.';return}
-      lyrics.textContent=data.lyrics;lyricsStatus.textContent='Full lyrics · LRCLIB';
-    }catch(e){if(version===epoch&&e.name!=='AbortError')lyricsStatus.textContent='Could not load lyrics right now.'}
-    finally{if(version===epoch)lyricsPending=null}
-  }
   async function update(track){
     const next=track?[track.name,track.artist,track.album].join('\u0000'):'';
     if(next===key)return;key=next;const version=++epoch;
     if(pending)pending.abort();pending=null;
-    if(lyricsPending)lyricsPending.abort();lyricsPending=null;lyrics.textContent="";lyricsStatus.textContent="";stop();
+    stop();
     if(!track){root.hidden=true;return}
     root.hidden=false;remote.hidden=false;
     $('lpTitle').textContent=track.name;$('lpArtist').textContent=track.artist;
@@ -1485,7 +1479,6 @@ document.addEventListener("visibilitychange",()=>{cancelFrame();if(!document.hid
       if(!a.getAttribute('src'))a.src=clip.src;
       card.hidden=false;return;
     }
-    loadLyrics(track,version);
     note.textContent='Finding a preview…';
     const controller=new AbortController();pending=controller;
     try{
