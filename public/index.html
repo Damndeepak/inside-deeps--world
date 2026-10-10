@@ -202,6 +202,13 @@ h1{animation:deepTitleIn .9s cubic-bezier(.22,1,.36,1) both}
 <script src="/world-motion.js?v=1" defer></script>
 <!-- Last.fm preview styles: begin -->
 <style id="lastfm-preview-css">
+.lp-lyrics-panel{margin-top:22px;padding-top:18px;border-top:1px solid var(--world-line,#303035)}
+.lp-lyrics-copy{white-space:pre-wrap;overflow-wrap:anywhere;font:500 15px/1.9 Manrope,system-ui,sans-serif;color:var(--world-text,#f4f4f5);max-height:320px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--world-accent,#b9a6ff) transparent}
+.lp-lyrics-copy:empty{display:none}
+.lp-lyrics-copy:focus-visible{outline:1px solid var(--world-accent,#b9a6ff);outline-offset:4px;border-radius:4px}
+.lp-lyrics-status{font:10px/1.6 DM Mono,monospace;color:var(--world-muted,#93939d);margin-bottom:12px}
+@media(max-width:650px){.lp-lyrics-copy{font-size:14px;max-height:280px}}
+
 #lfmPreview[hidden],#lfmPreview [hidden]{display:none!important}
 #lfmPreview .song-player{margin-top:16px}
 .lp-links{display:flex;flex-wrap:wrap;gap:14px;margin-top:16px}
@@ -289,7 +296,8 @@ html[data-world-theme=light] #lfmPreview :is(.song-artist,.song-kicker,.song-tim
 <div class="song-progress"><div class="song-track" id="lpSeek" role="slider" tabindex="0" aria-label="Preview position" aria-valuemin="0" aria-valuemax="30" aria-valuenow="0"><div class="lp-rail"><div class="song-fill" id="lpFill"></div></div></div><div class="song-times"><span id="lpTime">0:00 / 0:30</span></div></div></div>
 <audio id="lpAudio" playsinline preload="none"></audio>
 <div class="lp-status" id="lpNote" role="status"></div>
-<div class="lp-links"><a id="lpLyrics" target="_blank" rel="noopener noreferrer">lyrics ↗</a><a id="lpStore" target="_blank" rel="noopener noreferrer" hidden>Listen on Apple Music ↗</a></div>
+<div class="lp-lyrics-panel"><div class="song-kicker">lyrics</div><div class="lp-lyrics-status" id="lpLyricsStatus" role="status"></div><div class="lp-lyrics-copy" id="lpLyricsText" tabindex="0" aria-label="Song lyrics"></div></div>
+<div class="lp-links"><a id="lpStore" target="_blank" rel="noopener noreferrer" hidden>Listen on Apple Music ↗</a></div>
 </div>
 <section id="lpLocalWasted" hidden aria-label="Wasted music player" class="song-player">
 <div class="song-kicker">your clip · synced lyrics</div>
@@ -1427,7 +1435,7 @@ document.addEventListener("visibilitychange",()=>{cancelFrame();if(!document.hid
   const root=document.getElementById('lfmPreview'),body=document.getElementById('lfmBody');
   if(!root||!body)return;
   const $=id=>document.getElementById(id);
-  const remote=$('lpRemote'),audio=$('lpAudio'),play=$('lpPlay'),fill=$('lpFill'),seek=$('lpSeek'),time=$('lpTime'),note=$('lpNote'),link=$('lpLyrics'),store=$('lpStore');
+  const remote=$('lpRemote'),audio=$('lpAudio'),play=$('lpPlay'),fill=$('lpFill'),seek=$('lpSeek'),time=$('lpTime'),note=$('lpNote'),lyrics=$('lpLyricsText'),lyricsStatus=$('lpLyricsStatus'),store=$('lpStore');
   const normalize=s=>String(s||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^\p{L}\p{N}]+/gu,' ').trim().replace(/\s+/g,' ');
   const titleKey=s=>normalize(String(s||'').replace(/\s*[([]\s*(?:feat\.?|ft\.?|featuring)\s+[^)\]]*[)\]]/gi,'').replace(/\s+(?:feat\.?|ft\.?|featuring)\s+.*$/i,''));
   const artistKey=s=>normalize(String(s||'').split(/\s+(?:feat\.?|ft\.?|featuring)\s+/i)[0]);
@@ -1441,7 +1449,7 @@ document.addEventListener("visibilitychange",()=>{cancelFrame();if(!document.hid
   ];
   const safeHTTPS=u=>{try{const parsed=new URL(u);return parsed.protocol==='https:'?parsed.href:''}catch{return''}};
   const fmt=n=>{n=Math.max(0,Math.floor(n||0));return Math.floor(n/60)+':'+String(n%60).padStart(2,'0')};
-  let key='',epoch=0,pending=null,playingRequest=0;
+  let key='',epoch=0,pending=null,lyricsPending=null,playingRequest=0;
   function duration(){return Number.isFinite(audio.duration)&&audio.duration>0?Math.min(30,audio.duration):30}
   function paint(){const n=Math.min(duration(),audio.currentTime||0);fill.style.width=(n/duration()*100)+'%';time.textContent=fmt(n)+' / '+fmt(duration());seek.setAttribute('aria-valuenow',String(Math.floor(n)));seek.setAttribute('aria-valuemax',String(duration()));play.textContent=audio.paused?'▶':'❚❚';play.setAttribute('aria-label',audio.paused?'Play preview':'Pause preview')}
   function stop(){
@@ -1450,20 +1458,34 @@ document.addEventListener("visibilitychange",()=>{cancelFrame();if(!document.hid
     audio.removeAttribute('src');audio.load();play.disabled=true;store.hidden=true;paint();
     local.forEach(item=>{$(item.id).hidden=true});
   }
+  async function loadLyrics(track,version){
+    const controller=new AbortController();lyricsPending=controller;
+    lyrics.textContent='';lyrics.scrollTop=0;lyricsStatus.textContent='Loading lyrics…';
+    try{
+      const response=await fetch('/api/lastfm/lyrics?'+new URLSearchParams({track:track.name,artist:track.artist,album:track.album||''}),{signal:controller.signal});
+      if(!response.ok)throw new Error('Lyrics lookup unavailable');
+      const data=await response.json();if(version!==epoch)return;
+      if(data.instrumental){lyricsStatus.textContent='Instrumental · no lyrics.';return}
+      if(typeof data.lyrics!=='string'||!data.lyrics.trim()){lyricsStatus.textContent='Lyrics are not in the library for this song yet.';return}
+      lyrics.textContent=data.lyrics;lyricsStatus.textContent='Full lyrics · LRCLIB';
+    }catch(e){if(version===epoch&&e.name!=='AbortError')lyricsStatus.textContent='Could not load lyrics right now.'}
+    finally{if(version===epoch)lyricsPending=null}
+  }
   async function update(track){
     const next=track?[track.name,track.artist,track.album].join('\u0000'):'';
     if(next===key)return;key=next;const version=++epoch;
-    if(pending)pending.abort();pending=null;stop();
+    if(pending)pending.abort();pending=null;
+    if(lyricsPending)lyricsPending.abort();lyricsPending=null;lyrics.textContent="";lyricsStatus.textContent="";stop();
     if(!track){root.hidden=true;return}
     root.hidden=false;remote.hidden=false;
     $('lpTitle').textContent=track.name;$('lpArtist').textContent=track.artist;
-    link.href='https://www.google.com/search?q='+encodeURIComponent(track.name+' '+track.artist+' lyrics');
     const clip=local.find(item=>item.match(track));
     if(clip){
       remote.hidden=true;const card=$(clip.id),a=$(clip.audio);
       if(!a.getAttribute('src'))a.src=clip.src;
       card.hidden=false;return;
     }
+    loadLyrics(track,version);
     note.textContent='Finding a preview…';
     const controller=new AbortController();pending=controller;
     try{
@@ -1507,4 +1529,5 @@ document.addEventListener("visibilitychange",()=>{cancelFrame();if(!document.hid
 
 <!-- Last.fm preview controllers: end -->
 </body></html>
+
 

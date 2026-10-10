@@ -54,6 +54,57 @@ export default {
       return mainId;
     }
 
+    // Plain lyrics only: an iTunes clip does not expose its full-song offset.
+    if (url.pathname === "/api/lastfm/lyrics" && request.method === "GET") {
+      const track = (url.searchParams.get("track") || "").trim();
+      const artist = (url.searchParams.get("artist") || "").trim();
+      const album = (url.searchParams.get("album") || "").trim();
+      if (!track || !artist || track.length > 200 || artist.length > 200 || album.length > 300) {
+        return Response.json({ lyrics: null }, { status: 400, headers: { "Cache-Control": "no-store" } });
+      }
+      const normalize = value => String(value || "").normalize("NFKD")
+        .replace(/[\u0300-\u036f]/g, "").toLowerCase()
+        .replace(/[^\p{L}\p{N}]+/gu, " ").trim().replace(/\s+/g, " ");
+      const title = value => String(value || "")
+        .replace(/\s*[([]\s*(?:feat\.?|ft\.?|featuring)\s+[^)\]]*[)\]]/gi, "")
+        .replace(/\s+(?:feat\.?|ft\.?|featuring)\s+.*$/i, "").trim();
+      const leadArtist = value => String(value || "").split(/\s+(?:feat\.?|ft\.?|featuring)\s+/i)[0].trim();
+      if (!normalize(title(track)) || !normalize(leadArtist(artist))) {
+        return Response.json({ lyrics: null }, { status: 400, headers: { "Cache-Control": "no-store" } });
+      }
+      try {
+        const search = new URL("https://lrclib.net/api/search");
+        search.searchParams.set("track_name", title(track));
+        search.searchParams.set("artist_name", leadArtist(artist));
+        const response = await fetch(search.toString(), {
+          headers: { "User-Agent": "InsideDeepsWorld/1.0 (Last.fm lyrics card)" },
+          signal: AbortSignal.timeout(6000), cf: { cacheTtl: 3600, cacheEverything: true }
+        });
+        if (!response.ok) throw new Error("Lyrics provider unavailable");
+        const data = await response.json();
+        let best = null, score = -1;
+        for (const item of Array.isArray(data) ? data : []) {
+          if (normalize(title(item.trackName)) !== normalize(title(track)) ||
+              normalize(leadArtist(item.artistName)) !== normalize(leadArtist(artist))) continue;
+          const plain = typeof item.plainLyrics === "string" ? item.plainLyrics.trim() : "";
+          const timed = typeof item.syncedLyrics === "string" ? item.syncedLyrics : "";
+          const text = plain || timed.split(/\r?\n/).map(line => line
+            .replace(/^(?:\s*\[\d+:\d+(?:[.:]\d+)?\])+\s*/, "")
+            .replace(/^\s*\[(?:ar|al|ti|by|offset|length|re|ve):[^\]]*\]\s*$/i, "")).join("\n").trim();
+          if (!text && !item.instrumental) continue;
+          const value = (album && normalize(item.albumName) === normalize(album) ? 4 : 0) + (plain ? 2 : 0);
+          if (value > score) { best = { lyrics: text || null, instrumental: !!item.instrumental, source: "LRCLIB" }; score = value; }
+        }
+        return Response.json(best || { lyrics: null, instrumental: false, source: "LRCLIB" }, {
+          headers: { "Cache-Control": "public, max-age=600" }
+        });
+      } catch {
+        return Response.json({ lyrics: null, unavailable: true }, {
+          status: 502, headers: { "Cache-Control": "no-store" }
+        });
+      }
+    }
+
     // Preview lookup is independent of Last.fm credentials and all database state.
     if (url.pathname === "/api/lastfm/preview" && request.method === "GET") {
       const track = (url.searchParams.get("track") || "").trim();
@@ -1639,4 +1690,5 @@ export default {
     return env.ASSETS.fetch(request);
   }
 };
+
 
