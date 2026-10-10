@@ -59,10 +59,11 @@ h1{animation:deepTitleIn .9s cubic-bezier(.22,1,.36,1) both}
 .media-entry{position:relative;isolation:isolate;overflow:hidden;margin-top:24px;padding:24px;border:1px solid #7960b5;border-radius:24px;background:radial-gradient(ellipse at 12% 0%,rgba(167,106,255,.22),transparent 70%),radial-gradient(ellipse at 100% 100%,rgba(79,213,232,.12),transparent 65%),#101018;box-shadow:0 0 28px rgba(151,99,255,.12),inset 0 1px 0 rgba(224,207,255,.12)}
 .media-entry-label{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;font:500 10px/1.4 DM Mono,monospace;letter-spacing:.14em;text-transform:uppercase;color:#c7b7e8;margin-bottom:13px}
 .media-entry-badge{padding:5px 8px;border:1px solid rgba(186,153,255,.35);border-radius:99px;background:rgba(158,102,255,.12);color:#e4d3ff;font-size:9px;letter-spacing:.12em}
-.media-entry-card{position:relative;z-index:1;display:flex;align-items:center;gap:16px;text-decoration:none;color:#fff;padding:18px;border:1px solid rgba(180,143,243,.35);border-radius:20px;background:linear-gradient(115deg,rgba(23,18,35,.86),rgba(12,19,25,.84));transition:transform .25s ease,border-color .25s ease,box-shadow .25s ease}
+.media-entry-card{position:relative;z-index:1;display:flex;align-items:center;gap:16px;text-decoration:none;color:#fff;padding:18px;border:1px solid rgba(180,143,243,.35);border-radius:20px;background:linear-gradient(115deg,rgba(23,18,35,.86),rgba(12,19,25,.84));transition:transform .2s cubic-bezier(.2,.8,.2,1),border-color .25s ease,box-shadow .25s ease}
 .media-entry-card:hover,.media-entry-card:focus-visible{transform:translateY(-3px);border-color:#b899ef;box-shadow:0 12px 32px rgba(113,66,186,.22)}
 .media-entry-card:focus-visible{outline:2px solid #80dfed;outline-offset:4px}
-.media-entry-card:active{transform:scale(.99)}
+.media-entry-card:active{transform:scale(.98);transition-duration:.12s}
+@media(hover:none){.media-entry-card:hover{transform:none}.media-entry-card:active{transform:scale(.98)}}
 .media-mark{width:58px;height:58px;border-radius:15px;display:grid;place-items:center;flex:none;border:1px solid #7854a3;background:linear-gradient(145deg,#37234f,#182632);font:700 26px DM Mono,monospace;color:#ead8ff;box-shadow:0 0 18px rgba(173,112,255,.18);animation:mediaNoteFloat 4s ease-in-out infinite}
 .media-text{min-width:0;flex:1}.media-kicker{font:400 9px/1.4 DM Mono,monospace;color:#b4a2ce;margin-bottom:7px;letter-spacing:.07em}.media-name{font-size:20px;font-weight:800;letter-spacing:-.025em}.media-sub{font:400 10px/1.6 DM Mono,monospace;color:#a2a2b7;margin-top:6px}
 .media-entry-card .arrow{margin-left:auto;flex:none;color:#a4e9ee;font-size:23px;transition:transform .25s ease}
