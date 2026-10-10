@@ -54,6 +54,68 @@ export default {
       return mainId;
     }
 
+    // Preview lookup is independent of Last.fm credentials and all database state.
+    if (url.pathname === "/api/lastfm/preview" && request.method === "GET") {
+      const track = (url.searchParams.get("track") || "").trim();
+      const artist = (url.searchParams.get("artist") || "").trim();
+      const headers = { "Cache-Control": "public, max-age=600" };
+      if (!track || !artist || track.length > 200 || artist.length > 200) {
+        return Response.json({ preview: null }, { status: 400, headers: { "Cache-Control": "no-store" } });
+      }
+      const normalize = value => String(value || "").normalize("NFKD")
+        .replace(/[\u0300-\u036f]/g, "").toLowerCase()
+        .replace(/[^\p{L}\p{N}]+/gu, " ").trim().replace(/\s+/g, " ");
+      // Remove guest credits, but preserve live/remix/version labels to avoid
+      // substituting a different recording with an otherwise similar title.
+      const titleKey = value => normalize(String(value || "")
+        .replace(/\s*[([]\s*(?:feat\.?|ft\.?|featuring)\s+[^)\]]*[)\]]/gi, "")
+        .replace(/\s+(?:feat\.?|ft\.?|featuring)\s+.*$/i, ""));
+      const artistKey = value => normalize(String(value || "")
+        .split(/\s+(?:feat\.?|ft\.?|featuring)\s+/i)[0]);
+      const wantedTitle = titleKey(track), wantedArtist = artistKey(artist);
+      const safeHTTPS = value => {
+        try { const parsed = new URL(value); return parsed.protocol === "https:" ? parsed.href : ""; }
+        catch { return ""; }
+      };
+      if (!wantedTitle || !wantedArtist) {
+        return Response.json({ preview: null }, { status: 400, headers: { "Cache-Control": "no-store" } });
+      }
+      try {
+        const search = new URL("https://itunes.apple.com/search");
+        search.searchParams.set("term", track + " " + artist);
+        search.searchParams.set("media", "music");
+        search.searchParams.set("entity", "song");
+        search.searchParams.set("country", "IN");
+        search.searchParams.set("limit", "25");
+        const response = await fetch(search.toString(), {
+          signal: AbortSignal.timeout(6000),
+          cf: { cacheTtl: 600, cacheEverything: true }
+        });
+        if (!response.ok) throw new Error("Preview provider unavailable");
+        const data = await response.json();
+        let best = null, bestScore = -1;
+        for (const item of Array.isArray(data.results) ? data.results : []) {
+          if (item.kind !== "song" || !safeHTTPS(item.previewUrl)) continue;
+          if (titleKey(item.trackName) !== wantedTitle || artistKey(item.artistName) !== wantedArtist) continue;
+          const score = (normalize(item.trackName) === normalize(track) ? 4 : 0)
+            + (normalize(item.artistName) === normalize(artist) ? 2 : 0);
+          if (score > bestScore) { best = item; bestScore = score; }
+        }
+        return Response.json({ preview: best ? {
+          url: safeHTTPS(best.previewUrl),
+          track: best.trackName,
+          artist: best.artistName,
+          album: best.collectionName || "",
+          storeUrl: safeHTTPS(best.trackViewUrl),
+          duration: 30
+        } : null }, { headers });
+      } catch {
+        return Response.json({ preview: null, unavailable: true }, {
+          status: 502, headers: { "Cache-Control": "no-store" }
+        });
+      }
+    }
+
     // Last.fm: public "now playing" for Deep (API key stays server-side).
     // Remembers the last detected Now Playing track in its own D1 table so it
     // can still be shown (playing: false) when nothing is playing.
@@ -1577,3 +1639,4 @@ export default {
     return env.ASSETS.fetch(request);
   }
 };
+
