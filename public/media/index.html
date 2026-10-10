@@ -468,7 +468,7 @@ function updateLetters(n){
 function fmt(n){n=Math.max(0,Math.floor(n));return Math.floor(n/60)+":"+String(n%60).padStart(2,"0")}
 function loadAudio(){
  if(!audioReady)audioReady=fetch("./allgirls.html").then(r=>{if(!r.ok)throw new Error("Audio source unavailable");return r.text()}).then(source=>{
-  const match=source.match(/<audio\\b[^>]*\\bsrc=["']data:audio\\/wav;base64,([^"']+)["']/i);
+  const match=source.match(/<audio\b[^>]*\bsrc=["']data:audio\/wav;base64,([^"']+)["']/i);
   if(!match)throw new Error("Audio track not found");
   const raw=atob(match[1]),bytes=new Uint8Array(raw.length);
   for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);
