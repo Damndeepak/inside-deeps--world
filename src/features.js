@@ -7,6 +7,8 @@ export async function ensureFeatures(db) {
     db.prepare('CREATE TABLE IF NOT EXISTS message_audio (message_id TEXT PRIMARY KEY, r2_key TEXT NOT NULL, content_type TEXT NOT NULL, size INTEGER NOT NULL, created_at TEXT NOT NULL)'),
     db.prepare('CREATE TABLE IF NOT EXISTS guestbook_entries (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, name TEXT NOT NULL, message TEXT NOT NULL, created_at TEXT NOT NULL)'),
     db.prepare('CREATE INDEX IF NOT EXISTS idx_guestbook_created ON guestbook_entries(created_at)'),
+    db.prepare('CREATE TABLE IF NOT EXISTS memory_visits (user_id TEXT PRIMARY KEY, first_seen_at TEXT NOT NULL, last_seen_at TEXT NOT NULL)'),
+    db.prepare('CREATE INDEX IF NOT EXISTS idx_memory_visits_seen ON memory_visits(last_seen_at)'),
     db.prepare('CREATE TABLE IF NOT EXISTS memory_wall (id TEXT PRIMARY KEY, caption TEXT NOT NULL, memory_date TEXT NOT NULL, r2_key TEXT NOT NULL, content_type TEXT NOT NULL, created_at TEXT NOT NULL)'),
     db.prepare('CREATE TABLE IF NOT EXISTS feature_limits (k TEXT PRIMARY KEY, started INTEGER NOT NULL, n INTEGER NOT NULL)')
   ]).catch(e => { ready.delete(db); throw e; }));
@@ -164,6 +166,20 @@ export async function handleFeatures(request,env,ctx,helpers) {
       if(!row)return fail('Note not found',404);
       if((!user||row.user_id!==user.id)&&!await chatIsAdmin(request))return fail('Not allowed',403);
       await env.DB.prepare('DELETE FROM guestbook_entries WHERE id=?').bind(guest[1]).run();return json({success:true});
+    }
+    if(path==='/api/memories/visits'){
+      if(method==='GET'){
+        if(!await chatIsAdmin(request))return fail('Admin access required',403);
+        const rows=await env.DB.prepare('SELECT u.username,v.first_seen_at,v.last_seen_at FROM memory_visits v JOIN users u ON u.id=v.user_id ORDER BY v.last_seen_at DESC LIMIT 500').all();
+        return json({success:true,visitors:rows.results});
+      }
+      if(method!=='POST')return fail('Method not allowed',405);
+      if(!user)return fail('Reload to get a chat identity',401);
+      const now=new Date().toISOString();
+      await env.DB.prepare(`INSERT INTO memory_visits(user_id,first_seen_at,last_seen_at) VALUES(?,?,?)
+        ON CONFLICT(user_id) DO UPDATE SET last_seen_at=excluded.last_seen_at
+        WHERE memory_visits.last_seen_at <= ?`).bind(user.id,now,now,new Date(Date.now()-30000).toISOString()).run();
+      return json({success:true});
     }
     if(path==='/api/memories'){
       if(method==='GET'){

@@ -199,6 +199,17 @@ h1{animation:deepTitleIn .9s cubic-bezier(.22,1,.36,1) both}
 <link rel="stylesheet" href="/world.css">
 <script src="/world-theme.js"></script>
 <script src="/world-ui.js" defer></script>
+<style id="memory-entry-css">
+.memory-entry{border-color:#438f98;background:radial-gradient(ellipse at 12% 0%,rgba(69,221,205,.22),transparent 70%),radial-gradient(ellipse at 100% 100%,rgba(83,169,255,.12),transparent 65%),#0d1719;box-shadow:0 0 28px rgba(69,221,205,.12),inset 0 1px 0 rgba(194,255,244,.12)}
+.memory-entry .media-entry-label{color:#a7ded7}
+.memory-entry .media-entry-badge{border-color:rgba(108,231,213,.35);background:rgba(54,195,179,.12);color:#ccfff5}
+.memory-entry .media-entry-card{border-color:rgba(108,231,213,.35);background:linear-gradient(115deg,rgba(15,37,35,.86),rgba(12,24,32,.84))}
+.memory-entry .media-entry-card:hover,.memory-entry .media-entry-card:focus-visible{border-color:#85e5d4;box-shadow:0 12px 32px rgba(32,155,139,.22)}
+.memory-entry .media-entry-card:focus-visible{outline-color:#a2f2dd}
+.memory-entry .media-mark{border-color:#3b958b;background:linear-gradient(145deg,#16433e,#182c3a);color:#d1fff3;box-shadow:0 0 18px rgba(76,222,193,.18)}
+.memory-entry .media-kicker{color:#99cfc5}.memory-entry .media-sub{color:#9eb8b8}.memory-entry .arrow{color:#a4f0db}
+.memory-entry .media-bubbles span{border-color:rgba(115,235,211,.32);background:radial-gradient(circle at 30% 25%,rgba(205,255,240,.2),rgba(110,204,232,.04) 65%)}
+</style>
 <link rel="stylesheet" href="/world-motion.css?v=1">
 <script src="/world-motion.js?v=1" defer></script>
 
@@ -210,7 +221,7 @@ h1{animation:deepTitleIn .9s cubic-bezier(.22,1,.36,1) both}
 
 <div aria-hidden="true" class="scroll-progress"><span id="scrollProgress"></span></div>
 <main class="wrap">
-<div class="world-bar"><nav class="world-nav" aria-label="Explore"><a href="/on-repeat.html">On repeat ↗</a><a href="/memories.html">Memory wall ↗</a><a href="#worldGuestbook">Guestbook ↓</a></nav><div class="world-controls" data-theme-controls></div></div>
+<div class="world-bar"><nav class="world-nav" aria-label="Explore"><a href="/on-repeat.html">On repeat ↗</a><a href="#worldGuestbook">Guestbook ↓</a></nav><div class="world-controls" data-theme-controls></div></div>
 <h1>Inside Deep's World</h1><p class="sub">Every section has its own password and its own hint.<br/>You’ll need the right password to unlock each section.</p>
 <section aria-label="Private sections" class="section-list">
 <button class="locked" data-section="people"><div class="row"><div><div class="title">Ppl I fw ❤️</div><div class="hint">A date that matters to me</div></div><div class="lock">⌁</div></div></button>
@@ -220,6 +231,19 @@ h1{animation:deepTitleIn .9s cubic-bezier(.22,1,.36,1) both}
 <button class="locked" data-section="socials"><div class="row"><div><div class="title">Socials</div><div class="hint">A phrase tied to the account.</div></div><div class="lock">⌁</div></div></button>
 <button class="locked" data-section="random"><div class="row"><div><div class="title">Random Shit</div><div class="hint">A word from the Deep lore.</div></div><div class="lock">⌁</div></div></button>
 <button class="locked" data-section="voice-notes"><div class="row"><div><div class="title">Voice Notes</div><div class="hint">If you’re that close, you know it all.</div></div><div class="lock">⌁</div></div></button>
+</section>
+<section aria-label="Memory Wall" class="media-entry memory-entry">
+<div class="media-bubbles" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+<div class="media-entry-label"><span>moments · photos · memories</span><span class="media-entry-badge">Memory Wall</span></div>
+<a class="media-entry-card" href="/memories.html">
+<div class="media-mark" aria-hidden="true">▧</div>
+<div class="media-text">
+<div class="media-kicker">INSIDE DEEP'S WORLD</div>
+<div class="media-name">Memory Wall</div>
+<div class="media-sub">little moments · memories worth keeping</div>
+</div>
+<div class="arrow">↗</div>
+</a>
 </section>
 <section aria-label="Music and Media" class="media-entry">
 <div class="media-bubbles" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div>
