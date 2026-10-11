@@ -234,73 +234,8 @@ h1{animation:deepTitleIn .9s cubic-bezier(.22,1,.36,1) both}
 })();
 </script>
 
-<script id="reflections-player-js">
-(()=>{
-const a=document.getElementById("reflectionsAudio"),p=document.getElementById("refPlay"),f=document.getElementById("refFill"),t=document.getElementById("refTime"),tr=document.getElementById("refTrack"),box=document.getElementById("refLyrics");
-if(!a||!p||!f||!t||!tr||!box)return;
-const DUR=30.040816;
-const L=[[0,["I","never","knew","somebody","like","you,","somebody"]],[5.2,["Falling","just","as","hard"]],[8.55,["I'd","rather","lose","somebody","than","use","somebody"]],[14.65,["Maybe","it's","a","blessing","in","disguise"]],[19.1,["(I","see","myself","in","you)"]],[22.15,["I","see","my","reflection","in","your","eyes"]]];
-const esc=s=>String(s).replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
-function liAt(n){let x=-1;for(let i=0;i<L.length;i++)if(n>=L[i][0])x=i;return x}
-function render(n){let li=liAt(n);box.innerHTML="";if(li<0)return;let s=Math.max(0,li-2),e=Math.min(L.length-1,li+3);for(let i=s;i<=e;i++){let d=document.createElement("div");d.className="ref-line "+(i===li?"current":"");d.dataset.index=i;L[i][1].forEach((w,wi)=>{if(wi)d.insertAdjacentHTML("beforeend",'<span class="ref-space"> </span>');let ws=document.createElement("span");ws.className="ref-word";[...w].forEach(ch=>{let z=document.createElement("span");z.className="ref-char";z.textContent=ch;ws.appendChild(z)});d.appendChild(ws)});box.appendChild(d)}updateChars(n)}
-function updateChars(n){let li=liAt(n),cur=box.querySelector(".current");if(!cur||li<0)return;let words=L[li][1],steps=[.74,.84,.71,.91,.60,.65],step=steps[li]||.65,elapsed=Math.max(0,n-L[li][0]),wordFloat=elapsed/step,wi=Math.floor(wordFloat),wordProgress=wordFloat-wi,chars=[...cur.querySelectorAll(".ref-char")],map=[],charIndex=0;for(let w=0;w<words.length;w++){let len=[...words[w]].length;map.push({start:charIndex,end:charIndex+len});charIndex+=len}chars.forEach(c=>{c.classList.remove("active","hot");c.style.opacity=".34"});if(wi>=words.length){chars.forEach(c=>c.classList.add("active"));return}let range=map[wi],pos=range.start+wordProgress*(range.end-range.start);chars.forEach((c,i)=>{let v=pos-i;if(v>=1)c.classList.add("active");else if(v>0){c.classList.add("hot");c.style.opacity=(.45+.55*v).toFixed(3)}})}
-function fmt(x){x=Math.max(0,Math.floor(x));return Math.floor(x/60)+":"+String(x%60).padStart(2,"0")}
-let last=-1;function tick(){let n=a.currentTime||0,li=liAt(n);if(li!==last){render(n);last=li}else updateChars(n);f.style.width=Math.min(100,n/DUR*100)+"%";t.textContent=fmt(n)+" / 0:30";if(!a.paused&&!a.ended)requestAnimationFrame(tick)}
-p.onclick=()=>a.paused?a.play():a.pause();a.onplay=()=>{p.textContent="❚❚";tick()};a.onpause=()=>p.textContent="▶";a.onended=()=>{a.currentTime=0;last=-1;render(0);f.style.width="0%";t.textContent="0:00";p.textContent="▶"};tr.onclick=e=>{let r=tr.getBoundingClientRect();a.currentTime=((e.clientX-r.left)/r.width)*DUR;last=-1;tick()};render(0);
-})();
-</script>
-<script id="jhumritalaiyya-player-js">
-(()=>{
-const a=document.getElementById("jhumAudio"),p=document.getElementById("jhumPlay"),f=document.getElementById("jhumFill"),t=document.getElementById("jhumTime"),tr=document.getElementById("jhumTrack"),box=document.getElementById("jhumLyrics");
-if(!a||!p||!f||!t||!tr||!box)return;
-const DUR=30;
-const L=[
-[0.0,["गुज़रा","सरफिरा"]],
-[4.2,["चाँद","से,","मैं","गिरा"]],
-[8.7,["थामकर","जो","सिरा"]],
-[13.5,["उसी","तरह","कुछ","मेरा"]],
-[18.1,["दुनिया","ये","थोड़ी","थोड़ी","है","बेहतर","लगे"]],
-[23.3,["मिलके","खोने","का","डर","लगे"]],
-[27.2,["जाना","भी","तो","फिर","से","आना","तू"]]
-];
-function liAt(n){let x=-1;for(let i=0;i<L.length;i++)if(n>=L[i][0])x=i;return x}
-function render(n){
- const li=liAt(n);box.innerHTML="";if(li<0)return;
- const st=Math.max(0,li-2),en=Math.min(L.length-1,li+3);
- for(let i=st;i<=en;i++){
-  const d=document.createElement("div");d.className="ref-line "+(i===li?"current":"");
-  L[i][1].forEach((w,wi)=>{
-   if(wi)d.insertAdjacentHTML("beforeend",'<span class="ref-space"> </span>');
-   const ws=document.createElement("span");ws.className="ref-word";
-   const graphemes=(typeof Intl!=="undefined"&&Intl.Segmenter)?[...new Intl.Segmenter("hi",{granularity:"grapheme"}).segment(w)].map(x=>x.segment):Array.from(w);
-   graphemes.forEach(ch=>{const z=document.createElement("span");z.className="ref-char";z.textContent=ch;ws.appendChild(z)});
-   d.appendChild(ws);
-  });
-  box.appendChild(d);
- }
- updateChars(n);
-}
-function updateChars(n){
- const li=liAt(n),cur=box.querySelector(".current");if(!cur||li<0)return;
- const start=L[li][0],end=li<L.length-1?L[li+1][0]:DUR;
- const chars=[...cur.querySelectorAll(".ref-char")],progress=Math.max(0,Math.min(1,(n-start)/Math.max(.2,end-start))),pos=progress*chars.length;
- chars.forEach((c,i)=>{c.classList.remove("active","hot");c.style.opacity=".34";const v=pos-i;if(v>=1)c.classList.add("active");else if(v>0){c.classList.add("hot");c.style.opacity=(.45+.55*v).toFixed(3)}});
-}
-function fmt(x){x=Math.max(0,Math.floor(x));return Math.floor(x/60)+":"+String(x%60).padStart(2,"0")}
-let last=-1;
-function tick(){
- const n=a.currentTime||0,li=liAt(n);
- if(li!==last){render(n);last=li}else updateChars(n);
- f.style.width=Math.min(100,n/DUR*100)+"%";t.textContent=fmt(n)+" / 0:30";
- if(!a.paused&&!a.ended)requestAnimationFrame(tick);
-}
-p.onclick=()=>a.paused?a.play():a.pause();
-a.onplay=()=>{p.textContent="❚❚";tick()};a.onpause=()=>p.textContent="▶";
-a.onended=()=>{a.currentTime=0;last=-1;render(0);f.style.width="0%";t.textContent="0:00";p.textContent="▶"};
-tr.onclick=e=>{const r=tr.getBoundingClientRect();a.currentTime=((e.clientX-r.left)/r.width)*DUR;last=-1;tick()};
-render(0);
-})();
-</script>
+
+
 
 
 
