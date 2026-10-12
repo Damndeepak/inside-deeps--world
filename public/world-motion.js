@@ -1,18 +1,7 @@
 (()=>{
   'use strict';
   function init(){
-    if(document.querySelector('.deep-ambient'))return;
     const reduced=window.matchMedia('(prefers-reduced-motion: reduce)');
-    const ambient=document.createElement('div');
-    const scene=document.querySelector('.room');
-    ambient.className='deep-ambient'+(scene?' deep-ambient-scene':'');
-    ambient.setAttribute('aria-hidden','true');
-    for(let i=0;i<12;i++){
-      const mote=document.createElement('span');mote.className='deep-mote';
-      mote.style.cssText='--x:'+((i*31+9)%100)+'%;--y:'+((i*47+18)%100)+'%;--size:'+(i%3+2)+'px;--duration:'+(18+i%5*3)+'s;--delay:-'+(i*2+1)+'s';
-      ambient.append(mote);
-    }
-    (scene||document.body).prepend(ambient);
     // Reveal once without hiding content beforehand or touching existing transforms.
     const active=new Set(),seen=new WeakSet();
     const targets='.media-entry,.lfm,.cx-card,.song-player,.public-video-player,.unsent,.world-card,.world-memory,.world-rank';
@@ -31,6 +20,20 @@
       const nodes=[...(root.matches(targets)?[root]:[]),...root.querySelectorAll(targets)];
       for(const node of nodes)if(!seen.has(node)){seen.add(node);observer.observe(node)}
     }
+    // One visibility observer gates decorative motion and background polling.
+    const visibilityMap=new WeakMap();
+    window.worldIsVisible=node=>!document.hidden&&(!node||visibilityMap.get(node)!==false);
+    if('IntersectionObserver' in window){
+      const visible=new IntersectionObserver(entries=>{
+        for(const entry of entries){
+          const previous=visibilityMap.get(entry.target);
+          visibilityMap.set(entry.target,entry.isIntersecting);
+          entry.target.classList.toggle('world-offscreen',!entry.isIntersecting);
+          if(entry.isIntersecting&&previous===false)entry.target.dispatchEvent(new Event('world-visible'));
+        }
+      },{rootMargin:'80px'});
+      document.querySelectorAll('.media-entry,.lfm,.cx-card,.world-card,.song-player').forEach(node=>visible.observe(node));
+    }
     observe(document.body);
     // Observe only dynamic memory/ranking containers, never chat tokens or lyrics.
     const dynamic=document.querySelectorAll('#worldMemories,#worldRepeat');
@@ -46,3 +49,4 @@
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
+

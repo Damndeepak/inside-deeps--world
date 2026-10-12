@@ -14,7 +14,7 @@ async function history(){
     for(const t of d.tracks){const a=trackLink(t,'world-track');a.append(art(t),el('strong','',t.name),el('span','',t.artist));if(t.played_at)a.append(el('small','',stamp(t.played_at*1000)));box.append(a)}
   }catch(e){box.replaceChildren(el('p','world-note',e.message))}
 }
-history();if($('worldHistory'))setInterval(()=>{if(!document.hidden)history()},60000);
+history();if($('worldHistory'))setInterval(()=>{if((window.worldIsVisible||(()=>!document.hidden))($('worldHistory')?.closest('section')))history()},60000);
 async function repeat(){
   const box=$('worldRepeat');if(!box)return;
   try{const d=await api('/api/lastfm/on-repeat');box.replaceChildren();if(!d.tracks.length){box.append(el('p','world-empty',d.configured?'Your week is still quiet. Tracks will appear as you listen.':'Connect the owner’s Last.fm configuration to fill this page.'));return}
@@ -90,4 +90,5 @@ if($('worldMemoryForm')){
   $('worldMemoryForm').addEventListener('submit',async e=>{e.preventDefault();const b=$('worldMemorySend');b.disabled=true;status($('worldMemoryStatus'),'Uploading photo…');try{const f=$('worldMemoryFile').files[0];if(!f||f.size>8*1024*1024)throw new Error('Choose a JPG, PNG, WebP or GIF under 8 MB');const form=new FormData();form.append('image',f);form.append('date',$('worldMemoryDate').value);form.append('caption',$('worldMemoryCaption').value);await api('/api/memories',{method:'POST',headers:adminHeaders(),body:form});$('worldMemoryFile').value='';$('worldMemoryCaption').value='';status($('worldMemoryStatus'),'Memory added.');await memories()}catch(e){status($('worldMemoryStatus'),e.message,true)}finally{b.disabled=false}});
 }
 })();
+
 
