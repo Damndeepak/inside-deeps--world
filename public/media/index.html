@@ -130,6 +130,7 @@ h1{animation:deepTitleIn .9s cubic-bezier(.22,1,.36,1) both}
     Your browser does not support the video tag.
   </video>
 </section>
+<section aria-label="Kabhi Kabhi Aditi music player" class="song-player" id="aditiPlayer" style="padding:0"><div id="aditiVisual"></div><audio id="aditiAudio" playsinline webkit-playsinline preload="metadata" src="./aditi-clip.mp3"></audio></section>
 <section aria-label="Sweet but Psycho music player" class="song-player" id="psychoPlayer" style="padding:0"><div id="psychoVisual"></div><audio id="psychoAudio" playsinline webkit-playsinline preload="metadata" src="./sweet-but-psycho-clip.mp3"></audio></section>
 <section aria-label="Wasted music player" class="song-player unforgettable-player">
 <div class="song-kicker">one little piece</div>
@@ -348,7 +349,9 @@ if(idx>=0){const words=wordNodes,end=lines[idx+1]?.[0]||42.96,duration=(end-line
 
 })();
 </script>
+<script src="./aditi-player.js?v=1"></script>
 </body></html>
+
 
 
 
