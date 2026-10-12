@@ -218,7 +218,11 @@ h1{animation:deepTitleIn .9s cubic-bezier(.22,1,.36,1) both}
 <script src="/remote.js?v=1" defer></script>
 <style>
 .pt-section{position:relative;background:radial-gradient(ellipse at 0 0,rgba(211,157,91,.12),transparent 75%),#101012;border-color:#51422f;margin-top:24px}.pt-section .eyebrow{color:#c7a77c;margin-bottom:10px}.pt-list{display:grid;gap:14px;max-height:620px;overflow:auto;margin-top:18px}.pt-post{padding:22px;border:1px solid #363029;border-radius:18px;background:rgba(255,255,255,.025);animation:ptEnter .45s ease both}.pt-body{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:clamp(18px,4vw,24px);font-weight:600;line-height:1.65;letter-spacing:-.025em}.pt-meta{color:#9b8b76;font:400 10px/1.5 DM Mono,monospace;margin-top:16px}.pt-tools{display:flex;gap:14px;margin-top:12px}.pt-section [hidden]{display:none!important}.pt-section textarea{font-size:16px}.pt-section button:focus-visible{outline:2px solid #d2af7f;outline-offset:3px}@keyframes ptEnter{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}@media(prefers-reduced-motion:reduce){.pt-post{animation:none}}
-</style><script src="/public-thoughts.js?v=1" defer></script></head>
+</style><script src="/public-thoughts.js?v=1" defer></script><style id="thoughts-entry-css">
+.thoughts-entry{border-color:#b2864f;background:radial-gradient(ellipse at 12% 0%,rgba(245,177,89,.22),transparent 70%),radial-gradient(ellipse at 100% 100%,rgba(232,127,104,.12),transparent 65%),#18130f;box-shadow:0 0 28px rgba(222,157,72,.12),inset 0 1px 0 rgba(255,229,185,.12)}
+.thoughts-entry .media-entry-label{color:#e5c499}.thoughts-entry .media-entry-badge{border-color:rgba(242,185,112,.35);background:rgba(234,163,67,.12);color:#ffe0b2}.thoughts-entry .media-entry-card{width:100%;font-family:inherit;text-align:left;cursor:pointer;border-color:rgba(230,175,101,.35);background:linear-gradient(115deg,rgba(40,28,17,.86),rgba(29,19,18,.84))}.thoughts-entry .media-entry-card:hover,.thoughts-entry .media-entry-card:focus-visible{border-color:#edbb79;box-shadow:0 12px 32px rgba(191,127,49,.22)}.thoughts-entry .media-entry-card:focus-visible{outline-color:#f6cc91}.thoughts-entry .media-mark{border-color:#9d703b;background:linear-gradient(145deg,#4a321c,#302022);color:#ffe0b2;box-shadow:0 0 18px rgba(238,174,90,.18)}.thoughts-entry .media-kicker{color:#cfaf87}.thoughts-entry .media-sub{color:#b9a795}.thoughts-entry .arrow{color:#ffd296}.thoughts-entry .media-bubbles span{border-color:rgba(246,191,120,.32);background:radial-gradient(circle at 30% 25%,rgba(255,230,192,.2),rgba(232,139,113,.04) 65%)}
+.pt-dialog{width:min(760px,calc(100% - 24px));max-height:88dvh;padding:20px;background:#101012;color:#f4f4f5;border:1px solid #705332;border-radius:24px;overflow:auto}.pt-dialog::backdrop{background:rgba(0,0,0,.78);backdrop-filter:blur(10px)}.pt-dialog-close{display:flex;justify-content:flex-end}.pt-dialog .pt-section{margin-top:12px}.pt-dialog .pt-list{max-height:none;overflow:visible}
+</style></head>
 <body>
 
 <div aria-hidden="true" class="scroll-progress"><span id="scrollProgress"></span></div>
@@ -247,6 +251,12 @@ h1{animation:deepTitleIn .9s cubic-bezier(.22,1,.36,1) both}
 <div class="arrow">↗</div>
 </a>
 </section>
+<section aria-label="Public Thoughts" class="media-entry thoughts-entry">
+<div class="media-bubbles" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+<div class="media-entry-label"><span>thoughts · opinions · inside my mind</span><span class="media-entry-badge">Public Thoughts</span></div>
+<button class="media-entry-card" id="ptOpen" type="button" aria-haspopup="dialog" aria-controls="ptDialog">
+<div class="media-mark" aria-hidden="true">✎</div><div class="media-text"><div class="media-kicker">INSIDE DEEP'S WORLD</div><div class="media-name">Public Thoughts</div><div class="media-sub">things on my mind · out in the open</div></div><div class="arrow" aria-hidden="true">↗</div>
+</button></section>
 <section aria-label="Music and Media" class="media-entry">
 <div class="media-bubbles" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div>
 <div class="media-entry-label"><span>songs · lyrics · video</span><span class="media-entry-badge">Featured</span></div>
@@ -276,12 +286,7 @@ h1{animation:deepTitleIn .9s cubic-bezier(.22,1,.36,1) both}
 </div>
 <div class="lfm-privacy">Connecting shows your Last.fm username and what you're listening to on this page, publicly. Only your username is saved, never your password. You can disconnect anytime.</div>
 </section>
-<section class="world-card pt-section" id="publicThoughts" aria-labelledby="ptTitle">
-<div class="world-heading"><div><div class="eyebrow">Inside Deep’s mind</div><h2 id="ptTitle">Public Thoughts</h2></div><button type="button" class="world-delete" id="ptAdmin">Admin</button></div>
-<p class="world-note">Things on my mind. Out in the open.</p>
-<form id="ptForm" class="world-form" hidden><label for="ptText">Your thought · public to everyone</label><textarea id="ptText" maxlength="2000" required placeholder="What's on your mind?"></textarea><div class="world-actions"><button type="submit" class="world-button primary" id="ptSave">Publish thought</button><button type="button" class="world-button" id="ptCancel" hidden>Cancel edit</button></div></form>
-<div class="world-status" id="ptStatus" role="status" aria-live="polite"></div><div id="ptList" class="pt-list"><p class="world-note">Loading thoughts…</p></div>
-</section>
+
 <section aria-label="Chat" class="cx-card" id="cxChat">
 <div class="cx-head"><div class="cx-label"><span class="cx-dot"></span>chat // everyone</div><div class="cx-count" id="cxCount"></div></div>
 <div class="cx-id">You appear as <b id="cxMe">loading...</b>.
@@ -1177,6 +1182,20 @@ async function save(sub){const r=await fetch("/api/push/subscribe",{method:"POST
 })();
 </script>
 
+<dialog id="ptDialog" class="pt-dialog" aria-labelledby="ptTitle"><div class="pt-dialog-close"><button type="button" class="close" id="ptClose" aria-label="Close thoughts">×</button></div><section class="world-card pt-section" id="publicThoughts" aria-labelledby="ptTitle">
+<div class="world-heading"><div><div class="eyebrow">Inside Deep’s mind</div><h2 id="ptTitle">Public Thoughts</h2></div><button type="button" class="world-delete" id="ptAdmin">Admin</button></div>
+<p class="world-note">Things on my mind. Out in the open.</p>
+<form id="ptForm" class="world-form" hidden><label for="ptText">Your thought · public to everyone</label><textarea id="ptText" maxlength="2000" required placeholder="What's on your mind?"></textarea><div class="world-actions"><button type="submit" class="world-button primary" id="ptSave">Publish thought</button><button type="button" class="world-button" id="ptCancel" hidden>Cancel edit</button></div></form>
+<div class="world-status" id="ptStatus" role="status" aria-live="polite"></div><div id="ptList" class="pt-list"><p class="world-note">Loading thoughts…</p></div>
+</section></dialog>
+<script>
+(() => {
+const dialog=document.getElementById('ptDialog'),open=document.getElementById('ptOpen');
+open.addEventListener('click',()=>dialog.showModal());
+document.getElementById('ptClose').addEventListener('click',()=>dialog.close());
+dialog.addEventListener('click',event=>{if(event.target===dialog){const r=dialog.getBoundingClientRect();if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)dialog.close()}});
+})();
+</script>
 </body></html>
 
 
