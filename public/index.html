@@ -230,11 +230,11 @@ h1{animation:deepTitleIn .9s cubic-bezier(.22,1,.36,1) both}
 <div class="arrow">↗</div>
 </a>
 </section>
-<section aria-label="Public Thoughts" class="media-entry thoughts-entry">
+<section aria-label="Inside Deep’s Mind" class="media-entry thoughts-entry">
 <div class="media-bubbles" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div>
-<div class="media-entry-label"><span>thoughts · opinions · inside my mind</span><span class="media-entry-badge">Public Thoughts</span></div>
+<div class="media-entry-label"><span>thoughts · opinions · inside my mind</span><span class="media-entry-badge">Inside Deep’s Mind</span></div>
 <button class="media-entry-card" id="ptOpen" type="button" aria-haspopup="dialog" aria-controls="ptDialog">
-<div class="media-mark" aria-hidden="true">✎</div><div class="media-text"><div class="media-kicker">INSIDE DEEP'S WORLD</div><div class="media-name">Public Thoughts</div><div class="media-sub">things on my mind · out in the open</div></div><div class="arrow" aria-hidden="true">↗</div>
+<div class="media-mark" aria-hidden="true">✎</div><div class="media-text"><div class="media-kicker">INSIDE DEEP'S WORLD</div><div class="media-name">Inside Deep’s Mind</div><div class="media-sub">things on my mind · out in the open</div></div><div class="arrow" aria-hidden="true">↗</div>
 </button></section>
 <section aria-label="Music and Media" class="media-entry">
 <div class="media-bubbles" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div>
@@ -1141,7 +1141,7 @@ async function save(sub){const r=await fetch("/api/push/subscribe",{method:"POST
 </script>
 
 <dialog id="ptDialog" class="pt-dialog" aria-labelledby="ptTitle"><div class="pt-dialog-close"><button type="button" class="close" id="ptClose" aria-label="Close thoughts">×</button></div><section class="world-card pt-section" id="publicThoughts" aria-labelledby="ptTitle">
-<div class="world-heading"><div><div class="eyebrow">Inside Deep’s mind</div><h2 id="ptTitle">Public Thoughts</h2></div><button type="button" class="world-delete" id="ptAdmin">Admin</button></div>
+<div class="world-heading"><div><div class="eyebrow">Inside Deep’s mind</div><h2 id="ptTitle">Inside Deep’s Mind</h2></div><button type="button" class="world-delete" id="ptAdmin">Admin</button></div>
 <p class="world-note">Things on my mind. Out in the open.</p>
 <form id="ptForm" class="world-form" hidden><label for="ptText">Your thought · public to everyone</label><textarea id="ptText" maxlength="2000" required placeholder="What's on your mind?"></textarea><div class="world-actions"><button type="submit" class="world-button primary" id="ptSave">Publish thought</button><button type="button" class="world-button" id="ptCancel" hidden>Cancel edit</button></div></form>
 <div class="world-status" id="ptStatus" role="status" aria-live="polite"></div><div id="ptList" class="pt-list"><p class="world-note">Loading thoughts…</p></div>
