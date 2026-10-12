@@ -59,7 +59,7 @@ export async function handleFeatures(request,env,ctx,helpers) {
   const {getUser,getUserId,chatIsAdmin,ensureChatSchema,notifyChat,chatSniffImage}=helpers;
   let storedKey=null;
   try {
-    if(!['GET','POST','DELETE'].includes(method))return fail('Method not allowed',405);
+    if(!['GET','POST','DELETE'].includes(method)&&!(method==='PATCH'&&/^\/api\/memories\/[A-Za-z0-9_-]+$/.test(path)))return fail('Method not allowed',405);
     if(method!=='GET'){
       const origin=request.headers.get('Origin');
       if(origin&&origin!==url.origin)return fail('Cross-site request rejected',403);
@@ -200,6 +200,16 @@ export async function handleFeatures(request,env,ctx,helpers) {
     }
     const memory=path.match(/^\/api\/memories\/([A-Za-z0-9_-]+)(\/image)?$/);
     if(memory){
+      if(!memory[2]&&method==='PATCH'){
+        if(!await chatIsAdmin(request))return fail('Admin access required',403);
+        const body=await request.json();
+        if(!body||typeof body.caption!=='string'||typeof body.date!=='string')return fail('Enter a valid date and caption');
+        const caption=body.caption.trim(),date=body.date;
+        if(caption.length>500||!/^\d{4}-\d{2}-\d{2}$/.test(date)||!Number.isFinite(Date.parse(date))||new Date(date).toISOString().slice(0,10)!==date)return fail('Enter a valid date and caption under 501 characters');
+        const result=await env.DB.prepare('UPDATE memory_wall SET caption=?,memory_date=? WHERE id=?').bind(caption,date,memory[1]).run();
+        if(!result.meta?.changes)return fail('Memory not found',404);
+        return json({success:true});
+      }
       const row=await env.DB.prepare('SELECT r2_key,content_type FROM memory_wall WHERE id=?').bind(memory[1]).first();
       if(!row)return fail('Memory not found',404);
       if(memory[2]&&method==='GET'&&env.CHAT_IMAGES)return await mediaResponse(request,env.CHAT_IMAGES,row.r2_key,row.content_type);
@@ -216,3 +226,4 @@ export async function handleFeatures(request,env,ctx,helpers) {
     return fail(e instanceof SyntaxError?'Invalid request':'Could not complete request; try again',e instanceof SyntaxError?400:500);
   }
 }
+
