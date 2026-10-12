@@ -99,6 +99,23 @@ h1{animation:deepTitleIn .9s cubic-bezier(.22,1,.36,1) both}
 
 <link rel="stylesheet" href="/world-motion.css?v=1">
 <script src="/world-motion.js?v=1" defer></script>
+<style id="uf-wordstorm-style">
+.uf-wordstorm{position:relative;isolation:isolate;background:radial-gradient(ellipse at 50% 35%,#59216b44,transparent 65%),#0d0915;border-color:#844ea466}
+.uf-wordstorm .song-title,.uf-wordstorm .song-controls{position:relative;z-index:2}
+.uf-wordstorm .uf-lyrics{position:relative;z-index:2;height:240px;text-align:center;gap:20px}
+.uf-wordstorm .uf-line:not(.uf-current){font-size:13px;opacity:.35!important;color:#b6a4ca}
+.uf-wordstorm .uf-line:first-child:not(.uf-current){display:none}
+.uf-wordstorm .uf-line.uf-current{font-size:clamp(28px,6vw,48px);line-height:1.3;transform:none;letter-spacing:-.04em}
+.uf-wordstorm .uf-rise{animation:ufSilkRise .95s cubic-bezier(.22,1,.36,1) both}
+@keyframes ufSilkRise{from{opacity:.15;transform:translate3d(0,22px,0)}to{opacity:1;transform:translate3d(0,0,0)}}
+.uf-wordstorm .uf-happy-word{display:inline-block;transition:opacity .42s ease,transform .48s cubic-bezier(.22,1,.36,1);opacity:.45;transform:translateY(0) scale(1)}
+.uf-wordstorm .uf-word-hot{opacity:1;transform:translateY(-3px) scale(1.035)}
+.uf-wordstorm .uf-word-done{opacity:.8}
+.uf-wordstorm .uf-letter.uf-lit{text-shadow:0 0 12px #f7b8ff,0 0 30px #c641ff;transition:color .2s ease,text-shadow .3s ease}
+.uf-wordstorm canvas{position:absolute;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+.uf-wordstorm .uf-energy-halo{position:absolute;left:50%;top:45%;width:220px;height:220px;border:1px solid #c468f933;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 80px #9d20e422,inset 0 0 60px #ab2bd422;pointer-events:none;z-index:0}
+@media(prefers-reduced-motion:reduce){.uf-wordstorm .uf-rise{animation:none}.uf-wordstorm .uf-happy-word{transition:none;transform:none}.uf-wordstorm canvas{display:none}}
+</style>
 </head>
 <body>
 <div aria-hidden="true" class="scroll-progress"><span id="scrollProgress"></span></div>
@@ -249,6 +266,7 @@ const fmt=n=>Math.floor(Math.max(0,n)/60)+':'+String(Math.floor(Math.max(0,n))%6
 for(const config of players){
  const a=document.getElementById(config.audio),p=document.getElementById(config.prefix+'Play'),f=document.getElementById(config.prefix+'Fill'),t=document.getElementById(config.prefix+'Time'),tr=document.getElementById(config.prefix+'Track'),box=document.getElementById(config.box);
  let last=-1,raf=0,loading=false,currentLetters=[],ranges=[];
+ const happy=config.audio==='ufAudio';if(happy)a.closest('section').classList.add('uf-wordstorm');
   function lineAt(n){let index=0;for(let i=0;i<config.lines.length;i++)if(n>=config.lines[i][0])index=i;return index}
  function render(index){
   box.replaceChildren();currentLetters=[];ranges=[];
@@ -263,6 +281,7 @@ for(const config of players){
     if(i===index)ranges.push({start,end:currentLetters.length});
     row.appendChild(span);
    });
+   if(happy&&i===index){row.classList.add('uf-rise');row.querySelectorAll(':scope > span').forEach(el=>el.classList.add('uf-happy-word'))}
    box.appendChild(row);
   }
  }
@@ -278,6 +297,7 @@ for(const config of players){
    if(wi>=0){const r=ranges[wi],stop=starts[wi+1]??(config.mode==='steps'?Math.min(end,starts[wi]+config.steps[index]):end);position=r.start+Math.max(0,Math.min(1,(now-starts[wi])/Math.max(.05,stop-starts[wi])))*(r.end-r.start)}
   }
   currentLetters.forEach((el,i)=>el.classList.toggle('uf-lit',i<position));
+  if(happy){const words=box.querySelectorAll('.uf-current .uf-happy-word');let active=-1;ranges.forEach((r,i)=>{if(position>=r.start)active=i});words.forEach((el,i)=>{el.classList.toggle('uf-word-hot',i===active);el.classList.toggle('uf-word-done',i<active)});a.dispatchEvent(new CustomEvent('uf-word',{detail:words[active]?.textContent||''}))}
   f.style.width=(now/config.duration*100)+'%';t.textContent=fmt(now);
  }
  function tick(){paint();if(!a.paused&&!a.ended)raf=requestAnimationFrame(tick)}
@@ -299,4 +319,17 @@ for(const config of players){
 }
 })();
 </script>
+<script id="uf-wordstorm-rain">
+(()=>{const audio=document.getElementById('ufAudio'),card=audio.closest('section'),canvas=document.createElement('canvas'),halo=document.createElement('div');halo.className='uf-energy-halo';card.prepend(canvas,halo);const ctx=canvas.getContext('2d'),reduced=matchMedia('(prefers-reduced-motion:reduce)').matches;let particles=[],word='UNFORGETTABLE',width=0,height=0,raf=0,last=0,clock=0,ac,an,bins,energy=0;
+function resize(){width=card.clientWidth;height=card.clientHeight;const d=Math.min(devicePixelRatio||1,2);canvas.width=width*d;canvas.height=height*d;ctx.setTransform(d,0,0,d,0,0)}resize();if('ResizeObserver'in window)new ResizeObserver(resize).observe(card);else addEventListener('resize',resize);
+audio.addEventListener('uf-word',e=>{if(e.detail)word=e.detail});
+function spawn(){particles.push({word,x:Math.random()*width,y:-30,v:45+Math.random()*80,drift:(Math.random()-.5)*18,size:11+Math.random()*18,alpha:.12+Math.random()*.22,age:0,phase:Math.random()*6.28});if(particles.length>60)particles.shift()}
+function frame(now){raf=0;if(audio.paused||audio.ended||document.hidden)return;const dt=Math.min(.05,(now-last)/1000||0);last=now;clock+=dt;if(clock>.14){clock=0;spawn()}if(an){an.getByteFrequencyData(bins);let sum=0;for(let i=0;i<24;i++)sum+=bins[i];energy+=(sum/(24*255)-energy)*(1-Math.exp(-dt*7))}halo.style.transform='translate(-50%,-50%) scale('+(1+energy*.35)+')';halo.style.opacity=.3+energy*.7;ctx.clearRect(0,0,width,height);particles=particles.filter(p=>p.y<height+40);for(const p of particles){p.age+=dt;p.y+=p.v*dt;p.x+=(p.drift+Math.sin(p.age*.8+p.phase)*9)*dt;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(Math.sin(p.phase)*.15);ctx.font='900 '+p.size+'px Arial';ctx.fillStyle='rgba(220,157,255,'+(p.alpha*Math.min(1,p.age/1.2)*Math.min(1,(height+40-p.y)/120))+')';ctx.fillText(p.word,0,0);ctx.restore()}raf=requestAnimationFrame(frame)}
+function start(){if(reduced||document.hidden||raf||audio.paused)return;last=performance.now();raf=requestAnimationFrame(frame)}
+// Audio remains in the document so the existing exclusive playback coordinator sees it.
+document.getElementById('ufPlay').addEventListener('click',()=>{try{if(!ac){const AudioCtx=window.AudioContext||window.webkitAudioContext;if(AudioCtx){ac=new AudioCtx();an=ac.createAnalyser();an.fftSize=256;const source=ac.createMediaElementSource(audio);source.connect(an);an.connect(ac.destination);bins=new Uint8Array(an.frequencyBinCount)}}if(ac)ac.resume().catch(()=>{})}catch{} });
+audio.addEventListener('play',start);audio.addEventListener('pause',()=>{cancelAnimationFrame(raf);raf=0});audio.addEventListener('ended',()=>{particles=[];ctx.clearRect(0,0,width,height)});audio.addEventListener('seeked',()=>{particles=[];ctx.clearRect(0,0,width,height);start()});document.addEventListener('visibilitychange',()=>{if(document.hidden){cancelAnimationFrame(raf);raf=0}else start()});
+})();
+</script>
 </body></html>
+
