@@ -216,7 +216,9 @@ h1{animation:deepTitleIn .9s cubic-bezier(.22,1,.36,1) both}
 <link rel="stylesheet" href="/remote.css?v=1">
 <script src="/remote-qr.js?v=1" defer></script>
 <script src="/remote.js?v=1" defer></script>
-</head>
+<style>
+.pt-section{position:relative;background:radial-gradient(ellipse at 0 0,rgba(211,157,91,.12),transparent 75%),#101012;border-color:#51422f;margin-top:24px}.pt-section .eyebrow{color:#c7a77c;margin-bottom:10px}.pt-list{display:grid;gap:14px;max-height:620px;overflow:auto;margin-top:18px}.pt-post{padding:22px;border:1px solid #363029;border-radius:18px;background:rgba(255,255,255,.025);animation:ptEnter .45s ease both}.pt-body{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:clamp(18px,4vw,24px);font-weight:600;line-height:1.65;letter-spacing:-.025em}.pt-meta{color:#9b8b76;font:400 10px/1.5 DM Mono,monospace;margin-top:16px}.pt-tools{display:flex;gap:14px;margin-top:12px}.pt-section [hidden]{display:none!important}.pt-section textarea{font-size:16px}.pt-section button:focus-visible{outline:2px solid #d2af7f;outline-offset:3px}@keyframes ptEnter{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}@media(prefers-reduced-motion:reduce){.pt-post{animation:none}}
+</style><script src="/public-thoughts.js?v=1" defer></head>
 <body>
 
 <div aria-hidden="true" class="scroll-progress"><span id="scrollProgress"></span></div>
@@ -273,6 +275,12 @@ h1{animation:deepTitleIn .9s cubic-bezier(.22,1,.36,1) both}
 <button class="lfm-btn" id="lfmConnectBtn" type="button">Connect Last.fm</button>
 </div>
 <div class="lfm-privacy">Connecting shows your Last.fm username and what you're listening to on this page, publicly. Only your username is saved, never your password. You can disconnect anytime.</div>
+</section>
+<section class="world-card pt-section" id="publicThoughts" aria-labelledby="ptTitle">
+<div class="world-heading"><div><div class="eyebrow">Inside Deep’s mind</div><h2 id="ptTitle">Public Thoughts</h2></div><button type="button" class="world-delete" id="ptAdmin">Admin</button></div>
+<p class="world-note">Things on my mind. Out in the open.</p>
+<form id="ptForm" class="world-form" hidden><label for="ptText">Your thought · public to everyone</label><textarea id="ptText" maxlength="2000" required placeholder="What's on your mind?"></textarea><div class="world-actions"><button type="submit" class="world-button primary" id="ptSave">Publish thought</button><button type="button" class="world-button" id="ptCancel" hidden>Cancel edit</button></div></form>
+<div class="world-status" id="ptStatus" role="status" aria-live="polite"></div><div id="ptList" class="pt-list"><p class="world-note">Loading thoughts…</p></div>
 </section>
 <section aria-label="Chat" class="cx-card" id="cxChat">
 <div class="cx-head"><div class="cx-label"><span class="cx-dot"></span>chat // everyone</div><div class="cx-count" id="cxCount"></div></div>
@@ -1170,6 +1178,7 @@ async function save(sub){const r=await fetch("/api/push/subscribe",{method:"POST
 </script>
 
 </body></html>
+
 
 
 

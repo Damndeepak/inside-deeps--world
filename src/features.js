@@ -10,6 +10,7 @@ export async function ensureFeatures(db) {
     db.prepare('CREATE TABLE IF NOT EXISTS memory_visits (user_id TEXT PRIMARY KEY, first_seen_at TEXT NOT NULL, last_seen_at TEXT NOT NULL)'),
     db.prepare('CREATE INDEX IF NOT EXISTS idx_memory_visits_seen ON memory_visits(last_seen_at)'),
     db.prepare('CREATE TABLE IF NOT EXISTS memory_wall (id TEXT PRIMARY KEY, caption TEXT NOT NULL, memory_date TEXT NOT NULL, r2_key TEXT NOT NULL, content_type TEXT NOT NULL, created_at TEXT NOT NULL)'),
+    db.prepare('CREATE TABLE IF NOT EXISTS public_thoughts (id TEXT PRIMARY KEY, body TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)'),
     db.prepare('CREATE TABLE IF NOT EXISTS feature_limits (k TEXT PRIMARY KEY, started INTEGER NOT NULL, n INTEGER NOT NULL)')
   ]).catch(e => { ready.delete(db); throw e; }));
   await ready.get(db);
@@ -54,12 +55,12 @@ async function mediaResponse(request,bucket,key,type) {
 }
 export async function handleFeatures(request,env,ctx,helpers) {
   const url=new URL(request.url), path=url.pathname, method=request.method;
-  const known=path==='/api/lastfm/history'||path==='/api/lastfm/on-repeat'||path==='/api/chat/presence'||path==='/api/chat/reactions'||path==='/api/chat/voice'||/^\/api\/chat\/audio\/[A-Za-z0-9_-]+$/.test(path)||/^\/api\/guestbook(?:\/[A-Za-z0-9_-]+)?$/.test(path)||/^\/api\/memories(?:\/[A-Za-z0-9_-]+(?:\/image)?)?$/.test(path);
+  const known=/^\/api\/thoughts(?:\/[A-Za-z0-9_-]{1,64})?$/.test(path)||path==='/api/lastfm/history'||path==='/api/lastfm/on-repeat'||path==='/api/chat/presence'||path==='/api/chat/reactions'||path==='/api/chat/voice'||/^\/api\/chat\/audio\/[A-Za-z0-9_-]+$/.test(path)||/^\/api\/guestbook(?:\/[A-Za-z0-9_-]+)?$/.test(path)||/^\/api\/memories(?:\/[A-Za-z0-9_-]+(?:\/image)?)?$/.test(path);
   if(!known)return null;
   const {getUser,getUserId,chatIsAdmin,ensureChatSchema,notifyChat,chatSniffImage}=helpers;
   let storedKey=null;
   try {
-    if(!['GET','POST','DELETE'].includes(method)&&!(method==='PATCH'&&/^\/api\/memories\/[A-Za-z0-9_-]+$/.test(path)))return fail('Method not allowed',405);
+    if(!['GET','POST','DELETE'].includes(method)&&!(method==='PATCH'&&(/^\/api\/thoughts\/[A-Za-z0-9_-]{1,64}$/.test(path)||/^\/api\/memories\/[A-Za-z0-9_-]+$/.test(path))))return fail('Method not allowed',405);
     if(method!=='GET'){
       const origin=request.headers.get('Origin');
       if(origin&&origin!==url.origin)return fail('Cross-site request rejected',403);
@@ -80,6 +81,29 @@ export async function handleFeatures(request,env,ctx,helpers) {
       return json({success:true,configured:true,username:env.LASTFM_USERNAME,period:repeat?'7day':null,tracks});
     }
     await ensureFeatures(env.DB);
+    if(path==='/api/thoughts'||path.startsWith('/api/thoughts/')){
+      const id=path.split('/')[3];
+      if(method==='GET'&&!id){
+        const rows=await env.DB.prepare('SELECT id,body,created_at,updated_at FROM public_thoughts ORDER BY created_at DESC,id DESC LIMIT 100').all();
+        return json({success:true,thoughts:rows.results});
+      }
+      if(!((method==='POST'&&!id)||(['PATCH','DELETE'].includes(method)&&id)))return fail('Method not allowed',405);
+      if(!await chatIsAdmin(request))return fail('Admin access required',403);
+      if(method==='DELETE'){
+        const result=await env.DB.prepare('DELETE FROM public_thoughts WHERE id=?').bind(id).run();
+        return result.meta?.changes?json({success:true}):fail('Thought not found',404);
+      }
+      const data=await smallJson(request);
+      if(!data||typeof data.body!=='string'||!data.body.trim()||data.body.trim().length>2000)return fail('Write a thought between 1 and 2000 characters');
+      const body=data.body.trim(),now=new Date().toISOString();
+      if(method==='POST'){
+        const newId=crypto.randomUUID();
+        await env.DB.prepare('INSERT INTO public_thoughts(id,body,created_at,updated_at) VALUES(?,?,?,?)').bind(newId,body,now,now).run();
+        return json({success:true,id:newId},201);
+      }
+      const result=await env.DB.prepare('UPDATE public_thoughts SET body=?,updated_at=? WHERE id=?').bind(body,now,id).run();
+      return result.meta?.changes?json({success:true}):fail('Thought not found',404);
+    }
     const userId=getUserId(request);
     const user=method!=='GET'?await getUser(userId):null;
     if(path==='/api/chat/presence'){
@@ -226,4 +250,5 @@ export async function handleFeatures(request,env,ctx,helpers) {
     return fail(e instanceof SyntaxError?'Invalid request':'Could not complete request; try again',e instanceof SyntaxError?400:500);
   }
 }
+
 
