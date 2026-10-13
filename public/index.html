@@ -223,6 +223,15 @@ html[data-world-theme=light] :is(.media-entry-label,.media-kicker,.media-sub){co
 
 <div aria-hidden="true" class="scroll-progress"><span id="scrollProgress"></span></div>
 <main class="wrap">
+<section aria-label="Deeplist Now Playing" class="lfm" id="lfm">
+<div class="lfm-label" id="lfmLabel">deeplist // now playing</div>
+<div id="lfmBody"><div class="lfm-empty">Checking Deeplist…</div></div>
+<p class="lfm-empty" id="deeplistHomeLyrics"></p>
+<a class="world-link" href="/deeplist.html">Listen with synced lyrics ↗</a>
+</section>
+<section class="world-card" aria-label="Recent listening"><div class="world-heading"><h2>Recently in my ears</h2><a class="world-link" href="/on-repeat.html">This week ↗</a></div><div id="worldHistory" class="world-history"><p class="world-note">Loading recent tracks…</p></div></section>
+<section class="world-card" aria-label="Other Deeplist listeners"><div class="world-heading"><h2>Listening around here</h2><a class="world-link" href="/deeplist.html">Connect your Deeplist ↗</a></div><div id="deeplistListeners" class="world-history" style="display:flex;flex-wrap:nowrap;overflow-x:auto;gap:12px"><p class="world-note">Checking connected listeners…</p></div></section>
+
 <section aria-label="Chat" class="cx-card" id="cxChat">
 <div class="cx-head"><div class="cx-label"><span class="cx-dot"></span>chat // everyone</div><div class="cx-count" id="cxCount"></div></div>
 <div class="cx-id">You appear as <b id="cxMe">loading...</b>.
@@ -296,18 +305,6 @@ html[data-world-theme=light] :is(.media-entry-label,.media-kicker,.media-sub){co
 <div class="arrow">↗</div>
 </a>
 </section>
-<section aria-label="Deeplist Now Playing" class="lfm" id="lfm">
-<div class="lfm-label" id="lfmLabel">deeplist // now playing</div>
-<div id="lfmBody"><div class="lfm-empty">Checking Deeplist…</div></div>
-<p class="lfm-empty" id="deeplistHomeLyrics"></p>
-<a class="world-link" href="/deeplist.html">Listen with synced lyrics · Connect Deeplist ↗</a>
-</section>
-
-
-<section class="world-card" aria-label="Other Deeplist listeners"><div class="world-heading"><h2>Listening around here</h2><a class="world-link" href="/deeplist.html">Connect your Deeplist ↗</a></div><div id="deeplistListeners" class="world-history"><p class="world-note">Checking connected listeners…</p></div></section>
-<section class="world-card" aria-label="Recent listening"><div class="world-heading"><h2>Recently in my ears</h2><a class="world-link" href="/on-repeat.html">This week ↗</a></div><div id="worldHistory" class="world-history"><p class="world-note">Loading recent tracks…</p></div></section>
-
-
 <div class="cx-lightbox" hidden id="cxLightbox"><img alt="" id="cxLightImg"/></div>
 
 </main>
