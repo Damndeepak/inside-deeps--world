@@ -27,18 +27,6 @@ let adminKey='';try{adminKey=sessionStorage.getItem('cxAdminKey')||''}catch{}
 let isAdmin=false;
 async function checkAdmin(){if(!adminKey)return false;try{return!!(await api('/api/chat/admin/check',{headers:{'X-Admin-Key':adminKey}})).admin}catch{return false}}
 const adminHeaders=()=>isAdmin?{'X-Admin-Key':adminKey}:{};
-async function guests(){
-  const box=$('worldGuests');if(!box)return;
-  try{const d=await api('/api/guestbook');box.replaceChildren();if(!d.entries.length)box.append(el('p','world-note','No notes yet. Leave the first little trace.'));
-    d.entries.forEach(g=>{const card=el('article','world-entry'),head=el('header');head.append(el('span','',g.name),el('time','',stamp(g.created_at)));card.append(head,el('p','',g.message));if(g.mine||isAdmin){const b=el('button','world-delete','Delete');b.onclick=async()=>{if(!confirm('Delete this guestbook note?'))return;b.disabled=true;try{await api('/api/guestbook/'+g.id,{method:'DELETE',headers:adminHeaders()});await guests()}catch(e){status($('worldGuestStatus'),e.message,true);b.disabled=false}};card.append(b)}box.append(card)});
-  }catch(e){status($('worldGuestStatus'),e.message,true)}
-}
-if($('worldGuestForm')){
-  guests();
-  $('worldGuestForm').addEventListener('submit',async e=>{e.preventDefault();const b=$('worldGuestSend');b.disabled=true;status($('worldGuestStatus'),'Saving your note…');
-    try{await ensureUser();await api('/api/guestbook',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:$('worldGuestName').value,message:$('worldGuestText').value})});$('worldGuestText').value='';status($('worldGuestStatus'),'You left a little trace.');await guests()}catch(e){status($('worldGuestStatus'),e.message,true)}finally{b.disabled=false}
-  });
-}
 async function memories(){
   const box=$('worldMemories');if(!box)return;
   try{const d=await api('/api/memories');box.replaceChildren();if(!d.memories.length){box.append(el('p','world-empty','No memories on the wall yet. Deep can add the first one using admin mode.'));return}
@@ -80,15 +68,16 @@ function paintAdmin(){if(!isAdmin)closeMemoryEditor();visitorEpoch++;if($('world
 async function toggleAdmin(){
   if(isAdmin){isAdmin=false;adminKey='';try{sessionStorage.removeItem('cxAdminKey')}catch{}}
   else{const key=prompt('Admin key');if(!key)return;adminKey=key.trim();isAdmin=await checkAdmin();if(!isAdmin){alert('Could not verify admin access');adminKey='';return}try{sessionStorage.setItem('cxAdminKey',adminKey)}catch{}}
-  paintAdmin();guests();memories();memoryVisitors();window.dispatchEvent(new CustomEvent('world-admin-change'));
+  paintAdmin();memories();memoryVisitors();window.dispatchEvent(new CustomEvent('world-admin-change'));
 }
 document.querySelectorAll('[data-world-admin]').forEach(b=>b.addEventListener('click',toggleAdmin));
-window.addEventListener('world-admin-change',async()=>{try{adminKey=sessionStorage.getItem('cxAdminKey')||''}catch{}isAdmin=await checkAdmin();paintAdmin();guests();memories();memoryVisitors()});
-(async()=>{isAdmin=await checkAdmin();paintAdmin();if(isAdmin)guests();memories();memoryVisitors()})();
+window.addEventListener('world-admin-change',async()=>{try{adminKey=sessionStorage.getItem('cxAdminKey')||''}catch{}isAdmin=await checkAdmin();paintAdmin();memories();memoryVisitors()});
+(async()=>{isAdmin=await checkAdmin();paintAdmin();memories();memoryVisitors()})();
 if($('worldMemoryForm')){
   $('worldMemoryDate').value=new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
   $('worldMemoryForm').addEventListener('submit',async e=>{e.preventDefault();const b=$('worldMemorySend');b.disabled=true;status($('worldMemoryStatus'),'Uploading photo…');try{const f=$('worldMemoryFile').files[0];if(!f||f.size>8*1024*1024)throw new Error('Choose a JPG, PNG, WebP or GIF under 8 MB');const form=new FormData();form.append('image',f);form.append('date',$('worldMemoryDate').value);form.append('caption',$('worldMemoryCaption').value);await api('/api/memories',{method:'POST',headers:adminHeaders(),body:form});$('worldMemoryFile').value='';$('worldMemoryCaption').value='';status($('worldMemoryStatus'),'Memory added.');await memories()}catch(e){status($('worldMemoryStatus'),e.message,true)}finally{b.disabled=false}});
 }
 })();
+
 
 

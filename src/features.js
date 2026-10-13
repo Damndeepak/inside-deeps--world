@@ -5,8 +5,6 @@ export async function ensureFeatures(db) {
     db.prepare('CREATE TABLE IF NOT EXISTS message_reactions (message_id TEXT NOT NULL, user_id TEXT NOT NULL, emoji TEXT NOT NULL, PRIMARY KEY(message_id,user_id,emoji))'),
     db.prepare('CREATE TABLE IF NOT EXISTS chat_presence (user_id TEXT PRIMARY KEY, seen_at INTEGER NOT NULL, typing_until INTEGER NOT NULL DEFAULT 0)'),
     db.prepare('CREATE TABLE IF NOT EXISTS message_audio (message_id TEXT PRIMARY KEY, r2_key TEXT NOT NULL, content_type TEXT NOT NULL, size INTEGER NOT NULL, created_at TEXT NOT NULL)'),
-    db.prepare('CREATE TABLE IF NOT EXISTS guestbook_entries (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, name TEXT NOT NULL, message TEXT NOT NULL, created_at TEXT NOT NULL)'),
-    db.prepare('CREATE INDEX IF NOT EXISTS idx_guestbook_created ON guestbook_entries(created_at)'),
     db.prepare('CREATE TABLE IF NOT EXISTS memory_visits (user_id TEXT PRIMARY KEY, first_seen_at TEXT NOT NULL, last_seen_at TEXT NOT NULL)'),
     db.prepare('CREATE INDEX IF NOT EXISTS idx_memory_visits_seen ON memory_visits(last_seen_at)'),
     db.prepare('CREATE TABLE IF NOT EXISTS memory_wall (id TEXT PRIMARY KEY, caption TEXT NOT NULL, memory_date TEXT NOT NULL, r2_key TEXT NOT NULL, content_type TEXT NOT NULL, created_at TEXT NOT NULL)'),
@@ -55,7 +53,7 @@ async function mediaResponse(request,bucket,key,type) {
 }
 export async function handleFeatures(request,env,ctx,helpers) {
   const url=new URL(request.url), path=url.pathname, method=request.method;
-  const known=/^\/api\/thoughts(?:\/[A-Za-z0-9_-]{1,64})?$/.test(path)||path==='/api/lastfm/history'||path==='/api/lastfm/on-repeat'||path==='/api/chat/presence'||path==='/api/chat/reactions'||path==='/api/chat/voice'||/^\/api\/chat\/audio\/[A-Za-z0-9_-]+$/.test(path)||/^\/api\/guestbook(?:\/[A-Za-z0-9_-]+)?$/.test(path)||/^\/api\/memories(?:\/[A-Za-z0-9_-]+(?:\/image)?)?$/.test(path);
+  const known=/^\/api\/thoughts(?:\/[A-Za-z0-9_-]{1,64})?$/.test(path)||path==='/api/lastfm/history'||path==='/api/lastfm/on-repeat'||path==='/api/chat/presence'||path==='/api/chat/reactions'||path==='/api/chat/voice'||/^\/api\/chat\/audio\/[A-Za-z0-9_-]+$/.test(path)||/^\/api\/memories(?:\/[A-Za-z0-9_-]+(?:\/image)?)?$/.test(path);
   if(!known)return null;
   const {getUser,getUserId,chatIsAdmin,ensureChatSchema,notifyChat,chatSniffImage}=helpers;
   let storedKey=null;
@@ -170,27 +168,6 @@ export async function handleFeatures(request,env,ctx,helpers) {
       if(!row||!env.CHAT_IMAGES)return fail('Recording not found',404);
       return await mediaResponse(request,env.CHAT_IMAGES,row.r2_key,row.content_type);
     }
-    if(path==='/api/guestbook'){
-      if(method==='GET'){
-        const rows=await env.DB.prepare('SELECT id,name,message,created_at,user_id FROM guestbook_entries ORDER BY created_at DESC LIMIT 100').all();
-        return json({success:true,entries:rows.results.map(({user_id,...r})=>({...r,mine:user_id===userId}))});
-      }
-      if(method!=='POST')return fail('Method not allowed',405);
-      if(!user)return fail('Reload to get a chat identity',401);
-      const body=await smallJson(request),message=text(body.message,301),name=text(body.name,33)||user.username;
-      if(!message||message.length>300||name.length>32)return fail('Use a name under 33 characters and a note under 301');
-      if(!await limit(env.DB,'guest:'+user.id,5,3600000))return fail('Five notes per hour; come back later',429);
-      await env.DB.prepare('INSERT INTO guestbook_entries(id,user_id,name,message,created_at) VALUES(?,?,?,?,?)').bind(crypto.randomUUID(),user.id,name,message,new Date().toISOString()).run();
-      return json({success:true});
-    }
-    const guest=path.match(/^\/api\/guestbook\/([A-Za-z0-9_-]+)$/);
-    if(guest){
-      if(method!=='DELETE')return fail('Method not allowed',405);
-      const row=await env.DB.prepare('SELECT user_id FROM guestbook_entries WHERE id=?').bind(guest[1]).first();
-      if(!row)return fail('Note not found',404);
-      if((!user||row.user_id!==user.id)&&!await chatIsAdmin(request))return fail('Not allowed',403);
-      await env.DB.prepare('DELETE FROM guestbook_entries WHERE id=?').bind(guest[1]).run();return json({success:true});
-    }
     if(path==='/api/memories/visits'){
       if(method==='GET'){
         if(!await chatIsAdmin(request))return fail('Admin access required',403);
@@ -250,5 +227,6 @@ export async function handleFeatures(request,env,ctx,helpers) {
     return fail(e instanceof SyntaxError?'Invalid request':'Could not complete request; try again',e instanceof SyntaxError?400:500);
   }
 }
+
 
 
