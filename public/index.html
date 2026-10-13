@@ -296,10 +296,11 @@ html[data-world-theme=light] :is(.media-entry-label,.media-kicker,.media-sub){co
 <div class="arrow">↗</div>
 </a>
 </section>
-<section class="world-card" aria-label="Deeplist live player"><div class="world-heading"><h2>Deeplist live</h2><a class="world-link" href="/deeplist.html">Listen with me ↗</a></div><p class="world-note">Live playback, synced lyrics and Connect Deeplist.</p></section>
-<section aria-label="Last.fm Now Playing" class="lfm" id="lfm">
-<div class="lfm-label" id="lfmLabel">last.fm // now playing</div>
-<div id="lfmBody"><div class="lfm-empty">checking what's playing...</div></div>
+<section aria-label="Deeplist Now Playing" class="lfm" id="lfm">
+<div class="lfm-label" id="lfmLabel">deeplist // now playing</div>
+<div id="lfmBody"><div class="lfm-empty">Checking Deeplist…</div></div>
+<p class="lfm-empty" id="deeplistHomeLyrics"></p>
+<a class="world-link" href="/deeplist.html">Listen with synced lyrics · Connect Deeplist ↗</a>
 </section>
 
 
@@ -345,40 +346,7 @@ function closeAll(){passwordModal.classList.remove('show');contentModal.classLis
 
 })();
 </script>
-<script id="lastfm-now-playing-js">
-(()=>{
-  const box=document.getElementById("lfm"),label=document.getElementById("lfmLabel"),body=document.getElementById("lfmBody");
-  if(!box||!label||!body)return;
-  const esc=v=>String(v==null?"":v).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
-  const safeUrl=u=>/^https:\/\//i.test(u||"")?u:"";
-  const NO_ART="2a96cbd8b46e442fc41c2b86b821562f";
-  const setLabel=(text,on)=>{box.classList.toggle("is-playing",!!on);label.innerHTML='<span class="lfm-dot"></span>'+esc(text)};
-  const empty=msg=>{body.innerHTML='<div class="lfm-empty">'+esc(msg)+'</div>'};
-  let lastKey="";
-  function render(d){
-    if(!d||!d.connected){setLabel("last.fm",false);empty("Last.fm is unavailable right now.");lastKey="";return}
-    const t=d.track;
-    if(!t){setLabel("last.fm // idle",false);empty("Nothing played yet.");lastKey="";return}
-    setLabel(d.playing?"last.fm // now playing":"last.fm // last played",d.playing);
-    const key=[t.name,t.artist,t.album,t.image,t.url].join("|");
-    if(key===lastKey)return;
-    lastKey=key;
-    const img=safeUrl(t.image),url=safeUrl(t.url);
-    const cover=img&&!img.includes(NO_ART)?'<img class="lfm-cover" src="'+esc(img)+'" alt="" referrerpolicy="no-referrer">':'<div class="lfm-cover">\u266A</div>';
-    const inner=cover+'<div class="lfm-info"><div class="lfm-title">'+esc(t.name)+'</div><div class="lfm-artist">'+esc(t.artist)+'</div>'+(t.album?'<div class="lfm-album">'+esc(t.album)+'</div>':'')+'</div>';
-    body.innerHTML=url?'<a class="lfm-card" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+inner+'</a>':'<div class="lfm-card">'+inner+'</div>';
-  }
-  async function load(){
-    try{
-      const r=await fetch("/api/lastfm/now-playing",{cache:"no-store"});
-      render(await r.json());
-    }catch{render(null)}
-  }
-  load();
-  setInterval(()=>{if((window.worldIsVisible||(()=>!document.hidden))(box))load()},20000);
-  document.addEventListener("visibilitychange",()=>{if(!document.hidden)load()});
-})();
-</script>
+<script defer src="/deeplist-home.js"></script>
 <script id="chat-v2-js">
 (()=>{
 "use strict";

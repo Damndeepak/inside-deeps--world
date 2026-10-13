@@ -10,14 +10,14 @@ function art(track){const box=el('div','world-art','♪'),src=safeURL(track.imag
 function trackLink(t,cls){const href=safeURL(t.url),a=el(href?'a':'div',cls);if(href){a.href=href;a.target='_blank';a.rel='noopener noreferrer'}return a}
 async function history(){
   const box=$('worldHistory');if(!box)return;
-  try{const d=await api('/api/lastfm/history');box.replaceChildren();if(!d.tracks.length){box.append(el('p','world-note',d.configured?'No recent tracks yet.':'Last.fm is not configured yet.'));return}
+  try{const d=await api('/api/deeplist/history');box.replaceChildren();if(!d.tracks.length){box.append(el('p','world-note',d.configured?'No recent tracks yet.':'Connect Deeplist to start listening history.'));return}
     for(const t of d.tracks){const a=trackLink(t,'world-track');a.append(art(t),el('strong','',t.name),el('span','',t.artist));if(t.played_at)a.append(el('small','',stamp(t.played_at*1000)));box.append(a)}
   }catch(e){box.replaceChildren(el('p','world-note',e.message))}
 }
 history();if($('worldHistory'))setInterval(()=>{if((window.worldIsVisible||(()=>!document.hidden))($('worldHistory')?.closest('section')))history()},60000);
 async function repeat(){
   const box=$('worldRepeat');if(!box)return;
-  try{const d=await api('/api/lastfm/on-repeat');box.replaceChildren();if(!d.tracks.length){box.append(el('p','world-empty',d.configured?'Your week is still quiet. Tracks will appear as you listen.':'Connect the owner’s Last.fm configuration to fill this page.'));return}
+  try{const d=await api('/api/deeplist/on-repeat');box.replaceChildren();if(!d.tracks.length){box.append(el('p','world-empty',d.configured?'Your week is still quiet. Tracks will appear as you listen.':'Connect Deeplist and listen to start this week’s history.'));return}
     d.tracks.forEach((t,i)=>{const a=trackLink(t,'world-rank'),info=el('div');info.append(el('strong','',t.name),el('span','',t.artist));a.append(el('small','',String(i+1).padStart(2,'0')),art(t),info,el('span','plays',t.plays+' plays'));box.append(a)});
   }catch(e){box.replaceChildren(el('p','world-empty',e.message));const b=el('button','world-button','Retry');b.onclick=repeat;box.append(b)}
 }repeat();
