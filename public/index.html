@@ -79,26 +79,6 @@ h1{animation:deepTitleIn .9s cubic-bezier(.22,1,.36,1) both}
 @media(max-width:650px){.lfm{padding:20px}.lfm-cover{width:64px;height:64px;border-radius:13px}.lfm-title{font-size:16px}}
 @media(prefers-reduced-motion:reduce){.lfm.is-playing .lfm-dot{animation:none}}
 </style>
-<style id="lastfm-guests-css">
-.lfm-guests{margin-top:16px}
-.lfm-guest{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid #202023;color:#fff;text-decoration:none}
-.lfm-guest:first-child{border-top:0;padding-top:0}
-.lfm-guest-cover{width:44px;height:44px;border-radius:10px;object-fit:cover;flex:none;background:#141416;border:1px solid #29292d;display:grid;place-items:center;color:#555;font-size:16px}
-.lfm-guest-info{min-width:0;flex:1}
-.lfm-guest-user{font:500 10px/1 DM Mono,monospace;color:#8f8f94;letter-spacing:.04em;display:flex;align-items:center;gap:7px}
-.lfm-guest-user .lfm-dot{width:6px;height:6px}
-.lfm-guest.on .lfm-dot{background:#4ade80;box-shadow:0 0 7px rgba(74,222,128,.7);animation:lfmPulse 1.6s ease-in-out infinite}
-.lfm-guest-track{font-size:14px;font-weight:700;margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.lfm-guest-track span{font-weight:500;color:#8f8f94}
-.lfm-guest-ago{font:400 9px/1 DM Mono,monospace;color:#666;flex:none}
-.lfm-guest-tools{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:18px;padding-top:18px;border-top:1px solid #202023}
-.lfm-guest-status{font:400 10px/1.5 DM Mono,monospace;color:#777;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.lfm-btn{border:1px solid #303035;border-radius:12px;padding:11px 14px;background:#141416;color:#ddd;font:500 11px DM Mono,monospace;cursor:pointer;flex:none}
-.lfm-btn:hover{border-color:#505056}
-.lfm-btn:disabled{opacity:.5;cursor:default}
-.lfm-privacy{font:400 9px/1.7 DM Mono,monospace;color:#666;margin-top:12px}
-@media(prefers-reduced-motion:reduce){.lfm-guest.on .lfm-dot{animation:none}}
-</style>
 <style id="chat-v2-css">
 .cx-card{position:relative;margin-top:32px;padding:22px;border:1px solid #28282b;border-radius:24px;background:radial-gradient(circle at 92% 0%,rgba(130,90,255,.08),transparent 16rem),linear-gradient(145deg,rgba(255,255,255,.05),rgba(255,255,255,.012));box-shadow:0 25px 70px rgba(0,0,0,.30)}
 .cx-card [hidden],.cx-lightbox[hidden]{display:none!important}
@@ -201,14 +181,46 @@ h1{animation:deepTitleIn .9s cubic-bezier(.22,1,.36,1) both}
 .thoughts-entry{border-color:#b2864f;background:radial-gradient(ellipse at 12% 0%,rgba(245,177,89,.22),transparent 70%),radial-gradient(ellipse at 100% 100%,rgba(232,127,104,.12),transparent 65%),#18130f;box-shadow:0 0 28px rgba(222,157,72,.12),inset 0 1px 0 rgba(255,229,185,.12)}
 .thoughts-entry .media-entry-label{color:#e5c499}.thoughts-entry .media-entry-badge{border-color:rgba(242,185,112,.35);background:rgba(234,163,67,.12);color:#ffe0b2}.thoughts-entry .media-entry-card{width:100%;font-family:inherit;text-align:left;cursor:pointer;border-color:rgba(230,175,101,.35);background:linear-gradient(115deg,rgba(40,28,17,.86),rgba(29,19,18,.84))}.thoughts-entry .media-entry-card:hover,.thoughts-entry .media-entry-card:focus-visible{border-color:#edbb79;box-shadow:0 12px 32px rgba(191,127,49,.22)}.thoughts-entry .media-entry-card:focus-visible{outline-color:#f6cc91}.thoughts-entry .media-mark{border-color:#9d703b;background:linear-gradient(145deg,#4a321c,#302022);color:#ffe0b2;box-shadow:0 0 18px rgba(238,174,90,.18)}.thoughts-entry .media-kicker{color:#cfaf87}.thoughts-entry .media-sub{color:#b9a795}.thoughts-entry .arrow{color:#ffd296}.thoughts-entry .media-bubbles span{border-color:rgba(246,191,120,.32);background:radial-gradient(circle at 30% 25%,rgba(255,230,192,.2),rgba(232,139,113,.04) 65%)}
 .pt-dialog{width:min(760px,calc(100% - 24px));max-height:88dvh;padding:20px;background:#101012;color:#f4f4f5;border:1px solid #705332;border-radius:24px;overflow:auto}.pt-dialog::backdrop{background:rgba(0,0,0,.78);backdrop-filter:blur(10px)}.pt-dialog-close{display:flex;justify-content:flex-end}.pt-dialog .pt-section{margin-top:12px}.pt-dialog .pt-list{max-height:none;overflow:visible}
+</style><style id="private-group-css">
+.wrap>.cx-card:first-child{margin-top:0;margin-bottom:32px}.private-group{margin:0 0 24px;border:1px solid #39313f;border-radius:20px;background:linear-gradient(145deg,rgba(185,166,255,.07),rgba(255,255,255,.018));padding:0 20px}.private-group>summary{padding:22px 0;display:flex;align-items:center;justify-content:space-between;gap:16px;list-style:none;cursor:pointer;font-size:18px;font-weight:800}.private-group>summary::-webkit-details-marker{display:none}.private-group>summary:focus-visible{outline:2px solid var(--world-accent);outline-offset:4px;border-radius:12px}.private-group[open]{padding-bottom:20px}.private-group[open] .private-chevron{transform:rotate(180deg)}.private-chevron{color:var(--world-accent)}.private-group>.hint{margin:0 0 16px}.private-group .locked{padding:18px}.private-group .section-list{gap:10px}
 </style></head>
 <body>
 
 <div aria-hidden="true" class="scroll-progress"><span id="scrollProgress"></span></div>
 <main class="wrap">
+<section aria-label="Chat" class="cx-card" id="cxChat">
+<div class="cx-head"><div class="cx-label"><span class="cx-dot"></span>chat // everyone</div><div class="cx-count" id="cxCount"></div></div>
+<div class="cx-id">You appear as <b id="cxMe">loading...</b>.
+<details class="cx-nickname"><summary>Nickname (optional)</summary>
+<form id="cxNicknameForm" autocomplete="off"><label for="cxNickname">Choose a name for the public chat</label><div class="cx-nickname-fields"><input id="cxNickname" name="nickname" maxlength="19" placeholder="Pick a name — damn_ is added automatically" aria-describedby="cxNicknameHint"><button class="cx-tool" id="cxNicknameSave" type="submit" disabled>Save</button><button class="cx-tool" id="cxNicknameReset" type="button" disabled>Use random name</button></div><small id="cxNicknameHint">24 characters total · damn_ added automatically · one change every 7 days</small><div id="cxNicknameStatus" role="status" aria-live="polite"></div></form>
+</details></div>
+<div class="cx-tools"><button class="cx-tool" id="cxInstall" type="button" hidden>📲 Install app</button><button class="cx-tool" id="cxNotify" type="button" hidden>🔔 Notifications: off</button></div>
+<div class="cx-presence" aria-live="polite"><span id="cxOnline" data-online>checking presence…</span><span id="cxTyping"></span></div>
+<div class="cx-threadwrap">
+<div class="cx-thread" id="cxThread" role="log" aria-live="polite">
+<button class="cx-more" id="cxMore" type="button" hidden>load older messages</button>
+<div id="cxList"></div>
+<div class="cx-empty" id="cxEmpty">loading chat...</div>
+</div>
+<button class="cx-pill" id="cxPill" type="button" hidden>↓ new messages</button>
+</div>
+<div class="cx-reply" id="cxReply" hidden><div class="cx-reply-text" id="cxReplyText"></div><button aria-label="Cancel reply" class="cx-x" id="cxReplyX" type="button">×</button></div>
+<div class="cx-prev" id="cxPrev" hidden><img alt="" id="cxPrevImg"/><div class="cx-prev-name" id="cxPrevName"></div><button aria-label="Remove image" class="cx-x" id="cxPrevX" type="button">×</button></div>
+<form autocomplete="off" class="cx-form" id="cxForm">
+<button aria-label="Attach image" class="cx-attach" id="cxAttach" type="button"><svg fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 24 24" width="20"><path d="M21 12.5l-8.6 8.6a5.5 5.5 0 0 1-7.8-7.8l9-9a3.7 3.7 0 0 1 5.2 5.2l-9 9a1.8 1.8 0 0 1-2.6-2.6l8.3-8.3"/></svg></button>
+<button class="world-button cx-mic" id="cxRecord" type="button" aria-label="Record voice note" title="Record up to 60 seconds">🎙</button>
+<textarea enterkeyhint="send" id="cxInput" maxlength="1000" placeholder="Write a message..." rows="1"></textarea>
+<button class="cx-send" id="cxSend" type="submit">Send</button>
+</form>
+<div class="cx-voice-panel" id="cxVoicePanel" hidden><div class="cx-voice-status" id="cxVoiceStatus" role="status"></div><audio id="cxVoicePreview" controls preload="metadata" hidden></audio><div class="world-actions"><button class="world-button primary" id="cxVoiceSend" type="button" disabled>Send voice note</button><button class="world-button" id="cxVoiceCancel" type="button">Discard</button><small>Public chat · up to 60 seconds</small></div></div>
+<input accept="image/jpeg,image/png,image/webp,image/gif" hidden id="cxFile" type="file"/>
+<div class="cx-foot"><span id="cxCounter"></span><button class="cx-admin" id="cxAdmin" type="button">admin</button></div>
+<div class="cx-toast" id="cxToast" hidden></div>
+</section>
+
 <div class="world-bar"><nav class="world-nav" aria-label="Explore"><a href="/on-repeat.html">On repeat ↗</a></nav><div class="world-controls" data-theme-controls></div></div>
-<h1>Inside Deep's World</h1><p class="sub">Every section has its own password and its own hint.<br/>You’ll need the right password to unlock each section.</p>
-<section aria-label="Private sections" class="section-list">
+<h1>Inside Deep's World</h1><p class="sub">Music, memories and a few thoughts.<br/>The private corners stay behind their own passwords.</p>
+<details class="private-group" id="deepPrivate"><summary><span>Deep Private Section</span><span class="private-chevron" aria-hidden="true">⌄</span></summary><p class="hint">Choose a private corner. Each keeps its own password.</p><section aria-label="Private sections" class="section-list">
 <button class="locked" data-section="people"><div class="row"><div><div class="title">Ppl I fw ❤️</div><div class="hint">A date that matters to me</div></div><div class="lock">⌁</div></div></button>
 <button class="locked" data-section="memories"><div class="row"><div><div class="title">Memories</div><div class="hint">A private phrase.</div></div><div class="lock">⌁</div></div></button>
 <button class="locked" data-section="music"><div class="row"><div><div class="title">Music</div><div class="hint">One word. You know the vibe.</div></div><div class="lock">⌁</div></div></button>
@@ -216,7 +228,7 @@ h1{animation:deepTitleIn .9s cubic-bezier(.22,1,.36,1) both}
 <button class="locked" data-section="socials"><div class="row"><div><div class="title">Socials</div><div class="hint">A phrase tied to the account.</div></div><div class="lock">⌁</div></div></button>
 <button class="locked" data-section="random"><div class="row"><div><div class="title">Random Shit</div><div class="hint">A word from the Deep lore.</div></div><div class="lock">⌁</div></div></button>
 <button class="locked" data-section="voice-notes"><div class="row"><div><div class="title">Voice Notes</div><div class="hint">If you’re that close, you know it all.</div></div><div class="lock">⌁</div></div></button>
-</section>
+</section></details>
 <section aria-label="Memory Wall" class="media-entry memory-entry">
 <div class="media-bubbles" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div>
 <div class="media-entry-label"><span>moments · photos · memories</span><span class="media-entry-badge">Memory Wall</span></div>
@@ -256,45 +268,8 @@ h1{animation:deepTitleIn .9s cubic-bezier(.22,1,.36,1) both}
 
 
 <section class="world-card" aria-label="Recent listening"><div class="world-heading"><h2>Recently in my ears</h2><a class="world-link" href="/on-repeat.html">This week ↗</a></div><div id="worldHistory" class="world-history"><p class="world-note">Loading recent tracks…</p></div></section>
-<section aria-label="Last.fm listeners" class="lfm lfm-guests" id="lfmGuests">
-<div class="lfm-label"><span class="lfm-dot"></span>last.fm // listening along</div>
-<div id="lfmGuestList"><div class="lfm-empty">loading...</div></div>
-<div class="lfm-guest-tools">
-<div class="lfm-guest-status" id="lfmMeStatus">not connected</div>
-<button class="lfm-btn" id="lfmConnectBtn" type="button">Connect Last.fm</button>
-</div>
-<div class="lfm-privacy">Connecting shows your Last.fm username and what you're listening to on this page, publicly. Only your username is saved, never your password. You can disconnect anytime.</div>
-</section>
 
-<section aria-label="Chat" class="cx-card" id="cxChat">
-<div class="cx-head"><div class="cx-label"><span class="cx-dot"></span>chat // everyone</div><div class="cx-count" id="cxCount"></div></div>
-<div class="cx-id">You appear as <b id="cxMe">loading...</b>.
-<details class="cx-nickname"><summary>Nickname (optional)</summary>
-<form id="cxNicknameForm" autocomplete="off"><label for="cxNickname">Choose a name for the public chat</label><div class="cx-nickname-fields"><input id="cxNickname" name="nickname" maxlength="19" placeholder="Pick a name — damn_ is added automatically" aria-describedby="cxNicknameHint"><button class="cx-tool" id="cxNicknameSave" type="submit" disabled>Save</button><button class="cx-tool" id="cxNicknameReset" type="button" disabled>Use random name</button></div><small id="cxNicknameHint">24 characters total · damn_ added automatically · one change every 7 days</small><div id="cxNicknameStatus" role="status" aria-live="polite"></div></form>
-</details></div>
-<div class="cx-tools"><button class="cx-tool" id="cxInstall" type="button" hidden>📲 Install app</button><button class="cx-tool" id="cxNotify" type="button" hidden>🔔 Notifications: off</button></div>
-<div class="cx-presence" aria-live="polite"><span id="cxOnline" data-online>checking presence…</span><span id="cxTyping"></span></div>
-<div class="cx-threadwrap">
-<div class="cx-thread" id="cxThread" role="log" aria-live="polite">
-<button class="cx-more" id="cxMore" type="button" hidden>load older messages</button>
-<div id="cxList"></div>
-<div class="cx-empty" id="cxEmpty">loading chat...</div>
-</div>
-<button class="cx-pill" id="cxPill" type="button" hidden>↓ new messages</button>
-</div>
-<div class="cx-reply" id="cxReply" hidden><div class="cx-reply-text" id="cxReplyText"></div><button aria-label="Cancel reply" class="cx-x" id="cxReplyX" type="button">×</button></div>
-<div class="cx-prev" id="cxPrev" hidden><img alt="" id="cxPrevImg"/><div class="cx-prev-name" id="cxPrevName"></div><button aria-label="Remove image" class="cx-x" id="cxPrevX" type="button">×</button></div>
-<form autocomplete="off" class="cx-form" id="cxForm">
-<button aria-label="Attach image" class="cx-attach" id="cxAttach" type="button"><svg fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 24 24" width="20"><path d="M21 12.5l-8.6 8.6a5.5 5.5 0 0 1-7.8-7.8l9-9a3.7 3.7 0 0 1 5.2 5.2l-9 9a1.8 1.8 0 0 1-2.6-2.6l8.3-8.3"/></svg></button>
-<button class="world-button cx-mic" id="cxRecord" type="button" aria-label="Record voice note" title="Record up to 60 seconds">🎙</button>
-<textarea enterkeyhint="send" id="cxInput" maxlength="1000" placeholder="Write a message..." rows="1"></textarea>
-<button class="cx-send" id="cxSend" type="submit">Send</button>
-</form>
-<div class="cx-voice-panel" id="cxVoicePanel" hidden><div class="cx-voice-status" id="cxVoiceStatus" role="status"></div><audio id="cxVoicePreview" controls preload="metadata" hidden></audio><div class="world-actions"><button class="world-button primary" id="cxVoiceSend" type="button" disabled>Send voice note</button><button class="world-button" id="cxVoiceCancel" type="button">Discard</button><small>Public chat · up to 60 seconds</small></div></div>
-<input accept="image/jpeg,image/png,image/webp,image/gif" hidden id="cxFile" type="file"/>
-<div class="cx-foot"><span id="cxCounter"></span><button class="cx-admin" id="cxAdmin" type="button">admin</button></div>
-<div class="cx-toast" id="cxToast" hidden></div>
-</section>
+
 <div class="cx-lightbox" hidden id="cxLightbox"><img alt="" id="cxLightImg"/></div>
 
 </main>
@@ -366,71 +341,6 @@ function closeAll(){passwordModal.classList.remove('show');contentModal.classLis
   load();
   setInterval(()=>{if((window.worldIsVisible||(()=>!document.hidden))(box))load()},20000);
   document.addEventListener("visibilitychange",()=>{if(!document.hidden)load()});
-})();
-</script>
-<script id="lastfm-guests-js">
-(()=>{
-  const list=document.getElementById("lfmGuestList"),status=document.getElementById("lfmMeStatus"),btn=document.getElementById("lfmConnectBtn");
-  if(!list||!status||!btn)return;
-  const esc=v=>String(v==null?"":v).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
-  const safeUrl=u=>/^https:\/\//i.test(u||"")?u:"";
-  const NO_ART="2a96cbd8b46e442fc41c2b86b821562f";
-  function ago(uts){
-    if(!uts)return "";
-    const s=Math.max(0,Math.floor(Date.now()/1000)-Number(uts));
-    if(s<60)return "just now";
-    if(s<3600)return Math.floor(s/60)+"m ago";
-    if(s<86400)return Math.floor(s/3600)+"h ago";
-    return Math.floor(s/86400)+"d ago";
-  }
-  function row(l){
-    const t=l.track,on=!!l.playing;
-    const img=t?safeUrl(t.image):"";
-    const cover=img&&!img.includes(NO_ART)?'<img class="lfm-guest-cover" src="'+esc(img)+'" alt="" referrerpolicy="no-referrer">':'<div class="lfm-guest-cover">\u266A</div>';
-    const track=t?esc(t.name)+(t.artist?' <span>\u00b7 '+esc(t.artist)+'</span>':""):'<span>nothing played yet</span>';
-    const right=on?"now":ago(l.played_at);
-    const inner=cover+'<div class="lfm-guest-info"><div class="lfm-guest-user"><span class="lfm-dot"></span>@'+esc(l.username)+'</div><div class="lfm-guest-track">'+track+'</div></div><div class="lfm-guest-ago">'+esc(right)+'</div>';
-    const href=safeUrl(l.profile);
-    return href?'<a class="lfm-guest'+(on?" on":"")+'" href="'+esc(href)+'" target="_blank" rel="noopener noreferrer">'+inner+'</a>':'<div class="lfm-guest'+(on?" on":"")+'">'+inner+'</div>';
-  }
-  async function loadGuests(){
-    try{
-      const r=await fetch("/api/lastfm/listeners",{cache:"no-store"});
-      const d=await r.json();
-      const ls=Array.isArray(d.listeners)?d.listeners:[];
-      list.innerHTML=ls.length?ls.map(row).join(""):'<div class="lfm-empty">Nobody else has connected yet.</div>';
-    }catch{
-      list.innerHTML='<div class="lfm-empty">Could not load listeners right now.</div>';
-    }
-  }
-  async function loadMe(){
-    btn.disabled=false;
-    try{
-      const r=await fetch("/api/lastfm/me",{cache:"no-store"});
-      const d=await r.json();
-      if(d.connected){
-        status.textContent="connected as @"+d.username;
-        btn.textContent="Disconnect";
-        btn.onclick=async()=>{
-          if(!confirm("Disconnect your Last.fm from this page?"))return;
-          btn.disabled=true;
-          try{await fetch("/api/lastfm/disconnect",{method:"POST"})}catch{}
-          await loadMe();await loadGuests();
-        };
-      }else{
-        status.textContent="not connected";
-        btn.textContent="Connect Last.fm";
-        btn.onclick=()=>{window.location.href="/lastfm/login"};
-      }
-    }catch{
-      status.textContent="status unavailable";
-      btn.textContent="Connect Last.fm";
-      btn.onclick=()=>{window.location.href="/lastfm/login"};
-    }
-  }
-  loadMe();loadGuests();
-  setInterval(()=>{if((window.worldIsVisible||(()=>!document.hidden))(document.getElementById("lfmGuests")))loadGuests()},30000);
-  document.addEventListener("visibilitychange",()=>{if(!document.hidden)loadGuests()});
 })();
 </script>
 <script id="chat-v2-js">
@@ -1154,6 +1064,7 @@ dialog.addEventListener('click',event=>{if(event.target===dialog){const r=dialog
 })();
 </script>
 </body></html>
+
 
 
 
