@@ -1,6 +1,7 @@
 const $ = id => document.getElementById(id);
-const E = Object.fromEntries(['liveStatus','trackTitle','trackArtist','previousLine','currentLine','nextLine','progressFill','positionLabel','durationLabel','listen','audioStatus','videoWrap','pairToggle','pairPanel','createPair','revokePair','pairResult','pairUrl','pairToken','copyPair','pairStatus'].map(id=>[id,$(id)]));
+const E = Object.fromEntries(['liveStatus','trackTitle','trackArtist','previousLine','currentLine','nextLine','progressFill','positionLabel','durationLabel','listen','audioStatus','videoWrap','pairToggle','pairPanel','createPair','revokePair','pairResult','pairUrl','pairToken','copyPair','pairStatus','channelSelect','channelLabel','myPlayer','pairPlayerLink','createOwnerPair','revokeOwnerPair'].map(id=>[id,$(id)]));
 let snapshot = null, received = 0, trackId = '', lineIndex = -2, words = [], timer, frame = 0, lastFrame = 0, listening = false, player, playerReady = false, playerVideo = '', apiPromise;
+let channel=new URLSearchParams(location.search).get('user')||'', channelEpoch=0, directoryTimer, mySessionPromise;
 const time = ms => `${Math.floor(ms/60000)}:${String(Math.floor(ms/1000)%60).padStart(2,'0')}`;
 function position() { if (!snapshot) return 0; return Math.min(snapshot.duration||86400000, snapshot.position + (snapshot.playing ? performance.now()-received : 0)); }
 function renderLine(index) {
@@ -36,12 +37,14 @@ function syncAudio(force=false) {
 }
 async function poll() {
   clearTimeout(timer);if(document.hidden)return;
-  try{const start=performance.now();const r=await fetch('/api/deeplist/state'+(snapshot?.lyricsVersion?'?lyricsVersion='+encodeURIComponent(snapshot.lyricsVersion):''),{cache:'no-store'});if(!r.ok)throw Error();const d=await r.json();
+  const epoch=channelEpoch;
+  const query=new URLSearchParams();if(channel)query.set('user',channel);if(snapshot?.lyricsVersion)query.set('lyricsVersion',snapshot.lyricsVersion);
+  try{const start=performance.now();const r=await fetch('/api/deeplist/state'+(query.size?'?'+query:''),{cache:'no-store'});if(!r.ok)throw Error();const d=await r.json();if(epoch!==channelEpoch)return;
     if(!d.connected)offline();else{const previous=snapshot;const next=d.state;if(next.lines===undefined)next.lines=previous?.id===next.id&&previous?.lyricsVersion===next.lyricsVersion?previous.lines||[]:[];if(previous?.lyricsVersion!==next.lyricsVersion)lineIndex=-2;snapshot=next;const latency=Math.max(0,(performance.now()-start)/2);received=performance.now()-Math.max(0,d.serverNow-d.receivedAt)-latency;
       if(trackId!==snapshot.id){trackId=snapshot.id;lineIndex=-2;E.currentLine.replaceChildren();}
       E.trackTitle.textContent=snapshot.title;E.trackArtist.textContent=snapshot.artist;E.liveStatus.textContent=snapshot.playing?'DEEPLIST · LIVE':'DEEPLIST · PAUSED';E.listen.disabled=false;paint();wake();syncAudio();}
-  }catch{offline('Connection unavailable. Retrying…');}
-  timer=setTimeout(poll,2000);
+  }catch{if(epoch===channelEpoch)offline('Connection unavailable. Retrying…');}
+  if(epoch===channelEpoch)timer=setTimeout(poll,2000);
 }
 function loadAPI(){if(window.YT?.Player)return Promise.resolve();if(apiPromise)return apiPromise;apiPromise=new Promise((resolve,reject)=>{const old=window.onYouTubeIframeAPIReady;window.onYouTubeIframeAPIReady=()=>{if(old)old();resolve();};const script=document.createElement('script');script.src='https://www.youtube.com/iframe_api';script.onerror=()=>reject(Error('YouTube could not load'));document.head.append(script);});return apiPromise;}
 E.listen.onclick=async()=>{
@@ -54,9 +57,20 @@ E.listen.onclick=async()=>{
 };
 E.pairToggle.onclick=()=>{E.pairPanel.hidden=!E.pairPanel.hidden;if(!E.pairPanel.hidden)E.pairPanel.scrollIntoView({behavior:'smooth',block:'start'});};
 function adminKey(){let key='';try{key=sessionStorage.getItem('cxAdminKey')||'';}catch{}return key||prompt('Website admin key (never sent to Deeplist):')||'';}
-E.createPair.onclick=async()=>{const key=adminKey();if(!key)return;E.createPair.disabled=true;try{const r=await fetch('/api/deeplist/pair',{method:'POST',headers:{'X-Admin-Key':key}});const d=await r.json();if(!r.ok)throw Error(d.error==='admin_required'?'Admin key is incorrect.':'Could not create pairing code.');E.pairUrl.value=d.website;E.pairToken.value=d.token;E.pairResult.hidden=false;E.pairStatus.textContent='Pairing code ready. Paste it into Deeplist settings.';}catch(e){E.pairStatus.textContent=e.message;}finally{E.createPair.disabled=false;}};
+function session(){if(!mySessionPromise)mySessionPromise=fetch('/api/deeplist/me',{headers:{'X-Deeplist-Action':'session'},cache:'no-store'}).then(async r=>{const d=await r.json();if(!r.ok)throw Error('Could not create your connection. Check browser cookies.');return d;}).catch(e=>{mySessionPromise=null;throw e;});return mySessionPromise;}
+function selectChannel(id){channel=id;channelEpoch++;clearTimeout(timer);listening=false;if(playerReady)player.pauseVideo();E.listen.textContent='Listen here';E.videoWrap.hidden=true;playerVideo='';offline();const url=new URL(location.href);if(id)url.searchParams.set('user',id);else url.searchParams.delete('user');history.replaceState(null,'',url.pathname+url.search);E.channelLabel.textContent=id?'Listener · '+id.slice(0,6)+'’s player':'Deepu’s player';ensureOption(id);E.channelSelect.value=id;poll();}
+function ensureOption(id){if(!Array.from(E.channelSelect.options).some(o=>o.value===id)){const option=document.createElement('option');option.value=id;option.textContent='Listener · '+id.slice(0,6);E.channelSelect.append(option);}}
+E.channelSelect.onchange=()=>selectChannel(E.channelSelect.value);
+E.myPlayer.onclick=async()=>{try{const me=await session();selectChannel(me.channel);}catch(e){E.pairPanel.hidden=false;E.pairStatus.textContent=e.message;}};
+async function pair(owner){let headers, endpoint;if(owner){const key=adminKey();if(!key)return;headers={'X-Admin-Key':key};endpoint='/api/deeplist/pair';}else{await session();headers={'X-Deeplist-Action':'pair'};endpoint='/api/deeplist/pair?scope=visitor';}const r=await fetch(endpoint,{method:'POST',headers});const d=await r.json();if(!r.ok)throw Error(d.error==='admin_required'?'Admin key is incorrect.':'Could not create pairing code.');E.pairUrl.value=d.website;E.pairToken.value=d.token;E.pairResult.hidden=false;E.pairPlayerLink.hidden=false;E.pairPlayerLink.href=d.channel?'/deeplist.html?user='+encodeURIComponent(d.channel):'/deeplist.html';E.pairPlayerLink.textContent=owner?'Open Deepu’s player ↗':'Open your player ↗';selectChannel(d.channel||'');E.pairStatus.textContent='Pairing code ready. Paste the URL and code into Deeplist, then Start live sharing.';}
+E.createPair.onclick=async()=>{E.createPair.disabled=true;try{await pair(false);}catch(e){E.pairStatus.textContent=e.message;}finally{E.createPair.disabled=false;}};
+E.createOwnerPair.onclick=async()=>{E.createOwnerPair.disabled=true;try{await pair(true);}catch(e){E.pairStatus.textContent=e.message;}finally{E.createOwnerPair.disabled=false;}};
 E.copyPair.onclick=async()=>{try{await navigator.clipboard.writeText(E.pairToken.value);E.pairStatus.textContent='Pairing code copied.';}catch{E.pairToken.type='text';E.pairToken.select();E.pairStatus.textContent='Select and copy the pairing code.';}};
-E.revokePair.onclick=async()=>{const key=adminKey();if(!key)return;try{const r=await fetch('/api/deeplist/pair',{method:'DELETE',headers:{'X-Admin-Key':key}});if(!r.ok)throw Error();E.pairResult.hidden=true;E.pairToken.value='';E.pairStatus.textContent='App disconnected.';offline();}catch{E.pairStatus.textContent='Could not disconnect. Check the admin key.';}};
-document.addEventListener('visibilitychange',()=>{if(document.hidden){clearTimeout(timer);cancelAnimationFrame(frame);if(playerReady)player.pauseVideo();}else{poll();}});
-window.addEventListener('pagehide',()=>{clearTimeout(timer);cancelAnimationFrame(frame);if(playerReady)player.pauseVideo();});
-poll();
+async function revoke(owner){let headers,endpoint;if(owner){const key=adminKey();if(!key)return;headers={'X-Admin-Key':key};endpoint='/api/deeplist/pair';}else{await session();headers={'X-Deeplist-Action':'pair'};endpoint='/api/deeplist/pair?scope=visitor';}const r=await fetch(endpoint,{method:'DELETE',headers});if(!r.ok)throw Error('Could not disconnect this connection.');E.pairResult.hidden=true;E.pairPlayerLink.hidden=true;E.pairToken.value='';E.pairStatus.textContent=owner?'Deepu’s app disconnected.':'Your app disconnected.';poll();loadDirectory();}
+E.revokePair.onclick=async()=>{try{await revoke(false);}catch(e){E.pairStatus.textContent=e.message;}};
+E.revokeOwnerPair.onclick=async()=>{try{await revoke(true);}catch(e){E.pairStatus.textContent=e.message;}};
+async function loadDirectory(){clearTimeout(directoryTimer);if(document.hidden)return;try{const r=await fetch('/api/deeplist/listeners',{cache:'no-store'});if(!r.ok)throw Error();const d=await r.json();E.channelSelect.replaceChildren();const owner=document.createElement('option');owner.value='';owner.textContent='Deepu';E.channelSelect.append(owner);for(const visitor of d.listeners||[]){const option=document.createElement('option');option.value=visitor.channel;option.textContent=visitor.label+' · '+(visitor.playing?'live':'paused');E.channelSelect.append(option);}if(channel)ensureOption(channel);E.channelSelect.value=channel;}catch{}directoryTimer=setTimeout(loadDirectory,10000);}
+document.addEventListener('visibilitychange',()=>{if(document.hidden){clearTimeout(timer);clearTimeout(directoryTimer);cancelAnimationFrame(frame);if(playerReady)player.pauseVideo();}else{poll();loadDirectory();}});
+window.addEventListener('pagehide',()=>{clearTimeout(timer);clearTimeout(directoryTimer);cancelAnimationFrame(frame);if(playerReady)player.pauseVideo();});
+if(channel)ensureOption(channel);E.channelSelect.value=channel;E.channelLabel.textContent=channel?"Listener · "+channel.slice(0,6)+"’s player":"Deepu’s player";
+loadDirectory();poll();

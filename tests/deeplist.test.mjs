@@ -4,7 +4,9 @@ import assert from 'node:assert/strict';
 import {webcrypto} from 'node:crypto';
 if(!globalThis.crypto)Object.defineProperty(globalThis,'crypto',{value:webcrypto});
 
-const source=fs.readFileSync(new URL('../src/deeplist.js',import.meta.url),'utf8');
+const visitorSource=fs.readFileSync(new URL('../src/deeplist-visitors.js',import.meta.url),'utf8');
+const visitorModule='data:text/javascript;base64,'+Buffer.from(visitorSource).toString('base64');
+const source=fs.readFileSync(new URL('../src/deeplist.js',import.meta.url),'utf8').replace('from "./deeplist-visitors.js"','from '+JSON.stringify(visitorModule));
 const {handleDeeplist,validateState,listeningSession}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
 class DB {
  sqlite=new DatabaseSync(':memory:');
@@ -57,3 +59,37 @@ try {
  recent=await(await call(request('/api/deeplist/history'))).json();assert.equal(recent.tracks.length,1,'Disconnect must preserve listening history');
 } finally {Date.now=oldNow;}
 console.log('PASS: real SQLite schema, history threshold, no heartbeat/pause duplicates, offline gaps, replays, weekly counts and preserved history');
+
+const browserHeaders={ 'X-Deeplist-Action':'session' };
+assert.equal((await call(request('/api/deeplist/me'))).status,403);
+assert.equal((await call(request('/api/deeplist/me','GET',undefined,{'X-Deeplist-Action':'session','Sec-Fetch-Site':'cross-site'}))).status,403);
+const meResponseA=await call(request('/api/deeplist/me','GET',undefined,browserHeaders));
+const meA=await meResponseA.json(), cookieA=meResponseA.headers.get('Set-Cookie').split(';')[0];
+assert.match(meResponseA.headers.get('Set-Cookie'),/HttpOnly; Secure; SameSite=Strict/);
+assert.ok(meA.channel);assert.equal('token' in meA,false);
+const meResponseB=await call(request('/api/deeplist/me','GET',undefined,browserHeaders));
+const meB=await meResponseB.json(), cookieB=meResponseB.headers.get('Set-Cookie').split(';')[0];
+assert.notEqual(meA.channel,meB.channel);
+assert.equal((await(await call(request('/api/deeplist/me','GET',undefined,{...browserHeaders,Cookie:cookieA}))).json()).channel,meA.channel);
+assert.equal((await call(request('/api/deeplist/pair?scope=visitor','POST',undefined,{'X-Deeplist-Action':'pair'}))).status,401);
+assert.equal((await call(request('/api/deeplist/pair?scope=visitor','POST',undefined,{Cookie:cookieA}))).status,403);
+const pairA=await(await call(request('/api/deeplist/pair?scope=visitor','POST',undefined,{Cookie:cookieA,'X-Deeplist-Action':'pair'}))).json();
+const pairB=await(await call(request('/api/deeplist/pair?scope=visitor','POST',undefined,{Cookie:cookieB,'X-Deeplist-Action':'pair'}))).json();
+const ownerPair=await(await call(request('/api/deeplist/pair','POST',undefined,{'X-Admin-Key':'correct-admin-key'}))).json();
+await call(request('/api/deeplist/state','POST',{...track,title:'Deepu track'},{Authorization:'Bearer '+ownerPair.token}));
+await call(request('/api/deeplist/state?user='+meB.channel,'POST',{...track,title:'Visitor A',id:'AAAAAAAAAAA'},{Authorization:'Bearer '+pairA.token}));
+await call(request('/api/deeplist/state','POST',{...track,title:'Visitor B',id:'BBBBBBBBBBB'},{Authorization:'Bearer '+pairB.token}));
+const visitorState=async channel=> (await(await call(request('/api/deeplist/state?user='+channel))).json());
+assert.equal((await visitorState(meA.channel)).state.title,'Visitor A');
+assert.equal((await visitorState(meB.channel)).state.title,'Visitor B');
+assert.equal((await(await call(request('/api/deeplist/state'))).json()).state.title,'Deepu track');
+const directory=await(await call(request('/api/deeplist/listeners'))).json();assert.equal(directory.listeners.length,2);assert.ok(directory.listeners.every(x=>!('token_hash' in x)&&!('payload' in x)&&!('browser_hash' in x)));
+assert.equal((await call(request('/api/deeplist/state?user=bad'))).status,400);
+assert.equal((await call(request('/api/deeplist/history?user='+meA.channel))).status,404);
+await call(request('/api/deeplist/pair?scope=visitor&user='+meB.channel,'DELETE',undefined,{Cookie:cookieA,'X-Deeplist-Action':'pair'}));
+assert.equal((await visitorState(meA.channel)).connected,false);assert.equal((await visitorState(meB.channel)).connected,true);
+assert.equal((await call(request('/api/deeplist/state','POST',track,{Authorization:'Bearer '+pairA.token}))).status,401);
+assert.equal((await(await call(request('/api/deeplist/state'))).json()).state.title,'Deepu track');
+const freshB=await(await call(request('/api/deeplist/pair?scope=visitor','POST',undefined,{Cookie:cookieB,'X-Deeplist-Action':'pair'}))).json();
+assert.equal(freshB.channel,meB.channel);assert.equal((await call(request('/api/deeplist/state','POST',track,{Authorization:'Bearer '+pairB.token}))).status,401);
+console.log('PASS: separate secure browser sessions, two visitors plus owner, no token leaks, scoped publishing, rotation, revocation and cross-site rejection');
