@@ -1,0 +1,31 @@
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+import {webcrypto} from 'node:crypto';
+if(!globalThis.crypto)Object.defineProperty(globalThis,'crypto',{value:webcrypto});
+
+const source=fs.readFileSync(new URL('../src/deeplist.js',import.meta.url),'utf8');
+const {handleDeeplist,validateState}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
+class DB{row=null;prepare(sql){const db=this;let args=[];return{bind(...a){args=a;return this;},async first(){return db.row?{...db.row}:null;},async run(){if(sql.startsWith('CREATE'))return{meta:{changes:0}};if(sql.startsWith('INSERT'))db.row={token_hash:args[0],payload:null,updated_at:0};else if(sql.startsWith('DELETE'))db.row=null;else if(sql.startsWith('UPDATE')){if(db.row?.token_hash!==args[2])return{meta:{changes:0}};db.row.payload=args[0];db.row.updated_at=args[1];}return{meta:{changes:1}};}};}}
+const db=new DB(),env={DB:db},isAdmin=async r=>r.headers.get('X-Admin-Key')==='correct-admin-key';
+const request=(path,method='GET',body,headers={})=>new Request('https://example.com'+path,{method,headers,body:body===undefined?undefined:JSON.stringify(body)});
+const call=(r)=>handleDeeplist(r,env,isAdmin);
+assert.equal((await call(request('/api/deeplist/pair','POST'))).status,403);
+assert.equal((await call(request('/api/deeplist/state'))).status,200);
+let paired=await(await call(request('/api/deeplist/pair','POST',undefined,{'X-Admin-Key':'correct-admin-key'}))).json();
+assert.match(paired.token,/^[a-f0-9]{64}$/);assert.equal(paired.website,'https://example.com');
+const track={id:'abcdefghijk',title:'A test song',artist:'Artist',position:1500,duration:60000,playing:true,lines:[{time:1000,text:'First line',words:[{text:'First',start:1000,end:1800}]}]};
+const auth={Authorization:'Bearer '+paired.token};
+assert.equal((await call(request('/api/deeplist/state','POST',track))).status,401);
+assert.equal((await call(request('/api/deeplist/state','POST',track,auth))).status,200);
+let state=await(await call(request('/api/deeplist/state'))).json();assert.equal(state.state.lines.length,1);assert.equal(state.connected,true);assert.equal('token_hash' in state,false);
+const version=state.state.lyricsVersion; const reduced=await(await call(request('/api/deeplist/state?lyricsVersion='+encodeURIComponent(version)))).json();assert.equal(reduced.state.lines,undefined,'Unchanged lyrics must not be downloaded every heartbeat');
+const {lines,...progress}=track;progress.position=4000;progress.playing=false;
+await call(request('/api/deeplist/state','POST',progress,auth));state=await(await call(request('/api/deeplist/state'))).json();assert.equal(state.state.lines.length,1);assert.equal(state.state.position,4000);assert.equal(state.state.playing,false);
+progress.id='ZYXWVUTSRQP';await call(request('/api/deeplist/state','POST',progress,auth));state=await(await call(request('/api/deeplist/state'))).json();assert.equal(state.state.lines.length,0,'New track must not inherit previous lyrics');
+assert.equal(validateState({...track,position:-1}),null);assert.equal(validateState({...track,lines:[{time:0,text:'bad',words:[{text:'x',start:10,end:2}]}]}),null);
+assert.equal((await call(request('/api/deeplist/state','POST',{...track,title:'x'.repeat(301)},auth))).status,400);
+db.row.updated_at=Date.now()-16000;assert.equal((await(await call(request('/api/deeplist/state'))).json()).connected,false);
+await call(request('/api/deeplist/pair','POST',undefined,{'X-Admin-Key':'correct-admin-key'}));assert.equal((await call(request('/api/deeplist/state','POST',track,auth))).status,401,'Rotation must revoke old code');
+assert.equal((await call(request('/api/deeplist/pair','DELETE'))).status,403);
+assert.equal((await call(request('/api/deeplist/pair','DELETE',undefined,{'X-Admin-Key':'correct-admin-key'}))).status,200);assert.equal(db.row,null);
+console.log('PASS: auth, pairing, rotation, revocation, validation, stale expiry, pause/seek and track lyric isolation');

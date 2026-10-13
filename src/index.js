@@ -1,3 +1,4 @@
+import { handleDeeplist } from "./deeplist.js";
 import { ensureFeatures, handleFeatures } from "./features.js";
 
 const nicknameSchemas = new WeakMap();
@@ -16,6 +17,8 @@ const CHAT_NAME_WORDS = [
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    const deeplistResponse = await handleDeeplist(request, env, chatIsAdmin);
+    if (deeplistResponse) return deeplistResponse;
 
     function getUserId(request) {
       const cookies = request.headers.get("Cookie") || "";
