@@ -183,6 +183,41 @@ h1{animation:deepTitleIn .9s cubic-bezier(.22,1,.36,1) both}
 .pt-dialog{width:min(760px,calc(100% - 24px));max-height:88dvh;padding:20px;background:#101012;color:#f4f4f5;border:1px solid #705332;border-radius:24px;overflow:auto}.pt-dialog::backdrop{background:rgba(0,0,0,.78);backdrop-filter:blur(10px)}.pt-dialog-close{display:flex;justify-content:flex-end}.pt-dialog .pt-section{margin-top:12px}.pt-dialog .pt-list{max-height:none;overflow:visible}
 </style><style id="private-group-css">
 .wrap>.cx-card:first-child{margin-top:0;margin-bottom:32px}.private-group{margin:0 0 24px;border:1px solid #39313f;border-radius:20px;background:linear-gradient(145deg,rgba(185,166,255,.07),rgba(255,255,255,.018));padding:0 20px}.private-group>summary{padding:22px 0;display:flex;align-items:center;justify-content:space-between;gap:16px;list-style:none;cursor:pointer;font-size:18px;font-weight:800}.private-group>summary::-webkit-details-marker{display:none}.private-group>summary:focus-visible{outline:2px solid var(--world-accent);outline-offset:4px;border-radius:12px}.private-group[open]{padding-bottom:20px}.private-group[open] .private-chevron{transform:rotate(180deg)}.private-chevron{color:var(--world-accent)}.private-group>.hint{margin:0 0 16px}.private-group .locked{padding:18px}.private-group .section-list{gap:10px}
+</style><style id="distinct-entry-designs">
+/* Three different objects: a photo stack, a notebook, and a record sleeve. */
+.media-entry .media-entry-card{box-shadow:none}.media-entry .media-mark{animation:none}.media-entry .media-text{position:relative;z-index:1}
+.entry-sketch{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0;color:var(--sketch-ink,#c7b7e8)}
+.pencil-drift{position:absolute;width:clamp(90px,25%,180px);opacity:.24;animation:pencilAir 26s ease-in-out infinite alternate;transform-origin:50% 50%}.pencil-drift svg{width:100%;height:auto;display:block}.pencil-drift-0{left:4%;top:2%;animation-delay:-9s}.pencil-drift-1{right:3%;top:20%;width:120px;animation-duration:33s;animation-delay:-19s}.pencil-drift-2{left:46%;bottom:-12px;width:145px;animation-duration:29s;animation-delay:-5s}
+@keyframes pencilAir{0%{transform:translate3d(-10px,8px,0) rotate(-18deg);opacity:.12}50%{opacity:.28}100%{transform:translate3d(20px,-18px,0) rotate(24deg);opacity:.18}}
+.world-offscreen .pencil-drift,html.deep-motion-paused .pencil-drift{animation-play-state:paused}
+.memory-entry{--sketch-ink:#a8d3c7;padding:24px 26px 28px;border:1px solid #46695e;border-radius:25px 9px 25px 9px;background:radial-gradient(ellipse at 0 0,#25423966,transparent 65%),#111e1b;box-shadow:none}
+.memory-entry .media-entry-label{color:#a4c5b9;font-size:9px;letter-spacing:.14em}.memory-entry .media-entry-badge{border:none;background:transparent;border-radius:0;border-bottom:1px solid #587267;padding:4px 0;color:#c7dbd1}
+.memory-entry .media-entry-card{border:0;border-radius:0;background:transparent;padding:14px 0 0;gap:22px}
+.memory-entry .media-mark{position:relative;overflow:visible;width:72px;height:82px;border:5px solid #d8ded4;border-bottom-width:17px;border-radius:2px;background:linear-gradient(145deg,#5c8c80,#233e3a);color:#e5f0df!important;font-size:30px;transform:rotate(-7deg);box-shadow:4px 5px 0 #070f0d66;flex:none}
+.memory-entry .media-mark:before{content:"";position:absolute;inset:-6px;z-index:-1;border:5px solid #9aa99e;border-bottom-width:17px;background:#253c34;transform:rotate(13deg);border-radius:2px}
+.memory-entry .media-name{font-family:Georgia,serif;font-size:30px;font-weight:400;letter-spacing:-.025em;color:#e9e9dc}
+.memory-entry .media-kicker{color:#91a99b;font-size:8px;letter-spacing:.15em}.memory-entry .media-sub{color:#a8b7ac;max-width:260px;font-family:Georgia,serif;font-style:italic;font-size:13px;line-height:1.5}.memory-entry .arrow{color:#c4d6ca}
+.thoughts-entry{--sketch-ink:#dfbd91;position:relative;border:1px solid #68513c;border-radius:7px;padding:22px 24px 24px;background:repeating-linear-gradient(to bottom,transparent 0,transparent 25px,#bc976114 25px,#bc976114 26px),#211b16;box-shadow:none}
+.thoughts-entry:before{content:"";position:absolute;left:20px;top:0;bottom:0;border-left:1px solid #b6776740;pointer-events:none}
+.thoughts-entry .media-entry-label{padding-left:12px;color:#bba17f;font-size:9px;letter-spacing:.1em}
+.thoughts-entry .media-entry-badge{background:#b28b5922;border:1px dashed #a0805b66;border-radius:2px;color:#dfc399;font-size:8px;transform:rotate(-2deg)}
+.thoughts-entry .media-entry-card{border:0;border-radius:0;background:transparent;padding:17px 0 2px 12px;gap:14px}
+.thoughts-entry .media-mark{width:42px;height:52px;align-self:flex-start;border:0;border-radius:0;background:none;box-shadow:none;font-size:35px;color:#d9b589!important;transform:rotate(-12deg)}
+.thoughts-entry .media-name{font:italic 29px/1.15 Georgia,serif;letter-spacing:-.04em;color:#f0dec4}
+.thoughts-entry .media-kicker{color:#b89b78;font-size:8px;letter-spacing:.12em}
+.thoughts-entry .media-sub{font-size:11px;color:#bdab94;margin-top:9px}.thoughts-entry .arrow{color:#dfbd91;font-size:20px}
+.music-entry{--sketch-ink:#b8a4e8;border:1px solid #514363;border-left:3px solid #9a7dbd;border-radius:12px;padding:22px 24px;background:linear-gradient(120deg,#261e35,#111019 72%);box-shadow:none}
+.music-entry .media-entry-label{font-size:9px;color:#c4afd8;letter-spacing:.16em}.music-entry .media-entry-badge{border:0;border-radius:4px;background:#b899e120;color:#d2bce9;font-size:8px;padding:6px 9px}
+.music-entry .media-entry-card{border:0;border-top:1px solid #b299cf26;border-radius:0;padding:22px 0 0;background:none;gap:20px}
+.music-entry .media-mark{width:76px;height:76px;border:1px solid #5c4a70;border-radius:50%;background:repeating-radial-gradient(circle,#15101b 0,#15101b 4px,#3f314d 5px,#15101b 6px);box-shadow:none;color:#dfb8ee!important;font-size:24px;position:relative}
+.music-entry .media-mark:before{content:"";position:absolute;inset:24px;border-radius:50%;background:#70518088;border:1px solid #b992cf66;z-index:-1}
+.music-entry .media-kicker{font-size:8px;letter-spacing:.18em;color:#aa98bb}.music-entry .media-name{font-size:25px;letter-spacing:-.025em;color:#eee5f6}.music-entry .media-sub{font-size:10px;color:#ae9fbb;max-width:270px}.music-entry .arrow{font-size:24px;color:#cdb4e3}
+.memory-entry .media-entry-card:hover,.thoughts-entry .media-entry-card:hover,.music-entry .media-entry-card:hover{box-shadow:none}
+@media(max-width:650px){.memory-entry,.thoughts-entry,.music-entry{padding:20px}.memory-entry .media-entry-card{gap:18px}.memory-entry .media-mark{width:56px;height:66px;font-size:24px}.memory-entry .media-name{font-size:27px}.thoughts-entry .media-name{font-size:26px}.thoughts-entry .media-mark{width:30px;font-size:28px}.thoughts-entry .media-entry-card{gap:10px}.music-entry .media-mark{width:60px;height:60px;font-size:21px}.music-entry .media-mark:before{inset:18px}.music-entry .media-entry-card{gap:15px}.music-entry .media-name{font-size:23px}.media-entry .arrow{font-size:19px}.pencil-drift{width:110px}}
+@media(prefers-reduced-motion:reduce){.pencil-drift{animation:none;opacity:.18}}
+html[data-world-theme=light] .memory-entry{background:#ecf2ed;border-color:#a8beb1}html[data-world-theme=light] .thoughts-entry{background:repeating-linear-gradient(to bottom,transparent 0,transparent 25px,#b0967926 25px,#b0967926 26px),#f4ecdd;border-color:#c4ae91}html[data-world-theme=light] .music-entry{background:#efeaf5;border-color:#b7a4cb}
+html[data-world-theme=light] .media-entry .media-entry-card{background:transparent}html[data-world-theme=light] :is(.memory-entry,.thoughts-entry,.music-entry) .media-name{color:#302b34}
+html[data-world-theme=light] :is(.media-entry-label,.media-kicker,.media-sub){color:#6e6575}
 </style></head>
 <body>
 
@@ -230,7 +265,7 @@ h1{animation:deepTitleIn .9s cubic-bezier(.22,1,.36,1) both}
 <button class="locked" data-section="voice-notes"><div class="row"><div><div class="title">Voice Notes</div><div class="hint">If you’re that close, you know it all.</div></div><div class="lock">⌁</div></div></button>
 </section></details>
 <section aria-label="Memory Wall" class="media-entry memory-entry">
-<div class="media-bubbles" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+<div class="entry-sketch" aria-hidden="true"><span class="pencil-drift pencil-drift-0"><svg viewBox="0 0 220 90" fill="none"><path d="M8 50 Q28 8 55 39 T103 37 Q124 6 145 45 T207 34" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span><span class="pencil-drift pencil-drift-1"><svg viewBox="0 0 220 90" fill="none"><path d="M8 31 C35 73 50 2 78 38 S119 76 142 34 S179 4 207 53" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span><span class="pencil-drift pencil-drift-2"><svg viewBox="0 0 220 90" fill="none"><path d="M10 54 Q42 60 48 24 T92 46 Q108 70 130 37 T161 42 Q182 64 207 29" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span></div>
 <div class="media-entry-label"><span>moments · photos · memories</span><span class="media-entry-badge">Memory Wall</span></div>
 <a class="media-entry-card" href="/memories.html">
 <div class="media-mark" aria-hidden="true">▧</div>
@@ -243,13 +278,13 @@ h1{animation:deepTitleIn .9s cubic-bezier(.22,1,.36,1) both}
 </a>
 </section>
 <section aria-label="Inside Deep’s Mind" class="media-entry thoughts-entry">
-<div class="media-bubbles" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+<div class="entry-sketch" aria-hidden="true"><span class="pencil-drift pencil-drift-0"><svg viewBox="0 0 220 90" fill="none"><path d="M8 50 Q28 8 55 39 T103 37 Q124 6 145 45 T207 34" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span><span class="pencil-drift pencil-drift-1"><svg viewBox="0 0 220 90" fill="none"><path d="M8 31 C35 73 50 2 78 38 S119 76 142 34 S179 4 207 53" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span><span class="pencil-drift pencil-drift-2"><svg viewBox="0 0 220 90" fill="none"><path d="M10 54 Q42 60 48 24 T92 46 Q108 70 130 37 T161 42 Q182 64 207 29" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span></div>
 <div class="media-entry-label"><span>thoughts · opinions · inside my mind</span><span class="media-entry-badge">Inside Deep’s Mind</span></div>
 <button class="media-entry-card" id="ptOpen" type="button" aria-haspopup="dialog" aria-controls="ptDialog">
 <div class="media-mark" aria-hidden="true">✎</div><div class="media-text"><div class="media-kicker">INSIDE DEEP'S WORLD</div><div class="media-name">Inside Deep’s Mind</div><div class="media-sub">things on my mind · out in the open</div></div><div class="arrow" aria-hidden="true">↗</div>
 </button></section>
-<section aria-label="Music and Media" class="media-entry">
-<div class="media-bubbles" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+<section aria-label="Music and Media" class="media-entry music-entry">
+<div class="entry-sketch" aria-hidden="true"><span class="pencil-drift pencil-drift-0"><svg viewBox="0 0 220 90" fill="none"><path d="M8 50 Q28 8 55 39 T103 37 Q124 6 145 45 T207 34" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span><span class="pencil-drift pencil-drift-1"><svg viewBox="0 0 220 90" fill="none"><path d="M8 31 C35 73 50 2 78 38 S119 76 142 34 S179 4 207 53" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span><span class="pencil-drift pencil-drift-2"><svg viewBox="0 0 220 90" fill="none"><path d="M10 54 Q42 60 48 24 T92 46 Q108 70 130 37 T161 42 Q182 64 207 29" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span></div>
 <div class="media-entry-label"><span>songs · lyrics · video</span><span class="media-entry-badge">Featured</span></div>
 <a class="media-entry-card" href="./media/">
 <div class="media-mark" aria-hidden="true">♪</div>
