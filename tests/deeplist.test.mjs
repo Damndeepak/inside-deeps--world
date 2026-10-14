@@ -6,7 +6,9 @@ if(!globalThis.crypto)Object.defineProperty(globalThis,'crypto',{value:webcrypto
 
 const visitorSource=fs.readFileSync(new URL('../src/deeplist-visitors.js',import.meta.url),'utf8');
 const visitorModule='data:text/javascript;base64,'+Buffer.from(visitorSource).toString('base64');
-const source=fs.readFileSync(new URL('../src/deeplist.js',import.meta.url),'utf8').replace('from "./deeplist-visitors.js"','from '+JSON.stringify(visitorModule));
+const connectSource=fs.readFileSync(new URL('../src/deeplist-connect.js',import.meta.url),'utf8').replace("from './deeplist-visitors.js'",'from '+JSON.stringify(visitorModule));
+const connectModule='data:text/javascript;base64,'+Buffer.from(connectSource).toString('base64');
+const source=fs.readFileSync(new URL('../src/deeplist.js',import.meta.url),'utf8').replace('from "./deeplist-visitors.js"','from '+JSON.stringify(visitorModule)).replace('from "./deeplist-connect.js"','from '+JSON.stringify(connectModule));
 const {handleDeeplist,validateState,listeningSession}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
 class DB {
  sqlite=new DatabaseSync(':memory:');
@@ -103,3 +105,45 @@ console.log('PASS: separate secure browser sessions, two visitors plus owner, no
 await call(request('/api/deeplist/name','POST',{displayName:''},{Cookie:cookieA,'X-Deeplist-Action':'name'}));
 assert.match((await visitorState(meA.channel)).label,/^Listener · /);
 console.log('PASS: optional names, bounds, persistence, directory labels and browser ownership');
+
+const controls={Cookie:cookieB,'X-Deeplist-Action':'control'};
+assert.equal((await call(request('/api/deeplist/control','POST',{action:'pause',trackId:track.id},controls))).status,403);
+await call(request('/api/deeplist/state','POST',track,{Authorization:'Bearer '+freshB.token}));
+const controlPath='/api/deeplist/control?user='+meB.channel;
+assert.equal((await call(request(controlPath,'POST',{action:'seek',trackId:track.id,position:-1},controls))).status,400);
+assert.equal((await call(request(controlPath,'POST',{action:'seek',trackId:track.id,position:2000},{...controls,'Sec-Fetch-Site':'cross-site'}))).status,403);
+assert.equal((await call(request(controlPath,'POST',{action:'pause',trackId:'AAAAAAAAAAA'},controls))).status,409);
+assert.equal((await call(request(controlPath,'POST',{action:'pause',trackId:track.id},controls))).status,200);
+assert.equal((await call(request('/api/deeplist/control'))).status,401);
+let cmd=await(await call(request('/api/deeplist/control','GET',undefined,{Authorization:'Bearer '+freshB.token}))).json();assert.equal(cmd.command.action,'pause');
+assert.equal((await(await call(request('/api/deeplist/control?ack='+cmd.command.id,'GET',undefined,{Authorization:'Bearer '+freshB.token}))).json()).command,null);
+const handoff=await(await call(request('/api/deeplist/handoff?user='+meB.channel,'POST',{token:freshB.token},controls))).json();
+assert.ok(handoff.link.startsWith('deeplist://connect?'));assert.ok(!handoff.link.includes(freshB.token));
+const code=new URL(handoff.link).searchParams.get('code');
+const claimed=await(await call(request('/api/deeplist/claim','POST',{code}))).json();assert.equal(claimed.token,freshB.token);
+assert.equal((await call(request('/api/deeplist/claim','POST',{code}))).status,410);
+assert.equal((await call(request('/api/deeplist/handoff?user='+meB.channel,'POST',{token:freshB.token},{Cookie:cookieA,'X-Deeplist-Action':'control'}))).status,403);
+assert.equal((await(await call(request('/api/deeplist/control-access?user='+meB.channel,'GET',undefined,controls))).json()).canControl,true);
+assert.equal((await(await call(request('/api/deeplist/control-access?user='+meB.channel,'GET',undefined,{'X-Deeplist-Action':'control'}))).json()).canControl,false);
+console.log('PASS: private controls, public isolation, CSRF rejection, stale tracks, command acknowledgements and single-use app handoff');
+const temporary=await(await call(request('/api/deeplist/handoff?user='+meB.channel,'POST',{token:freshB.token},controls))).json();
+const temporaryCode=new URL(temporary.link).searchParams.get('code');
+const realClock=Date.now;Date.now=()=>realClock()+121000;
+try{assert.equal((await call(request('/api/deeplist/claim','POST',{code:temporaryCode}))).status,410);}finally{Date.now=realClock;}
+const parallel=await(await call(request('/api/deeplist/handoff?user='+meB.channel,'POST',{token:freshB.token},controls))).json();
+const parallelCode=new URL(parallel.link).searchParams.get('code');
+const claims=await Promise.all([call(request('/api/deeplist/claim','POST',{code:parallelCode})),call(request('/api/deeplist/claim','POST',{code:parallelCode}))]);
+assert.deepEqual(claims.map(r=>r.status).sort(),[200,410]);
+await call(request(controlPath,'POST',{action:'seek',trackId:track.id,position:3000},controls));
+const firstCommand=await(await call(request('/api/deeplist/control','GET',undefined,{Authorization:'Bearer '+freshB.token}))).json();
+await call(request(controlPath,'POST',{action:'play',trackId:track.id},controls));
+const nextCommand=await(await call(request('/api/deeplist/control?ack='+firstCommand.command.id,'GET',undefined,{Authorization:'Bearer '+freshB.token}))).json();
+assert.equal(nextCommand.command.action,'play','Acknowledging an older command must not delete the latest one');
+Date.now=()=>realClock()+16000;
+try{assert.equal((await(await call(request('/api/deeplist/control','GET',undefined,{Authorization:'Bearer '+freshB.token}))).json()).command,null);}finally{Date.now=realClock;}
+const revoked=await(await call(request('/api/deeplist/handoff?user='+meB.channel,'POST',{token:freshB.token},controls))).json();
+const revokedCode=new URL(revoked.link).searchParams.get('code');
+await call(request('/api/deeplist/pair?scope=visitor','DELETE',undefined,{Cookie:cookieB,'X-Deeplist-Action':'pair'}));
+assert.equal((await call(request('/api/deeplist/claim','POST',{code:revokedCode}))).status,410);
+assert.equal((await call(request('/api/deeplist/control','GET',undefined,{Authorization:'Bearer '+freshB.token}))).status,401);
+console.log('PASS: expiry, concurrent redemption, command replacement/ack races and revocation');

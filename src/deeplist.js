@@ -1,3 +1,4 @@
+import { handleConnect } from "./deeplist-connect.js";
 import { handleVisitorDeeplist } from "./deeplist-visitors.js";
 const ready = new WeakMap();
 const headers = { 'Cache-Control': 'no-store', 'Content-Type': 'application/json' };
@@ -46,6 +47,8 @@ export async function handleDeeplist(request, env, isAdmin) {
   if (!path.startsWith('/api/deeplist/')) return null;
   if (!env.DB) return reply({ error: 'storage_unavailable' }, 503);
   await schema(env.DB);
+  const connectResponse = await handleConnect(request, env, isAdmin, hash);
+  if (connectResponse) return connectResponse;
   const visitorResponse = await handleVisitorDeeplist(request, env, {hash, validateState, publicState});
   if (visitorResponse) return visitorResponse;
   if (['/api/deeplist/history', '/api/deeplist/on-repeat'].includes(path) && request.method === 'GET') {

@@ -5,15 +5,15 @@ const reply = (data, status = 200, extra = {}) => new Response(JSON.stringify(da
 const uuid = value => /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(value || '');
 const secret = () => Array.from(crypto.getRandomValues(new Uint8Array(32)), b => b.toString(16).padStart(2,'0')).join('');
 const label = (id,name) => name || 'Listener · '+id.slice(0,6);
-async function schema(db) {
+export async function visitorSchema(db) {
  if(!ready.has(db))ready.set(db,db.prepare('CREATE TABLE IF NOT EXISTS deeplist_visitors (channel_id TEXT PRIMARY KEY, browser_hash TEXT UNIQUE NOT NULL, token_hash TEXT UNIQUE, payload TEXT, updated_at INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL)').run().then(()=>db.prepare('CREATE INDEX IF NOT EXISTS deeplist_visitors_updated ON deeplist_visitors(updated_at)').run()).then(()=>db.prepare('CREATE TABLE IF NOT EXISTS deeplist_visitor_names (channel_id TEXT PRIMARY KEY, display_name TEXT NOT NULL)').run()).catch(e=>{ready.delete(db);throw e;}));
  await ready.get(db);
 }
-function browserRequest(request, action) {
+export function browserRequest(request, action) {
  const url=new URL(request.url), origin=request.headers.get('Origin'), site=request.headers.get('Sec-Fetch-Site');
  return request.headers.get('X-Deeplist-Action')===action && (!origin||origin===url.origin) && site!=='cross-site';
 }
-async function currentVisitor(request, db, hash) {
+export async function currentVisitor(request, db, hash) {
  const raw=(request.headers.get('Cookie')||'').match(/(?:^|;\s*)__Host-deeplist=([a-f0-9]{64})(?:;|$)/)?.[1];
  if(!raw)return null;
  return db.prepare('SELECT v.channel_id, v.token_hash, n.display_name FROM deeplist_visitors v LEFT JOIN deeplist_visitor_names n ON n.channel_id=v.channel_id WHERE browser_hash=?').bind(await hash(raw)).first();
@@ -30,7 +30,7 @@ export async function handleVisitorDeeplist(request, env, {hash,validateState,pu
  const addressed=url.searchParams.has('user');
  const relevant=path==='/api/deeplist/name'||path==='/api/deeplist/me'||path==='/api/deeplist/listeners'||(path==='/api/deeplist/pair'&&visitorScope)||(path==='/api/deeplist/state'&&(method==='POST'||addressed))||(addressed&&['/api/deeplist/history','/api/deeplist/on-repeat'].includes(path));
  if(!relevant)return null;
- await schema(env.DB);
+ await visitorSchema(env.DB);
  if(path==='/api/deeplist/name'&&method==='POST'){
   if(!browserRequest(request,'name'))return reply({error:'same_site_session_required'},403);
   const visitor=await currentVisitor(request,env.DB,hash);if(!visitor)return reply({error:'browser_session_required'},401);
