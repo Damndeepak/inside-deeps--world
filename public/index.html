@@ -218,11 +218,16 @@ h1{animation:deepTitleIn .9s cubic-bezier(.22,1,.36,1) both}
 html[data-world-theme=light] .memory-entry{background:#ecf2ed;border-color:#a8beb1}html[data-world-theme=light] .thoughts-entry{background:repeating-linear-gradient(to bottom,transparent 0,transparent 25px,#b0967926 25px,#b0967926 26px),#f4ecdd;border-color:#c4ae91}html[data-world-theme=light] .music-entry{background:#efeaf5;border-color:#b7a4cb}
 html[data-world-theme=light] .media-entry .media-entry-card{background:transparent}html[data-world-theme=light] :is(.memory-entry,.thoughts-entry,.music-entry) .media-name{color:#302b34}
 html[data-world-theme=light] :is(.media-entry-label,.media-kicker,.media-sub){color:#6e6575}
-</style></head>
+</style><meta name="description" content="Step inside Deep’s world. Live music, synced lyrics, little memories and conversations worth keeping.">
+<link rel="stylesheet" href="/world-refresh.css?v=1">
+<script src="/world-refresh.js?v=1" defer></script>
+</head>
 <body>
 
 <div aria-hidden="true" class="scroll-progress"><span id="scrollProgress"></span></div>
-<main class="wrap">
+<main class="wrap" id="mainContent">
+<nav class="deep-nav" aria-label="Main navigation"><a class="deep-brand" href="/" aria-label="Inside Deep home">d<span>.</span></a><div><a href="#lfm">Listening room</a><a href="#deepExplore">Explore</a><a href="#cxChat">Say hello ↗</a></div></nav>
+<header class="deep-hero"><p class="deep-kicker">A LITTLE CORNER OF THE INTERNET</p><h1>Inside Deep’s<br><em>World.</em><span class="deep-star" aria-hidden="true">✳</span></h1><div class="deep-hero-bottom"><p>Some songs. A few memories.<br>A little more of me than usual.</p><a class="deep-cta" href="/deeplist.html">Enter the listening room <span aria-hidden="true">↗</span></a></div><div class="deep-divider"><span>SCROLL A LITTLE. STAY A WHILE.</span><span aria-hidden="true">↓</span></div></header>
 <section aria-label="Deeplist Now Playing" class="lfm" id="lfm">
 <div class="lfm-label" id="lfmLabel">deeplist // now playing</div>
 <div id="lfmBody"><div class="lfm-empty">Checking Deeplist…</div></div>
@@ -232,8 +237,14 @@ html[data-world-theme=light] :is(.media-entry-label,.media-kicker,.media-sub){co
 <section class="world-card" aria-label="Recent listening"><div class="world-heading"><h2>Recently in my ears</h2><a class="world-link" href="/on-repeat.html">This week ↗</a></div><div id="worldHistory" class="world-history"><p class="world-note">Loading recent tracks…</p></div></section>
 <section class="world-card" aria-label="Other Deeplist listeners"><div class="world-heading"><h2>Listening around here</h2><a class="world-link" href="/deeplist.html">Connect your Deeplist ↗</a></div><div id="deeplistListeners" class="world-history" style="display:flex;flex-wrap:nowrap;overflow-x:auto;gap:12px"><p class="world-note">Checking connected listeners…</p></div></section>
 
+<section aria-label="Inside Deep’s Mind" class="media-entry thoughts-entry">
+<div class="entry-sketch" aria-hidden="true"><span class="pencil-drift pencil-drift-0"><svg viewBox="0 0 220 90" fill="none"><path d="M8 50 Q28 8 55 39 T103 37 Q124 6 145 45 T207 34" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span><span class="pencil-drift pencil-drift-1"><svg viewBox="0 0 220 90" fill="none"><path d="M8 31 C35 73 50 2 78 38 S119 76 142 34 S179 4 207 53" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span><span class="pencil-drift pencil-drift-2"><svg viewBox="0 0 220 90" fill="none"><path d="M10 54 Q42 60 48 24 T92 46 Q108 70 130 37 T161 42 Q182 64 207 29" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span></div>
+<div class="media-entry-label"><span>thoughts · opinions · inside my mind</span><span class="media-entry-badge">Inside Deep’s Mind</span></div>
+<button class="media-entry-card" id="ptOpen" type="button" aria-haspopup="dialog" aria-controls="ptDialog">
+<div class="media-mark" aria-hidden="true">✎</div><div class="media-text"><div class="media-kicker">INSIDE DEEP'S WORLD</div><div class="media-name">Inside Deep’s Mind</div><div class="media-sub">things on my mind · out in the open</div></div><div class="arrow" aria-hidden="true">↗</div>
+</button></section>
 <section aria-label="Chat" class="cx-card" id="cxChat">
-<div class="cx-head"><div class="cx-label"><span class="cx-dot"></span>chat // everyone</div><div class="cx-count" id="cxCount"></div></div>
+<div class="deep-chat-intro"><p class="deep-kicker">THE CONVERSATION CONTINUES</p><h2>Leave me something.</h2><p>A song recommendation, a random thought, or just a hello. This chat is public.</p></div><div class="cx-head"><div class="cx-label"><span class="cx-dot"></span>chat // everyone</div><div class="cx-count" id="cxCount"></div></div>
 <div class="cx-id">You appear as <b id="cxMe">loading...</b>.
 <details class="cx-nickname"><summary>Nickname (optional)</summary>
 <form id="cxNicknameForm" autocomplete="off"><label for="cxNickname">Choose a name for the public chat</label><div class="cx-nickname-fields"><input id="cxNickname" name="nickname" maxlength="19" placeholder="Pick a name — damn_ is added automatically" aria-describedby="cxNicknameHint"><button class="cx-tool" id="cxNicknameSave" type="submit" disabled>Save</button><button class="cx-tool" id="cxNicknameReset" type="button" disabled>Use random name</button></div><small id="cxNicknameHint">24 characters total · damn_ added automatically · one change every 7 days</small><div id="cxNicknameStatus" role="status" aria-live="polite"></div></form>
@@ -263,7 +274,8 @@ html[data-world-theme=light] :is(.media-entry-label,.media-kicker,.media-sub){co
 </section>
 
 <div class="world-bar"><nav class="world-nav" aria-label="Explore"><a href="/on-repeat.html">On repeat ↗</a></nav><div class="world-controls" data-theme-controls></div></div>
-<h1>Inside Deep's World</h1><p class="sub">Music, memories and a few thoughts.<br/>The private corners stay behind their own passwords.</p>
+<section class="deep-app" id="deeplistApp" aria-labelledby="deepAppTitle"><div><p class="deep-kicker">THE MUSIC GOES WITH YOU</p><h2 id="deepAppTitle">Meet Deeplist<span>.</span></h2><p>Your music, with a little more personality. Synced lyrics and your own way to listen.</p><div class="deep-feature-list"><span>Lyrics animation style</span><span>Lyrics text size</span><span>Offline playback</span><span>Discord integration</span></div><a class="deep-cta" href="/deeplist.html">Connect your Deeplist ↗</a><p class="deep-app-note">Already have the Android app? Open the listening room to connect it.</p></div><div class="deep-app-art" aria-hidden="true"><div class="deep-orbit"></div><div class="deep-record"><span>d.</span></div><div class="deep-record-label">DEEPLIST<br><small>YOUR EVERYDAY SOUNDTRACK</small></div></div></section>
+<div class="deep-section-intro" id="deepExplore"><p class="deep-kicker">BEYOND THE PLAYLIST</p><h2>Little pieces of my world.</h2><p>Keep exploring. The private corners stay private.</p></div>
 <details class="private-group" id="deepPrivate"><summary><span>Deep Private Section</span><span class="private-chevron" aria-hidden="true">⌄</span></summary><p class="hint">Choose a private corner. Each keeps its own password.</p><section aria-label="Private sections" class="section-list">
 <button class="locked" data-section="people"><div class="row"><div><div class="title">Ppl I fw ❤️</div><div class="hint">A date that matters to me</div></div><div class="lock">⌁</div></div></button>
 <button class="locked" data-section="memories"><div class="row"><div><div class="title">Memories</div><div class="hint">A private phrase.</div></div><div class="lock">⌁</div></div></button>
@@ -285,13 +297,9 @@ html[data-world-theme=light] :is(.media-entry-label,.media-kicker,.media-sub){co
 </div>
 <div class="arrow">↗</div>
 </a>
+<div id="deepMemoryPreview" class="deep-memory-preview" aria-label="Recent memories"></div>
 </section>
-<section aria-label="Inside Deep’s Mind" class="media-entry thoughts-entry">
-<div class="entry-sketch" aria-hidden="true"><span class="pencil-drift pencil-drift-0"><svg viewBox="0 0 220 90" fill="none"><path d="M8 50 Q28 8 55 39 T103 37 Q124 6 145 45 T207 34" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span><span class="pencil-drift pencil-drift-1"><svg viewBox="0 0 220 90" fill="none"><path d="M8 31 C35 73 50 2 78 38 S119 76 142 34 S179 4 207 53" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span><span class="pencil-drift pencil-drift-2"><svg viewBox="0 0 220 90" fill="none"><path d="M10 54 Q42 60 48 24 T92 46 Q108 70 130 37 T161 42 Q182 64 207 29" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span></div>
-<div class="media-entry-label"><span>thoughts · opinions · inside my mind</span><span class="media-entry-badge">Inside Deep’s Mind</span></div>
-<button class="media-entry-card" id="ptOpen" type="button" aria-haspopup="dialog" aria-controls="ptDialog">
-<div class="media-mark" aria-hidden="true">✎</div><div class="media-text"><div class="media-kicker">INSIDE DEEP'S WORLD</div><div class="media-name">Inside Deep’s Mind</div><div class="media-sub">things on my mind · out in the open</div></div><div class="arrow" aria-hidden="true">↗</div>
-</button></section>
+
 <section aria-label="Music and Media" class="media-entry music-entry">
 <div class="entry-sketch" aria-hidden="true"><span class="pencil-drift pencil-drift-0"><svg viewBox="0 0 220 90" fill="none"><path d="M8 50 Q28 8 55 39 T103 37 Q124 6 145 45 T207 34" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span><span class="pencil-drift pencil-drift-1"><svg viewBox="0 0 220 90" fill="none"><path d="M8 31 C35 73 50 2 78 38 S119 76 142 34 S179 4 207 53" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span><span class="pencil-drift pencil-drift-2"><svg viewBox="0 0 220 90" fill="none"><path d="M10 54 Q42 60 48 24 T92 46 Q108 70 130 37 T161 42 Q182 64 207 29" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span></div>
 <div class="media-entry-label"><span>songs · lyrics · video</span><span class="media-entry-badge">Featured</span></div>
@@ -307,7 +315,7 @@ html[data-world-theme=light] :is(.media-entry-label,.media-kicker,.media-sub){co
 </section>
 <div class="cx-lightbox" hidden id="cxLightbox"><img alt="" id="cxLightImg"/></div>
 
-</main>
+<footer class="deep-footer"><a class="deep-brand" href="#mainContent">d<span>.</span></a><p>Made of music &amp; little moments.</p><a href="#mainContent">Back to the top ↑</a></footer></main>
 <div class="modal" id="passwordModal"><div class="box password-box"><div class="modal-head"><div><div class="modal-title" id="passwordTitle">Unlock</div><div class="modal-meta" id="passwordHint"></div></div><button class="close" onclick="closeAll()" type="button">×</button></div><form id="passwordForm"><input autocomplete="current-password" id="passwordInput" placeholder="Enter password" required="" type="password"/><button class="unlock" type="submit">Unlock</button><div class="error" id="error">Wrong password.</div></form></div></div>
 <div class="modal" id="contentModal"><div class="box"><div class="modal-head"><div><div class="modal-title" id="contentTitle"></div><div class="modal-meta">private section</div></div><button class="close" onclick="closeAll()" type="button">×</button></div><div id="content"></div></div></div>
 <script>
