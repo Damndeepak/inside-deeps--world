@@ -1,0 +1,16 @@
+(()=>{'use strict';
+const section=document.getElementById('appleLyricsDemo');if(!section)return;
+const audio=document.getElementById('appleDemoAudio'),stage=document.getElementById('appleDemoWindow'),stack=document.getElementById('appleDemoLines'),status=document.getElementById('appleDemoStatus');let lines=[],nodes=[],active=-1,raf=0,visible=true;
+function centre(){const row=nodes[active];if(row)stack.style.transform=`translateY(${stage.clientHeight*.44-row.offsetTop-row.offsetHeight/2}px)`}
+function paint(){raf=0;const t=audio.currentTime;let next=0;for(let i=0;i<lines.length;i++)if(t>=lines[i][0])next=i;
+if(next!==active){active=next;nodes.forEach((row,i)=>{row.classList.toggle('am-active',i===active);row.classList.toggle('am-near',Math.abs(i-active)===1);if(i===active)row.setAttribute('aria-current','true');else row.removeAttribute('aria-current')});centre()}
+for(let i=Math.max(0,active-1);i<=Math.min(nodes.length-1,active+1);i++){const words=lines[i][1];[...nodes[i].children].forEach((word,j)=>{const start=words[j][0],end=words[j+1]?.[0]??lines[i+1]?.[0]??audio.duration??26.54;const p=Math.max(0,Math.min(1,(t-start)/Math.max(.08,end-start)));word.style.setProperty('--fill',`${p*100}%`);word.classList.toggle('am-hot',i===active&&p>0&&p<1)})}
+if(!audio.paused&&!audio.ended&&!document.hidden&&visible)raf=requestAnimationFrame(paint)}
+function wake(){cancelAnimationFrame(raf);paint()}
+fetch('/media/apple-demo-data.json').then(r=>{if(!r.ok)throw Error();return r.json()}).then(data=>{lines=data.lines;nodes=lines.map(([time,words])=>{const row=document.createElement('button');row.type='button';row.className='am-line';row.setAttribute('aria-label',words.map(w=>w[1]).join(' '));words.forEach(([,text])=>{const word=document.createElement('span');word.className='am-word';word.textContent=text;row.append(word)});row.onclick=()=>{if(Number.isFinite(audio.duration)){audio.currentTime=Math.min(time,audio.duration);wake()}};stack.append(row);return row});wake()}).catch(()=>{status.textContent='Lyrics could not load. Refresh to retry.'});
+audio.addEventListener('play',()=>{section.classList.add('am-playing');status.textContent='Playing · tap a lyric line to seek';wake()});audio.addEventListener('pause',()=>{section.classList.remove('am-playing');status.textContent=audio.ended?'Replay the clip to watch again.':'Paused';wake()});audio.addEventListener('ended',()=>{section.classList.remove('am-playing');status.textContent='Replay the clip to watch again.';wake()});audio.addEventListener('seeked',wake);audio.addEventListener('loadedmetadata',wake);audio.addEventListener('error',()=>{status.textContent='Audio could not load. Refresh to retry.'});document.addEventListener('visibilitychange',wake);
+if('IntersectionObserver'in window)new IntersectionObserver(entries=>{visible=entries[0].isIntersecting;wake()}).observe(section);
+if('ResizeObserver'in window)new ResizeObserver(centre).observe(stage);
+for(const [id,prop,unit]of [['amSize','--am-size','px'],['amSpacing','--am-gap','em'],['amBlur','--am-blur','px']])document.getElementById(id).addEventListener('input',e=>{section.style.setProperty(prop,e.target.value+unit);centre()});
+document.getElementById('amMotion').addEventListener('change',e=>section.classList.toggle('am-still',!e.target.checked));
+})();

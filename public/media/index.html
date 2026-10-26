@@ -110,13 +110,19 @@ h1{animation:deepTitleIn .9s cubic-bezier(.22,1,.36,1) both}
 .uf-wordstorm .uf-energy-halo{position:absolute;left:50%;top:45%;width:220px;height:220px;border:1px solid #c468f933;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 80px #9d20e422,inset 0 0 60px #ab2bd422;pointer-events:none;z-index:0}
 @media(prefers-reduced-motion:reduce){.uf-wordstorm .uf-rise{animation:none}.uf-wordstorm .uf-happy-word{transition:none;transform:none}.uf-wordstorm canvas{display:none}}
 </style>
-</head>
+<link rel="stylesheet" href="./apple-demo.css?v=1"><script src="./apple-demo.js?v=1" defer></script></head>
 <body>
 <div aria-hidden="true" class="scroll-progress"><span id="scrollProgress"></span></div>
 <main class="wrap">
 <div class="eyebrow"><a href="../index.html" style="color:inherit;text-decoration:none">← back to Inside Deep</a></div>
 <h1>Music &amp; Media</h1>
-<p class="sub">Songs, lyrics and a video. Press play.</p>
+<p class="sub">All the lyrics demos, in one place. Start with the Apple Music-style player below.</p>
+<section id="appleLyricsDemo" class="apple-demo song-player" aria-label="Apple Music-style lyrics demo">
+<div class="am-ambient" aria-hidden="true"></div>
+<header class="am-header"><span>DEEPLIST / LYRICS LAB</span><span>Apple Music-style</span></header>
+<div class="am-layout"><div class="am-player"><div class="am-art" aria-hidden="true"><span>WASTED</span><small>JUICE WRLD</small><i>♪</i></div><h2>Wasted</h2><p>Juice WRLD ft. Lil Uzi Vert</p><p class="am-caption">A short clip. A different way to feel it.</p><audio id="appleDemoAudio" controls playsinline preload="none" src="./Wasted_3m18_3m45_320kbps.mp3?v=repair-ad33383" aria-label="Play Apple-style Wasted demo"></audio><p class="am-status" id="appleDemoStatus" role="status">Press play to preview synced lyrics.</p></div><div class="am-window" id="appleDemoWindow"><div class="am-lines" id="appleDemoLines" aria-label="Synced lyrics"></div></div></div>
+<details class="am-settings"><summary>Adjust the look</summary><div><label>Lyrics text size<input id="amSize" type="range" min="24" max="64" value="38" step="2"></label><label>Word spacing<input id="amSpacing" type="range" min="0" max="0.4" step="0.02" value="0.12"></label><label>Background blur<input id="amBlur" type="range" min="0" max="80" value="40"></label><label class="am-check"><input id="amMotion" type="checkbox" checked> Background motion</label></div></details>
+<p class="am-caption">Deeplist web demo · inspired by Apple Music. Tap a lyric line to seek.</p></section>
 <section aria-label="Public video" class="public-video-player">
   <div class="public-video-label">public video</div>
   <video class="public-video" controls playsinline preload="metadata">
