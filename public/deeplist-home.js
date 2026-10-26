@@ -2,7 +2,7 @@
 'use strict';
 const box=document.getElementById('lfm'),label=document.getElementById('lfmLabel'),body=document.getElementById('lfmBody'),lyric=document.getElementById('deeplistHomeLyrics');if(!box)return;
 const progress=document.getElementById('homeProgress'),fill=document.getElementById('homeProgressFill'),elapsed=document.getElementById('homeElapsed'),duration=document.getElementById('homeDuration');
-let snapshot=null,received=0,key='',timer,frame=0,last=0,loading=false,freshnessTimer,historyChecked=0;
+let snapshot=null,received=0,key='',timer,frame=0,last=0,loading=false,freshnessTimer,historyChecked=-Infinity,historyTrack=null;
 const time=ms=>{const seconds=Math.floor(Math.max(0,ms)/1000);return Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0')};
 function card(track,live){
  label.textContent=live?(track.playing?'NOW PLAYING':'ON PAUSE'):'LAST ON REPEAT';box.classList.toggle('is-playing',!!live&&track.playing);label.classList.toggle('deeplist-live-indicator',!!live&&!!track.playing);
@@ -18,7 +18,9 @@ function empty(unavailable=false){clearTimeout(freshnessTimer);key='';snapshot=n
 async function poll(){clearTimeout(timer);if(document.hidden||loading)return;loading=true;const started=performance.now();try{
  const r=await fetch('/api/deeplist/state'+(snapshot?.lyricsVersion?'?lyricsVersion='+encodeURIComponent(snapshot.lyricsVersion):''),{cache:'no-store',signal:AbortSignal.timeout(1500)});if(!r.ok)throw Error();const d=await r.json();cancelAnimationFrame(frame);
  if(d.connected&&d.state){const next=d.state;if(next.lines===undefined)next.lines=snapshot?.id===next.id&&snapshot.lyricsVersion===next.lyricsVersion?snapshot.lines||[]:[];snapshot=next;received=performance.now()-Math.max(0,d.serverNow-d.receivedAt);clearTimeout(freshnessTimer);freshnessTimer=setTimeout(()=>empty(true),Math.max(0,15000-(performance.now()-received)));card(snapshot,true);frame=requestAnimationFrame(paint)}
- else{clearTimeout(freshnessTimer);snapshot=null;lyric.textContent='';if(progress)progress.hidden=true;box.classList.remove('is-playing');label.classList.remove('deeplist-live-indicator');label.textContent='LAST ON REPEAT';if(performance.now()-historyChecked<30000&&key)return;historyChecked=performance.now();const h=await fetch('/api/deeplist/history',{cache:'no-store',signal:AbortSignal.timeout(1500)});if(!h.ok)throw Error();const history=await h.json();if(history.tracks?.[0])card(history.tracks[0],false);else empty()}
+ else{clearTimeout(freshnessTimer);snapshot=null;lyric.textContent='';if(progress)progress.hidden=true;
+  if(performance.now()-historyChecked>=30000){const h=await fetch('/api/deeplist/history',{cache:'no-store',signal:AbortSignal.timeout(1500)});if(!h.ok)throw Error();const history=await h.json();historyTrack=history.tracks?.[0]||null;historyChecked=performance.now();}
+  if(historyTrack)card(historyTrack,false);else empty()}
  }catch{empty(true)}finally{loading=false;timer=setTimeout(()=>{if((window.worldIsVisible||(()=>!document.hidden))(box))poll();else timer=setTimeout(poll,10000)},Math.max(0,500-(performance.now()-started)))}}
 document.addEventListener('visibilitychange',()=>{if(document.hidden){label.classList.remove('deeplist-live-indicator');clearTimeout(timer);cancelAnimationFrame(frame)}else poll()});box.addEventListener('world-visible',()=>{if(snapshot)frame=requestAnimationFrame(paint);poll()});poll();
 })();

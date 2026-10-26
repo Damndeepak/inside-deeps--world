@@ -68,6 +68,13 @@ async function check(privateSession){
  state={id:'zyxwvutsrqp',title:'New song',artist:'New artist',playing:true,position:0,duration:30000,lyricsVersion:'one',lines:[{time:0,text:'<img onerror=bad> safe'}]};await run('poll()');
  assert.equal(nodes.currentLine.children.length,1);assert.equal(nodes.currentLine.children[0].attributes['aria-label'],'<img onerror=bad> safe');
  assert.equal(nodes.currentLine.children[0].children[0].tag,'span');
+ // A slow old response must never replace a newer song after a new poll supersedes it.
+ const normalFetch=context.fetch;let finishOld,oldSignal;
+ context.fetch=(path,options)=>{oldSignal=options.signal;return new Promise(resolve=>finishOld=resolve);};
+ const oldPoll=run('poll()');context.fetch=normalFetch;
+ state={...state,title:'Newest song'};await run('poll()');assert.equal(oldSignal.aborted,true);
+ finishOld({ok:true,json:async()=>({connected:true,serverNow:now,receivedAt:now,state:{...state,title:'Late old song'}})});await oldPoll;
+ assert.equal(nodes.trackTitle.textContent,'Newest song');
  // Repeated words and enhanced syllables retain their own timestamps.
  const native=run(`appleLineWords({time:1000,text:'Hello hello',words:[{text:'Hel',start:1000,end:1200},{text:'lo',start:1200,end:1700},{text:'hello',start:2000,end:2800}]},4000)`);
  assert.deepEqual(Array.from(native,w=>[w.start,w.end]),[[1000,1700],[2000,2800]]);
