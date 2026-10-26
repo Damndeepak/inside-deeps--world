@@ -1,15 +1,15 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>Music &amp; Media · Inside Deep's World</title>
 <meta content="#070707" name="theme-color"/>
-<link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32">
-<link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png">
-<link rel="manifest" href="/manifest.json">
-
+<link href="/favicon-32.png" rel="icon" sizes="32x32" type="image/png"/>
+<link href="/icon-192.png" rel="icon" sizes="192x192" type="image/png"/>
+<link href="/apple-touch-icon.png" rel="apple-touch-icon"/>
+<link href="/manifest.json" rel="manifest"/>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap');
 *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;min-height:100vh;background:radial-gradient(circle at 15% 0%,rgba(255,255,255,.07),transparent 28rem),radial-gradient(circle at 90% 20%,rgba(130,90,255,.08),transparent 30rem),#070707;color:#f4f4f5;font-family:Manrope,system-ui,sans-serif}.wrap{width:min(900px,calc(100% - 32px));margin:auto;padding:72px 0 70px}.eyebrow{font:500 11px/1 DM Mono,monospace;letter-spacing:.18em;color:#777;text-transform:uppercase;margin-bottom:18px}h1{font-size:clamp(42px,8vw,76px);line-height:.98;letter-spacing:-.055em;margin:0;max-width:760px}.sub{color:#8f8f94;margin:22px 0 42px;font-size:15px;line-height:1.7;max-width:600px}
@@ -80,7 +80,6 @@ h1{animation:deepTitleIn .9s cubic-bezier(.22,1,.36,1) both}
   .public-video{border-radius:15px}
 }
 </style>
-
 <style id="unforgettable-player-style">
 .unforgettable-player{margin-top:24px}
 .unforgettable-player .uf-lyrics{height:155px;display:flex;flex-direction:column;justify-content:center;gap:7px;overflow:hidden;margin:14px 0 15px}
@@ -90,9 +89,8 @@ h1{animation:deepTitleIn .9s cubic-bezier(.22,1,.36,1) both}
 .unforgettable-player .uf-letter.uf-lit{color:#fff;text-shadow:0 0 6px #fff,0 0 14px #ff67d4,0 0 23px #9b86ff}
 @media(max-width:650px){.unforgettable-player .uf-lyrics{height:155px;margin:12px 0}.unforgettable-player .uf-line{font-size:clamp(20px,6vw,29px)}}
 </style>
-
-<link rel="stylesheet" href="/world-motion.css?v=1">
-<script src="/world-motion.js?v=1" defer></script>
+<link href="/world-motion.css?v=1" rel="stylesheet"/>
+<script defer="" src="/world-motion.js?v=1"></script>
 <style id="uf-wordstorm-style">
 .uf-wordstorm{position:relative;isolation:isolate;background:radial-gradient(ellipse at 50% 35%,#59216b44,transparent 65%),#0d0915;border-color:#844ea466}
 .uf-wordstorm .song-title,.uf-wordstorm .song-controls{position:relative;z-index:2}
@@ -110,28 +108,28 @@ h1{animation:deepTitleIn .9s cubic-bezier(.22,1,.36,1) both}
 .uf-wordstorm .uf-energy-halo{position:absolute;left:50%;top:45%;width:220px;height:220px;border:1px solid #c468f933;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 80px #9d20e422,inset 0 0 60px #ab2bd422;pointer-events:none;z-index:0}
 @media(prefers-reduced-motion:reduce){.uf-wordstorm .uf-rise{animation:none}.uf-wordstorm .uf-happy-word{transition:none;transform:none}.uf-wordstorm canvas{display:none}}
 </style>
-<link rel="stylesheet" href="./apple-demo.css?v=1"><script src="./apple-demo.js?v=1" defer></script></head>
+<link href="./apple-demo.css?v=1" rel="stylesheet"/><script defer="" src="./apple-demo.js?v=1"></script><link href="/public-media.css" rel="stylesheet"/><script defer="" src="/public-gallery.js"></script></head>
 <body>
 <div aria-hidden="true" class="scroll-progress"><span id="scrollProgress"></span></div>
 <main class="wrap">
 <div class="eyebrow"><a href="../index.html" style="color:inherit;text-decoration:none">← back to Inside Deep</a></div>
 <h1>Music &amp; Media</h1>
-<p class="sub">All the lyrics demos, in one place. Start with the Apple Music-style player below.</p>
-<section id="appleLyricsDemo" class="apple-demo song-player" aria-label="Apple Music-style lyrics demo">
-<div class="am-ambient" aria-hidden="true"></div>
+<p class="sub">A public collection of playlists, synced lyrics, and videos. Press play — everyone’s welcome.</p>
+<section aria-labelledby="playlistTitle" class="song-player public-playlist" id="featuredPlaylist"><div class="song-kicker">FEATURED PLAYLIST / THIS WEEK</div><h2 id="playlistTitle">On repeat.</h2><p>The tracks Deepak keeps coming back to.</p><div aria-live="polite" id="publicPlaylist"><p>Tracks will appear here as Deepak listens.</p></div><a href="/on-repeat.html">Explore this week’s listening ↗</a></section><section aria-label="Apple Music-style lyrics demo" class="apple-demo song-player" id="appleLyricsDemo">
+<div aria-hidden="true" class="am-ambient"></div>
 <header class="am-header"><span>DEEPLIST / LYRICS LAB</span><span>Apple Music-style</span></header>
-<div class="am-layout"><div class="am-player"><div class="am-art" aria-hidden="true"><span>WASTED</span><small>JUICE WRLD</small><i>♪</i></div><h2>Wasted</h2><p>Juice WRLD ft. Lil Uzi Vert</p><p class="am-caption">A short clip. A different way to feel it.</p><audio id="appleDemoAudio" controls playsinline preload="none" src="./Wasted_3m18_3m45_320kbps.mp3?v=repair-ad33383" aria-label="Play Apple-style Wasted demo"></audio><p class="am-status" id="appleDemoStatus" role="status">Press play to preview synced lyrics.</p></div><div class="am-window" id="appleDemoWindow"><div class="am-lines" id="appleDemoLines" aria-label="Synced lyrics"></div></div></div>
-<details class="am-settings"><summary>Adjust the look</summary><div><label>Lyrics text size<input id="amSize" type="range" min="24" max="64" value="38" step="2"></label><label>Word spacing<input id="amSpacing" type="range" min="0" max="0.4" step="0.02" value="0.12"></label><label>Background blur<input id="amBlur" type="range" min="0" max="80" value="40"></label><label class="am-check"><input id="amMotion" type="checkbox" checked> Background motion</label></div></details>
+<div class="am-layout"><div class="am-player"><div aria-hidden="true" class="am-art"><span>WASTED</span><small>JUICE WRLD</small><i>♪</i></div><h2>Wasted</h2><p>Juice WRLD ft. Lil Uzi Vert</p><p class="am-caption">A short clip. A different way to feel it.</p><audio aria-label="Play Apple-style Wasted demo" controls="" id="appleDemoAudio" playsinline="" preload="none" src="./Wasted_3m18_3m45_320kbps.mp3?v=repair-ad33383"></audio><p class="am-status" id="appleDemoStatus" role="status">Press play to preview synced lyrics.</p></div><div class="am-window" id="appleDemoWindow"><div aria-label="Synced lyrics" class="am-lines" id="appleDemoLines"></div></div></div>
+<details class="am-settings"><summary>Adjust the look</summary><div><label>Lyrics text size<input id="amSize" max="64" min="24" step="2" type="range" value="38"/></label><label>Word spacing<input id="amSpacing" max="0.4" min="0" step="0.02" type="range" value="0.12"/></label><label>Background blur<input id="amBlur" max="80" min="0" type="range" value="40"/></label><label class="am-check"><input checked="" id="amMotion" type="checkbox"/> Background motion</label></div></details>
 <p class="am-caption">Deeplist web demo · inspired by Apple Music. Tap a lyric line to seek.</p></section>
 <section aria-label="Public video" class="public-video-player">
-  <div class="public-video-label">public video</div>
-  <video class="public-video" controls playsinline preload="metadata">
-    <source src="./Screen Recording 2026-09-20 195808.mp4" type="video/mp4">
+<div class="public-video-label">public video</div>
+<video class="public-video" controls="" playsinline="" preload="metadata">
+<source src="./Screen Recording 2026-09-20 195808.mp4" type="video/mp4"/>
     Your browser does not support the video tag.
   </video>
 </section>
-<section aria-label="Kabhi Kabhi Aditi music player" class="song-player" id="aditiPlayer" style="padding:0"><div id="aditiVisual"></div><audio id="aditiAudio" playsinline webkit-playsinline preload="metadata" src="./aditi-clip.mp3"></audio></section>
-<section aria-label="Sweet but Psycho music player" class="song-player" id="psychoPlayer" style="padding:0"><div id="psychoVisual"></div><audio id="psychoAudio" playsinline webkit-playsinline preload="metadata" src="./sweet-but-psycho-clip.mp3"></audio></section>
+<div aria-label="Synced lyrics players" id="lyricsPlayers"></div><section aria-label="Kabhi Kabhi Aditi music player" class="song-player" data-gallery-section="lyricsPlayers" id="aditiPlayer" style="padding:0"><div id="aditiVisual"></div><audio id="aditiAudio" playsinline="" preload="metadata" src="./aditi-clip.mp3" webkit-playsinline=""></audio></section>
+<section aria-label="Sweet but Psycho music player" class="song-player" id="psychoPlayer" style="padding:0"><div id="psychoVisual"></div><audio id="psychoAudio" playsinline="" preload="metadata" src="./sweet-but-psycho-clip.mp3" webkit-playsinline=""></audio></section>
 <section aria-label="Wasted music player" class="song-player unforgettable-player">
 <div class="song-kicker">one little piece</div>
 <div class="song-title">Wasted</div>
@@ -150,22 +148,20 @@ h1{animation:deepTitleIn .9s cubic-bezier(.22,1,.36,1) both}
 <div class="song-progress"><div class="song-track" id="refTrack"><div class="song-fill" id="refFill"></div></div><div class="song-times"><span id="refTime">0:00</span><span>0:30</span></div></div></div>
 <audio id="reflectionsAudio" playsinline="" preload="metadata" webkit-playsinline=""><source src="./reflections.mp3" type="audio/mpeg"/></audio>
 </section>
-
 <section aria-label="Unforgettable Freestyle music player" class="song-player unforgettable-player">
 <div class="song-title">Unforgettable (Freestyle)</div>
 <div class="uf-lyrics" id="ufLyrics"></div>
 <div class="song-controls"><button aria-label="Play" class="song-play" id="ufPlay" type="button">▶</button>
 <div class="song-progress"><div class="song-track" id="ufTrack"><div class="song-fill" id="ufFill"></div></div><div class="song-times"><span id="ufTime">0:00</span><span>0:26</span></div></div></div>
-<audio id="ufAudio" playsinline preload="metadata" webkit-playsinline><source src="./unforgettable-clip.mp3" type="audio/mpeg"/></audio>
+<audio id="ufAudio" playsinline="" preload="metadata" webkit-playsinline=""><source src="./unforgettable-clip.mp3" type="audio/mpeg"/></audio>
 </section>
-
 <section aria-label="All Girls Are The Same music player" class="song-player unforgettable-player allgirls-player">
 <div class="song-title">All Girls Are The Same</div>
 <div class="song-artist">Juice WRLD</div>
 <div class="uf-lyrics" id="agLyrics"></div>
 <div class="song-controls"><button aria-label="Play" class="song-play" id="agPlay" type="button">▶</button>
 <div class="song-progress"><div class="song-track" id="agTrack"><div class="song-fill" id="agFill"></div></div><div class="song-times"><span id="agTime">0:00</span><span>0:35</span></div></div></div>
-<audio id="agAudio" playsinline preload="metadata" webkit-playsinline><source src="./allgirls-clip.mp3" type="audio/mpeg"/></audio>
+<audio id="agAudio" playsinline="" preload="metadata" webkit-playsinline=""><source src="./allgirls-clip.mp3" type="audio/mpeg"/></audio>
 </section>
 </main>
 <script id="media-single-player-js">
@@ -243,13 +239,6 @@ h1{animation:deepTitleIn .9s cubic-bezier(.22,1,.36,1) both}
   }
 })();
 </script>
-
-
-
-
-
-
-
 <script id="music-players-js">
 (()=>{
 const players=[{"audio":"wastedAudio","prefix":"song","box":"songLyrics","duration":26.536735,"lines":[[0,[[0,"My"],[0.24,"eyes"],[0.48,"closed,"],[0.78,"hopin'"],[1.13,"this"],[1.37,"ain't"],[1.62,"make-believe"]]],[4,[[4,"And"],[4.24,"she"],[4.43,"don't"],[4.7,"know"],[4.94,"that"],[5.17,"all"],[5.38,"her"],[5.58,"demons"],[5.91,"live"],[6.15,"in"],[6.31,"me,"],[6.55,"yeah"]]],[7,[[7,"I"],[7.25,"don't"],[7.53,"know,"],[7.88,"I"],[8.12,"don't"],[8.43,"know"]]],[9,[[9,"Don't"],[9.3,"know"],[9.55,"what"],[9.78,"she"],[10,"been"],[10.29,"on,"],[10.64,"I"],[10.86,"don't"],[11.15,"know"]]],[13,[[13,"All"],[13.23,"that"],[13.46,"lean"],[13.76,"I"],[13.94,"sip"],[14.2,"on,"],[14.55,"now"],[14.82,"watch"],[15.1,"me"],[15.34,"pour"],[15.66,"it"]]],[16,[[16,"One"],[16.25,"cup"],[16.5,"on"],[16.7,"me,"],[17.02,"don't"],[17.33,"got"],[17.57,"no"],[17.82,"friends"]]],[18,[[18,"I'm"],[18.28,"an"],[18.48,"open"],[18.8,"door,"],[19.18,"I"],[19.39,"ain't"],[19.68,"have"],[19.94,"to"],[20.14,"let"],[20.39,"her"],[20.63,"in"]]],[21,[[21,"She"],[21.25,"ain't"],[21.52,"take"],[21.78,"my"],[22.02,"heart,"],[22.39,"but"],[22.61,"she"],[22.84,"took"],[23.11,"my"],[23.32,"medicine"]]],[24,[[24,"Least"],[24.3,"somebody"],[24.78,"gon'"],[25.05,"take"],[25.32,"it,"],[25.62,"hate"],[25.86,"to"],[26.1,"waste"],[26.47,"it"]]]],"mode":"words"},{"audio":"reflectionsAudio","prefix":"ref","box":"refLyrics","duration":30.040816,"lines":[[0,["I","never","knew","somebody","like","you,","somebody"]],[5.2,["Falling","just","as","hard"]],[8.55,["I'd","rather","lose","somebody","than","use","somebody"]],[14.65,["Maybe","it's","a","blessing","in","disguise"]],[19.1,["(I","see","myself","in","you)"]],[22.15,["I","see","my","reflection","in","your","eyes"]]],"mode":"steps","steps":[0.74,0.84,0.71,0.91,0.6,0.65]},{"audio":"ufAudio","prefix":"uf","box":"ufLyrics","duration":26,"lines":[[0.15,"I found you"],[2.05,"Girl, I like being around you"],[4.65,"Feel like Kanye, I'm Bound 2"],[7.05,"Shawty, if you down, I'm down too"],[9.75,"Yeah, I found you"],[11.2,"Girl, I like being around you"],[14.05,"Feel like Kanye, I'm Bound 2"],[16.55,"Shawty, if you down, I'm down too"],[20.05,"You are unforgettable"]],"mode":"line"},{"audio":"agAudio","prefix":"ag","box":"agLyrics","duration":35,"lines":[[0.53,["Wake","up","the","next","day","in","the","Monte","Carlo"]],[3.33,["With","a","new","woman,","tell","me","she","from","Colorado"]],[6.29,["And","she","love","women,","she'll","be","gone","by","tomorrow"]],[8.96,["Who","am","I","kiddin'?"]],[10.58,["All","this","jealousy","and","agony","that","I","sit","in"]],[13.46,["I'm","a","jealous","boy,","really","feel","like","John","Lennon"]],[16.44,["I","just","want","real","love,","guess","it's","been","a","minute"]],[19.4,["Pissed","off","from","the","way","that","I","don't","fit","in","I","don't","fit","in"]],[23.56,["Tell","me","what's","the","secret","to","love,","I","don't","get","it"]],[26.38,["Feel","like","I","be","runnin'","a","race,","I'm","not","winnin'"]],[29.41,["Ran","into","the","devil","today","and","she","grinnin'"]]],"mode":"line"}];
@@ -346,10 +335,3 @@ if(idx>=0){const words=wordNodes,end=lines[idx+1]?.[0]||42.96,duration=(end-line
 </script>
 <script src="./aditi-player.js?v=1"></script>
 </body></html>
-
-
-
-
-
-
-

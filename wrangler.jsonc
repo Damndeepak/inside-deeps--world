@@ -4,7 +4,8 @@
   "compatibility_date": "2026-09-04",
   "assets": {
     "directory": "./public",
-    "binding": "ASSETS"
+    "binding": "ASSETS",
+    "html_handling": "auto-trailing-slash"
   },
   "vars": {
     "LASTFM_USERNAME": "damndeepak"

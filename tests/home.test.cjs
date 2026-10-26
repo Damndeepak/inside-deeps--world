@@ -13,6 +13,6 @@ async function render(state,history=[],failure=false){
  r=await render({connected:false},[{name:'Earlier track',artist:'Artist',image:'javascript:alert(1)'}]);assert.equal(r.nodes.lfmLabel.textContent,'LAST ON REPEAT');assert.equal(r.nodes.homeProgress.hidden,true);assert.equal(r.nodes.lfmBody.children[0].children[0].textContent,'d.');
  r=await render({connected:false});assert.equal(r.nodes.lfmLabel.textContent,'BETWEEN SONGS');assert.equal(r.nodes.homeProgress.hidden,true);
  r=await render(null,[],true);assert.equal(r.nodes.lfmLabel.textContent,'BETWEEN CONNECTIONS');assert.equal(r.nodes.lfmBody.children.length,1);assert.equal(r.timers.length,1);
- const html=fs.readFileSync('public/index.html','utf8');for(const id of ['cxThread','cxMe','cxNicknameForm','passwordForm','ptDialog','homeProgress'])assert.ok(html.includes('id="'+id+'"'));assert.ok(!/Checking Deeplist|checking presence|You appear as|Loading recent/.test(html));
- console.log('PASS: homepage live progress/lyrics, offline history, safe artwork, empty/error recovery, preserved chat/password hooks and removed loading text');
+ const css=fs.readFileSync('public/home.css','utf8');assert.ok(css.includes('--paper:#070707'));assert.ok(css.includes('color-scheme:dark'));const html=fs.readFileSync('public/index.html','utf8');for(const id of ['cxThread','cxMe','cxNicknameForm','ptDialog','homeProgress'])assert.ok(html.includes('id="'+id+'"'));assert.ok(!/Checking Deeplist|checking presence|You appear as|Loading recent/.test(html));
+ console.log('PASS: homepage live progress/lyrics, offline history, safe artwork, empty/error recovery, preserved chat hooks and removed loading text');
 })().catch(e=>{console.error(e);process.exitCode=1});

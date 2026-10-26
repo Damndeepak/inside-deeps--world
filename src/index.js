@@ -394,32 +394,9 @@ export default {
       return Response.json({ success: false, error: "Visitor Last.fm connections are no longer available" }, { status: 410, headers: { "Cache-Control": "no-store" } });
     }
 
-    // Password-protected sections
-    if (url.pathname === "/api/check-password" && request.method === "POST") {
-      try {
-        const { section, password } = await request.json();
-
-        const passwords = {
-          people: env.PEOPLE_PASSWORD,
-          memories: env.MEMORIES_PASSWORD,
-          music: env.MUSIC_PASSWORD,
-          socials: env.SOCIALS_PASSWORD,
-          random: env.RANDOM_PASSWORD,
-          "voice-notes": env.VOICE_NOTES_PASSWORD
-        };
-
-        if (!passwords[section]) {
-          return Response.json({ success: false }, { status: 400 });
-        }
-
-        if (password !== passwords[section]) {
-          return Response.json({ success: false }, { status: 401 });
-        }
-
-        return Response.json({ success: true });
-      } catch {
-        return Response.json({ success: false }, { status: 400 });
-      }
+    // Retire the removed private-corner API. Public galleries require no password.
+    if (url.pathname === "/api/check-password") {
+      return Response.json({ success: false, error: "Private sections have been removed. Explore /memories or /media/." }, { status: 410, headers: { "Cache-Control": "no-store" } });
     }
 
     // Chat identity: only usernames change; cookies and ownership IDs stay the same.

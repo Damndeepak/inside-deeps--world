@@ -1,0 +1,8 @@
+.public-playlist h2{font-size:32px;letter-spacing:-1px;margin:0}
+.public-playlist p{color:#999;font-size:13px;line-height:1.7}
+.public-playlist>a{display:inline-flex;align-items:center;min-height:44px;color:#d2b3ff;font-size:12px}
+#publicPlaylist ol{list-style-position:inside;margin:20px 0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+#publicPlaylist li{border-bottom:1px solid #ffffff20;padding:12px 4px;color:#888;font-size:11px;min-width:0}
+#publicPlaylist li a,#publicPlaylist li>span{display:inline-flex;vertical-align:middle;flex-direction:column;color:white;text-decoration:none;max-width:85%;min-height:44px;justify-content:center;overflow-wrap:anywhere}
+#publicPlaylist li span span,#publicPlaylist li a span{color:#999;font-size:11px;margin-top:4px}
+@media(max-width:550px){#publicPlaylist ol{grid-template-columns:1fr}}
