@@ -1,0 +1,21 @@
+.apple-live{text-align:left;margin-top:24px!important;--am-size:38px;--am-gap:.12em;--am-blur:40px}
+.apple-live .label{color:#ffffffb3;margin-top:0}
+.apple-live h1{font-size:26px;letter-spacing:-.04em;margin-bottom:6px}
+.apple-live #trackArtist{color:#ffffffa6;margin-bottom:22px}
+.apple-live .am-window{height:clamp(360px,58svh,620px);margin:12px 0 22px}
+.apple-live .am-line{font-size:var(--am-size);visibility:hidden;filter:none;opacity:.55;padding:16px 2px}
+.apple-live .am-line.am-visible{visibility:visible;filter:blur(1px)}
+.apple-live .am-line.am-near{filter:none;opacity:.8}
+.apple-live .am-line.am-active{filter:none;opacity:1}
+.apple-live .am-line:disabled{cursor:default}
+.apple-live .am-word{white-space:pre-wrap;overflow-wrap:anywhere;max-width:100%}
+.apple-live .lyrics-message{position:absolute;top:38%;margin:0;font-size:clamp(26px,6vw,42px);font-weight:800;letter-spacing:-.04em;color:#ffffffa6}
+.apple-live .am-settings{margin-bottom:24px}
+.apple-live .timeline{background:#ffffff26}
+.apple-live .timeline>div{background:#e8b7a7}
+.apple-live .times,.apple-live .note{color:#ffffffa6}
+.apple-live button:not(.am-line){background:#ffffff14;border-color:#ffffff30;color:#fff}
+.apple-live #remoteSeek{accent-color:#e8b7a7}
+@media(max-width:480px){.apple-live .am-window{height:clamp(360px,56svh,560px)}}
+
+.apple-live .am-line:dir(rtl) .am-word{background-image:linear-gradient(270deg,#fff var(--fill,0%),#ffffff55 var(--fill,0%))}

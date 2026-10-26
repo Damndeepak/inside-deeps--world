@@ -51,7 +51,7 @@ export async function handleVisitorDeeplist(request, env, {hash,validateState,pu
   const now=Date.now();
   const rows=await env.DB.prepare("SELECT channel_id, (SELECT display_name FROM deeplist_visitor_names n WHERE n.channel_id=deeplist_visitors.channel_id) AS display_name, json_extract(payload,'$.title') AS title, json_extract(payload,'$.artist') AS artist, json_extract(payload,'$.playing') AS playing, updated_at FROM deeplist_visitors WHERE token_hash IS NOT NULL AND payload IS NOT NULL ORDER BY updated_at DESC,channel_id LIMIT 50").all();
   const total=await env.DB.prepare('SELECT COUNT(*) AS total FROM deeplist_connection_totals').first();
-  return reply({totalConnected:total.total,listeners:rows.results.map(r=>({channel:r.channel_id,label:label(r.channel_id,r.display_name),title:r.title,artist:r.artist,live:now-r.updated_at<=15000,playing:now-r.updated_at<=15000&&!!r.playing,lastPlayedAt:r.updated_at,player:`/deeplist.html?user=${r.channel_id}`}))});
+  return reply({serverNow:now,totalConnected:total.total,listeners:rows.results.map(r=>({channel:r.channel_id,label:label(r.channel_id,r.display_name),title:r.title,artist:r.artist,live:now-r.updated_at<=15000,playing:now-r.updated_at<=15000&&!!r.playing,lastPlayedAt:r.updated_at,player:`/deeplist.html?user=${r.channel_id}`}))});
  }
  if(path==='/api/deeplist/pair'&&visitorScope&&['POST','DELETE'].includes(method)) {
   if(!browserRequest(request,'pair'))return reply({error:'same_site_session_required'},403);

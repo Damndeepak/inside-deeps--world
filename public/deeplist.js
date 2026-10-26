@@ -1,33 +1,23 @@
 const $ = id => document.getElementById(id);
-const E = Object.fromEntries(['openApp','remoteControls','remotePlay','remoteSeek','remoteStatus','displayName','saveName','liveStatus','trackTitle','trackArtist','previousLine','currentLine','nextLine','progressFill','positionLabel','durationLabel','listen','audioStatus','videoWrap','pairToggle','pairPanel','createPair','revokePair','pairResult','pairUrl','pairToken','copyPair','pairStatus','channelSelect','channelLabel','myPlayer','pairPlayerLink','createOwnerPair','revokeOwnerPair'].map(id=>[id,$(id)]));
-let snapshot = null, received = 0, trackId = '', lineIndex = -2, words = [], timer, frame = 0, lastFrame = 0, listening = false, player, playerReady = false, playerVideo = '', apiPromise;
-let canControl=false, controlPending=false, wordNodes=[], lyricWords=[], timelineVersion='';
+const E = Object.fromEntries(['openApp','remoteControls','remotePlay','remoteSeek','remoteStatus','displayName','saveName','liveStatus','trackTitle','trackArtist','liveStage','lyricsWindow','lyricsMessage','currentLine','liveAppleSize','liveAppleSpacing','liveAppleBlur','liveAppleMotion','progressFill','positionLabel','durationLabel','listen','audioStatus','videoWrap','pairToggle','pairPanel','createPair','revokePair','pairResult','pairUrl','pairToken','copyPair','pairStatus','channelSelect','channelLabel','myPlayer','pairPlayerLink','createOwnerPair','revokeOwnerPair'].map(id=>[id,$(id)]));
+let snapshot = null, received = 0, trackId = '', lineIndex = -2, timer, frame = 0, listening = false, player, playerReady = false, playerVideo = '', apiPromise;
+let freshnessTimer;
+let canControl=false, controlPending=false, lyricRows=[], timelineVersion='';
 let channel=new URLSearchParams(location.search).get('user')||'', channelEpoch=0, directoryTimer, mySessionPromise;
 const time = ms => `${Math.floor(ms/60000)}:${String(Math.floor(ms/1000)%60).padStart(2,'0')}`;
 function position() { if (!snapshot) return 0; return Math.min(snapshot.duration||86400000, snapshot.position + (snapshot.playing ? performance.now()-received : 0)); }
-function renderLine(index) {
-  if (index === lineIndex) return; lineIndex = index;
-  const lines=snapshot?.lines||[], line=lines[index];
-  E.previousLine.textContent=lines[index-1]?.text||''; E.nextLine.textContent=lines[index+1]?.text||'';
-  E.currentLine.replaceChildren();words=[];
-  if (!line) { E.currentLine.textContent=snapshot?.title||'The room is quiet.'; return; }
-  function append(text, stamp){const span=document.createElement('span');span.className='word';span.textContent=text;E.currentLine.append(span);words.push({span,stamp});}
-  let cursor=0;
-  for(const stamp of line.words||[]){const at=line.text.indexOf(stamp.text,cursor);if(at<0||!stamp.text)continue;if(at>cursor)append(line.text.slice(cursor,at));append(stamp.text,stamp);cursor=at+stamp.text.length;}
-  if(cursor<line.text.length)append(line.text.slice(cursor));
-  E.currentLine.classList.remove('enter'); requestAnimationFrame(()=>E.currentLine.classList.add('enter'));
-}
 function paint() {
   if (!snapshot) return;
-  const p=position(), lyricTime=p+(snapshot.offset||0), lines=snapshot.lines||[];
-  let index=-1;for(let i=0;i<lines.length&&lines[i].time<=lyricTime;i++)index=i;
-  paintWordstorm(lyricTime);
+  const p=position(), lyricTime=p+(snapshot.offset||0);
+  paintAppleLyrics(lyricTime);
+  E.liveStage.classList.toggle('am-playing',snapshot.playing&&!document.hidden);
+  E.liveStatus.classList.toggle('deeplist-live-indicator',snapshot.playing&&!document.hidden);
   E.progressFill.style.width=`${snapshot.duration?Math.min(100,p/snapshot.duration*100):0}%`;
   E.positionLabel.textContent=time(p);E.durationLabel.textContent=time(snapshot.duration||0);
 }
-function tick(now) { frame=0;if(document.hidden||!snapshot)return;paint();lastFrame=now;if(snapshot.playing)frame=requestAnimationFrame(tick); }
+function tick(now) { frame=0;if(document.hidden||!snapshot)return;paint();if(snapshot.playing)frame=requestAnimationFrame(tick); }
 function wake(){cancelAnimationFrame(frame);frame=requestAnimationFrame(tick);}
-function offline(message='Deeplist is offline. Start live sharing in the app.') {snapshot=null;trackId='';E.trackTitle.textContent='Deeplist';E.trackArtist.textContent='';E.progressFill.style.width='0%';E.positionLabel.textContent='0:00';E.durationLabel.textContent='0:00';E.liveStatus.textContent=message;E.listen.disabled=true;E.previousLine.textContent='';E.nextLine.textContent='';E.currentLine.textContent='The room is quiet.';lineIndex=-2;cancelAnimationFrame(frame);if(playerReady)player.pauseVideo();}
+function offline(message='Deeplist is offline. Start live sharing in the app.') {clearTimeout(freshnessTimer);snapshot=null;trackId='';E.trackTitle.textContent='Deeplist';E.trackArtist.textContent='';E.progressFill.style.width='0%';E.positionLabel.textContent='0:00';E.durationLabel.textContent='0:00';E.liveStatus.textContent=message;E.listen.disabled=true;resetAppleLyrics('The room is quiet.');E.liveStage.classList.remove('am-playing');E.liveStatus.classList.remove('deeplist-live-indicator');cancelAnimationFrame(frame);if(playerReady)player.pauseVideo();}
 function syncAudio(force=false) {
   if (!listening||!playerReady||!snapshot) return;
   const p=position()/1000;
@@ -40,7 +30,7 @@ async function poll() {
   const epoch=channelEpoch;
   const query=new URLSearchParams();if(channel)query.set('user',channel);if(snapshot?.lyricsVersion)query.set('lyricsVersion',snapshot.lyricsVersion);
   try{const start=performance.now();const r=await fetch('/api/deeplist/state'+(query.size?'?'+query:''),{cache:'no-store'});if(!r.ok)throw Error();const d=await r.json();if(epoch!==channelEpoch)return;
-    if(channel&&d.label){E.channelLabel.textContent=d.label+'’s player';ensureOption(channel);Array.from(E.channelSelect.options).find(o=>o.value===channel).textContent=d.label;}if(!d.connected)offline();else{const previous=snapshot;const next=d.state;if(next.lines===undefined)next.lines=previous?.id===next.id&&previous?.lyricsVersion===next.lyricsVersion?previous.lines||[]:[];if(previous?.lyricsVersion!==next.lyricsVersion)lineIndex=-2;snapshot=next;buildWordstorm();const latency=Math.max(0,(performance.now()-start)/2);received=performance.now()-Math.max(0,d.serverNow-d.receivedAt)-latency;
+    if(channel&&d.label){E.channelLabel.textContent=d.label+'’s player';ensureOption(channel);Array.from(E.channelSelect.options).find(o=>o.value===channel).textContent=d.label;}if(!d.connected)offline();else{const previous=snapshot;const next=d.state;if(next.lines===undefined)next.lines=previous?.id===next.id&&previous?.lyricsVersion===next.lyricsVersion?previous.lines||[]:[];if(previous?.lyricsVersion!==next.lyricsVersion)lineIndex=-2;snapshot=next;buildAppleLyrics();const latency=Math.max(0,(performance.now()-start)/2);received=performance.now()-Math.max(0,d.serverNow-d.receivedAt)-latency;clearTimeout(freshnessTimer);freshnessTimer=setTimeout(()=>offline(),Math.max(0,15000-(performance.now()-received)));
       if(trackId!==snapshot.id){trackId=snapshot.id;lineIndex=-2;}
       E.trackTitle.textContent=snapshot.title;E.trackArtist.textContent=snapshot.artist;E.liveStatus.textContent=snapshot.playing?'DEEPLIST · LIVE':'DEEPLIST · PAUSED';E.listen.disabled=false;E.remoteSeek.max=String(snapshot.duration/1000);if(document.activeElement!==E.remoteSeek)E.remoteSeek.value=String(position()/1000);paint();wake();syncAudio();}
   }catch{if(epoch===channelEpoch)offline('Connection unavailable. Retrying…');}
@@ -74,21 +64,92 @@ E.copyPair.onclick=async()=>{try{await navigator.clipboard.writeText(E.pairToken
 async function revoke(owner){let headers,endpoint;if(owner){const key=adminKey();if(!key)return;headers={'X-Admin-Key':key};endpoint='/api/deeplist/pair';}else{await session();headers={'X-Deeplist-Action':'pair'};endpoint='/api/deeplist/pair?scope=visitor';}const r=await fetch(endpoint,{method:'DELETE',headers});if(!r.ok)throw Error('Could not disconnect this connection.');E.openApp.hidden=true;E.pairResult.hidden=true;E.pairPlayerLink.hidden=true;E.pairToken.value='';E.pairStatus.textContent=owner?'Deepu’s app disconnected.':'Your app disconnected.';poll();loadDirectory();}
 E.revokePair.onclick=async()=>{try{await revoke(false);}catch(e){E.pairStatus.textContent=e.message;}};
 E.revokeOwnerPair.onclick=async()=>{try{await revoke(true);}catch(e){E.pairStatus.textContent=e.message;}};
-async function loadDirectory(){clearTimeout(directoryTimer);if(document.hidden)return;try{const r=await fetch('/api/deeplist/listeners',{cache:'no-store'});if(!r.ok)throw Error();const d=await r.json();E.channelSelect.replaceChildren();const owner=document.createElement('option');owner.value='';owner.textContent='Deepu';E.channelSelect.append(owner);for(const visitor of d.listeners||[]){const option=document.createElement('option');option.value=visitor.channel;option.textContent=visitor.label+' · '+(visitor.playing?'live':'paused');E.channelSelect.append(option);}if(channel)ensureOption(channel);E.channelSelect.value=channel;}catch{}directoryTimer=setTimeout(loadDirectory,10000);}
-document.addEventListener('visibilitychange',()=>{if(document.hidden){clearTimeout(timer);clearTimeout(directoryTimer);cancelAnimationFrame(frame);if(playerReady)player.pauseVideo();}else{poll();loadDirectory();}});
-window.addEventListener('pagehide',()=>{clearTimeout(timer);clearTimeout(directoryTimer);cancelAnimationFrame(frame);if(playerReady)player.pauseVideo();});
+async function loadDirectory(){clearTimeout(directoryTimer);if(document.hidden)return;try{const r=await fetch('/api/deeplist/listeners',{cache:'no-store'});if(!r.ok)throw Error();const d=await r.json();E.channelSelect.replaceChildren();const owner=document.createElement('option');owner.value='';owner.textContent='Deepu';E.channelSelect.append(owner);for(const visitor of d.listeners||[]){const option=document.createElement('option');option.value=visitor.channel;option.textContent=visitor.label+' · '+(visitor.live?(visitor.playing?'live':'paused'):'last shared');E.channelSelect.append(option);}if(channel)ensureOption(channel);E.channelSelect.value=channel;}catch{}directoryTimer=setTimeout(loadDirectory,10000);}
+document.addEventListener('visibilitychange',()=>{if(document.hidden){E.liveStage.classList.remove('am-playing');E.liveStatus.classList.remove('deeplist-live-indicator');clearTimeout(timer);clearTimeout(directoryTimer);cancelAnimationFrame(frame);if(playerReady)player.pauseVideo();}else{poll();loadDirectory();}});
+window.addEventListener('pagehide',()=>{clearTimeout(freshnessTimer);E.liveStage.classList.remove('am-playing');E.liveStatus.classList.remove('deeplist-live-indicator');clearTimeout(timer);clearTimeout(directoryTimer);cancelAnimationFrame(frame);if(playerReady)player.pauseVideo();});
 if(channel)ensureOption(channel);E.channelSelect.value=channel;E.channelLabel.textContent=channel?"Listener · "+channel.slice(0,6)+"’s player":"Deepu’s player";
 loadDirectory();poll();
 
 function privateHeaders(){const headers={'X-Deeplist-Action':'control'};if(!channel){try{const key=sessionStorage.getItem('cxAdminKey');if(key)headers['X-Admin-Key']=key;}catch{}}return headers;}
-async function checkControl(){const epoch=channelEpoch;try{const r=await fetch('/api/deeplist/control-access'+(channel?'?user='+encodeURIComponent(channel):''),{headers:privateHeaders(),cache:'no-store'});const d=await r.json();if(epoch!==channelEpoch)return;canControl=r.ok&&d.canControl;E.remoteControls.hidden=!canControl;}catch{canControl=false;E.remoteControls.hidden=true;}}
+async function checkControl(){const epoch=channelEpoch;try{const r=await fetch('/api/deeplist/control-access'+(channel?'?user='+encodeURIComponent(channel):''),{headers:privateHeaders(),cache:'no-store'});const d=await r.json();if(epoch!==channelEpoch)return;canControl=r.ok&&d.canControl;E.remoteControls.hidden=!canControl;updateLyricControl();}catch{canControl=false;E.remoteControls.hidden=true;updateLyricControl();}}
 async function command(action,position){if(!canControl||!snapshot||controlPending)return;controlPending=true;E.remoteStatus.textContent='Sending to app…';try{const r=await fetch('/api/deeplist/control'+(channel?'?user='+encodeURIComponent(channel):''),{method:'POST',headers:{...privateHeaders(),'Content-Type':'application/json'},body:JSON.stringify({action,trackId:snapshot.id,...(position===undefined?{}:{position})})});if(!r.ok)throw Error();E.remoteStatus.textContent='Sent. Waiting for app sync…';}catch{E.remoteStatus.textContent='Could not control app. Check the connection.';}finally{controlPending=false;}}
 E.remotePlay.onclick=()=>command(snapshot?.playing?'pause':'play');E.remoteSeek.onchange=()=>command('seek',Number(E.remoteSeek.value)*1000);
-function buildWordstorm(){if(timelineVersion===snapshot.lyricsVersion)return;timelineVersion=snapshot.lyricsVersion;lyricWords=[];
- const lines=snapshot.lines||[];for(let l=0;l<lines.length;l++){const line=lines[l],tokens=line.text.trim().split(/\s+/u).filter(Boolean),end=lines[l+1]?.time||Math.min(snapshot.duration||line.time+6000,line.time+6000),span=Math.max(1,Math.min(end-line.time,400+line.text.length*105));let cursor=0;
- for(let t=0;t<tokens.length;t++){const text=tokens[t],stamps=line.words||[];let stamp=stamps.find(w=>w.text.trim()===text&&w.start>=cursor);const start=stamp?.start??line.time+span*t/tokens.length,finish=stamp?.end??line.time+span*(t+1)/tokens.length;cursor=finish;lyricWords.push({text,start,end:Math.max(start+1,finish)});}}
- E.previousLine.hidden=true;E.nextLine.hidden=true;E.currentLine.className='wordstorm-stage';E.currentLine.replaceChildren();wordNodes=Array.from({length:9},()=>{const node=document.createElement('span');node.className='storm-word';E.currentLine.append(node);return node;});}
-function paintWordstorm(time){if(!lyricWords.length){E.currentLine.textContent=snapshot?.title||'Lyrics unavailable';timelineVersion='';return;}
- let low=0,high=lyricWords.length;while(low<high){const mid=(low+high)>>>1;if(lyricWords[mid].start<=time)low=mid+1;else high=mid;}const active=low-1,next=lyricWords[active+1];let pos=active;if(next){const lead=Math.min(300,Math.max(1,(next.start-(lyricWords[active]?.start||0))/2)),p=Math.max(0,Math.min(1,(time-next.start+lead)/lead));pos+=p*p*(3-2*p);}
- const base=Math.floor(pos);for(let j=0;j<wordNodes.length;j++){const i=base+j-4,w=lyricWords[i],node=wordNodes[j];if(!w){node.hidden=true;continue;}node.hidden=false;const available=E.currentLine.clientWidth||360;node.style.fontSize=Math.min(72,available*.92/(Array.from(w.text).length*.65))+'px';const u=i-pos,d=Math.abs(u),scale=1/(1+.45*d);if(node.textContent!==w.text)node.textContent=w.text;node.style.transform=`translate(-50%,-50%) translateY(${u*84}px) scale(${scale})`;node.style.opacity=String(Math.max(0,1-d*.22));node.classList.toggle('hot',i===active);}}
+function resetAppleLyrics(message='Lyrics unavailable for this song.') {
+  timelineVersion='';lineIndex=-2;lyricRows=[];E.currentLine.replaceChildren();
+  E.currentLine.style.transform='';E.lyricsMessage.textContent=message;E.lyricsMessage.hidden=false;
+}
+function updateLyricControl(){for(const row of lyricRows)row.node.disabled=!canControl;}
+function appleLineWords(line,nextTime){
+  const tokens=Array.from(line.text.matchAll(/\S+/gu));let cursor=0;
+  const stamps=(line.words||[]).map(word=>{
+    const startChar=line.text.indexOf(word.text,cursor);
+    if(!word.text||startChar<0)return null;
+    cursor=startChar+word.text.length;
+    return {...word,startChar,endChar:cursor};
+  }).filter(Boolean);
+  const duration=Math.max(1,Math.min(12000,nextTime-line.time)),weight=tokens.reduce((n,t)=>n+t[0].length,0)||1;
+  let consumed=0;
+  return tokens.map(token=>{
+    const startChar=token.index,endChar=startChar+token[0].length;
+    const matching=stamps.filter(w=>w.startChar<endChar&&w.endChar>startChar);
+    const start=matching.length?Math.min(...matching.map(w=>w.start)):line.time+duration*consumed/weight;
+    consumed+=token[0].length;
+    const end=matching.length?Math.max(...matching.map(w=>w.end)):line.time+duration*consumed/weight;
+    return {text:token[0],start,end:Math.max(start+1,end)};
+  });
+}
+function buildAppleLyrics(){
+  const key=JSON.stringify([snapshot.id,snapshot.lyricsVersion,snapshot.duration,snapshot.offset]);
+  if(timelineVersion===key)return;
+  resetAppleLyrics();timelineVersion=key;
+  const lines=(snapshot.lines||[]).filter(line=>line.text.trim());
+  lyricRows=lines.map((line,i)=>{
+    const node=document.createElement('button');node.type='button';node.className='am-line';node.dir='auto';
+    node.setAttribute('aria-label',line.text);node.disabled=!canControl;
+    const end=lines[i+1]?.time??Math.max(line.time+4000,(snapshot.duration||0)+(snapshot.offset||0));
+    const words=appleLineWords(line,end).map(word=>{
+      const span=document.createElement('span');span.className='am-word';span.textContent=word.text;node.append(span);
+      return {...word,node:span};
+    });
+    node.onclick=()=>{if(canControl)command('seek',Math.max(0,line.time-(snapshot.offset||0)));};
+    E.currentLine.append(node);return {time:line.time,node,words};
+  });
+  E.lyricsMessage.hidden=lyricRows.length>0;
+}
+function centreAppleLyrics(snap=false){
+  const row=lyricRows[lineIndex]?.node;if(!row)return;
+  E.currentLine.style.transition=snap?'none':'';
+  E.currentLine.style.transform=`translateY(${E.lyricsWindow.clientHeight*.44-row.offsetTop-row.offsetHeight/2}px)`;
+}
+function paintAppleLyrics(time){
+  if(!lyricRows.length)return;
+  let low=0,high=lyricRows.length;
+  while(low<high){const middle=(low+high)>>>1;if(lyricRows[middle].time<=time)low=middle+1;else high=middle;}
+  const active=Math.max(0,low-1);
+  if(active!==lineIndex){
+    const snap=lineIndex<0||Math.abs(active-lineIndex)>3;lineIndex=active;
+    lyricRows.forEach((row,i)=>{
+      row.node.classList.toggle('am-active',i===active);row.node.classList.toggle('am-near',Math.abs(i-active)===1);
+      row.node.classList.toggle('am-visible',Math.abs(i-active)<=4);
+      if(i===active)row.node.setAttribute('aria-current','true');else row.node.removeAttribute('aria-current');
+    });
+    centreAppleLyrics(snap);
+  }
+  for(let i=Math.max(0,active-4);i<=Math.min(lyricRows.length-1,active+4);i++){
+    for(const word of lyricRows[i].words){
+      const fill=Math.max(0,Math.min(1,(time-word.start)/Math.max(80,word.end-word.start)));
+      word.node.style.setProperty('--fill',`${fill*100}%`);
+      word.node.classList.toggle('am-hot',i===active&&fill>0&&fill<1);
+    }
+  }
+}
+for(const [id,property,unit]of [['liveAppleSize','--am-size','px'],['liveAppleSpacing','--am-gap','em'],['liveAppleBlur','--am-blur','px']]){
+  E[id].oninput=()=>{E.liveStage.style.setProperty(property,E[id].value+unit);centreAppleLyrics(true);};
+}
+E.liveAppleMotion.onchange=()=>E.liveStage.classList.toggle('am-still',!E.liveAppleMotion.checked);
+if(typeof ResizeObserver!=='undefined'){
+  const resize=new ResizeObserver(()=>centreAppleLyrics(true));resize.observe(E.lyricsWindow);resize.observe(E.currentLine);
+}
+window.addEventListener('resize',()=>centreAppleLyrics(true));
+if(document.fonts)document.fonts.ready.then(()=>centreAppleLyrics(true));
 checkControl();
