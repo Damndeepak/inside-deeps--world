@@ -1,15 +1,18 @@
 {
-  "versionName": "13.7.0",
-  "versionCode": 153,
   "packageId": "com.deepu.wordstorm",
-  "sizeBytes": 25394213,
-  "sha256": "d89d4a2e8d2fb9ba5cb3f7d71b60e299393327ec2f3a1ccd97eea8efd9b768d3",
-  "publishedAt": "2026-10-26",
-  "originalBuildReleaseDate": null,
+  "versionName": "13.7.1",
+  "versionCode": 154,
+  "sizeBytes": 25378257,
+  "sha256": "e7e16a6d9a2e9c24118ff353665ee1365f880f0886db44aef720a2cf773fe8d9",
+  "signingCertificateSha256": "1c73c95916d7e14bac0533d0a4a20a3c01be78f066fcc0c1102254712c4bcd5d",
+  "publishedAt": "2026-10-26T06:58:33Z",
   "downloadUrl": "https://world.damndeepak.workers.dev/downloads/deeplist.apk",
+  "assetUrl": "https://github.com/Damndeepak/Metrolist/releases/download/deeplist-154/Deeplist.apk",
+  "sourceCommit": "a8ef21bf39be3d6001bc479bafde9b713d6a284c",
   "changelog": [
-    "Existing Deeplist Apple Neon build.",
-    "Does not include the pending Discord recovery, updater or Google sync changes."
-  ],
-  "signingCertificateSha256": "1c73c95916d7e14bac0533d0a4a20a3c01be78f066fcc0c1102254712c4bcd5d"
+    "Deeplist Discord branding and website buttons.",
+    "Retry failed and stale presence after reconnect; ignore stale song artwork.",
+    "Check for Deeplist updates and download from the public website.",
+    "Existing Apple, Verci, Neon and video features retained. Google cloud sync is not included."
+  ]
 }
