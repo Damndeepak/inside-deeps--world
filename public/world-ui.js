@@ -12,7 +12,7 @@ async function history(){
   const box=$('worldHistory');if(!box)return;
   try{const d=await api('/api/deeplist/history');box.replaceChildren();if(!d.tracks.length){box.append(el('p','world-note',d.configured?'No recent tracks yet.':'Connect Deeplist to start listening history.'));return}
     for(const t of d.tracks){const a=trackLink(t,'world-track');a.append(art(t),el('strong','',t.name),el('span','',t.artist));if(t.played_at)a.append(el('small','',stamp(t.played_at*1000)));box.append(a)}
-  }catch(e){box.replaceChildren(el('p','world-note',e.message))}
+  }catch(e){box.replaceChildren(el('p','world-note','Recent listening is taking a moment. Come back for the next song.'))}
 }
 history();if($('worldHistory'))setInterval(()=>{if((window.worldIsVisible||(()=>!document.hidden))($('worldHistory')?.closest('section')))history()},60000);
 async function repeat(){
@@ -61,7 +61,7 @@ async function memoryVisitors(){
     box.replaceChildren();
     if(!d.visitors.length)box.append(el('p','world-note','No recorded visitors yet.'));
     d.visitors.forEach(v=>{const row=el('div','world-entry'),head=el('header'),time=el('time');time.dateTime=v.last_seen_at;time.textContent='Last visit · '+new Date(v.last_seen_at).toLocaleString();head.append(el('span','','@'+v.username),time);row.append(head);box.append(row)});
-  }catch(e){if(epoch===visitorEpoch&&isAdmin)box.replaceChildren(el('p','world-note',e.message))}
+  }catch(e){if(epoch===visitorEpoch&&isAdmin)box.replaceChildren(el('p','world-note','Recent listening is taking a moment. Come back for the next song.'))}
 }
 if($('worldMemoryVisitors'))setInterval(()=>{if(isAdmin&&!document.hidden)memoryVisitors()},30000);
 function paintAdmin(){if(!isAdmin)closeMemoryEditor();visitorEpoch++;if($('worldMemoryVisitors')){$('worldMemoryVisitors').hidden=!isAdmin;if(!isAdmin)$('worldMemoryVisitorList').replaceChildren()}document.querySelectorAll('[data-world-admin]').forEach(b=>b.textContent=isAdmin?'Exit admin':'Admin');if($('worldMemoryForm'))$('worldMemoryForm').hidden=!isAdmin}
