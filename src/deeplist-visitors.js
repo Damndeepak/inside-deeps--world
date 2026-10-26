@@ -6,7 +6,7 @@ const uuid = value => /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]
 const secret = () => Array.from(crypto.getRandomValues(new Uint8Array(32)), b => b.toString(16).padStart(2,'0')).join('');
 const label = (id,name) => name || 'Listener · '+id.slice(0,6);
 export async function visitorSchema(db) {
- if(!ready.has(db))ready.set(db,db.prepare('CREATE TABLE IF NOT EXISTS deeplist_visitors (channel_id TEXT PRIMARY KEY, browser_hash TEXT UNIQUE NOT NULL, token_hash TEXT UNIQUE, payload TEXT, updated_at INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL)').run().then(()=>db.prepare('CREATE INDEX IF NOT EXISTS deeplist_visitors_updated ON deeplist_visitors(updated_at)').run()).then(()=>db.prepare('CREATE TABLE IF NOT EXISTS deeplist_visitor_names (channel_id TEXT PRIMARY KEY, display_name TEXT NOT NULL)').run()).catch(e=>{ready.delete(db);throw e;}));
+ if(!ready.has(db))ready.set(db,db.prepare('CREATE TABLE IF NOT EXISTS deeplist_visitors (channel_id TEXT PRIMARY KEY, browser_hash TEXT UNIQUE NOT NULL, token_hash TEXT UNIQUE, payload TEXT, updated_at INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL)').run().then(()=>db.prepare('CREATE INDEX IF NOT EXISTS deeplist_visitors_updated ON deeplist_visitors(updated_at)').run()).then(()=>db.prepare('CREATE TABLE IF NOT EXISTS deeplist_visitor_names (channel_id TEXT PRIMARY KEY, display_name TEXT NOT NULL)').run()).then(()=>db.prepare('CREATE TABLE IF NOT EXISTS deeplist_connection_totals (channel_id TEXT PRIMARY KEY)').run()).then(()=>db.prepare('INSERT OR IGNORE INTO deeplist_connection_totals(channel_id) SELECT channel_id FROM deeplist_visitors WHERE payload IS NOT NULL').run()).catch(e=>{ready.delete(db);throw e;}));
  await ready.get(db);
 }
 export function browserRequest(request, action) {
@@ -48,8 +48,10 @@ export async function handleVisitorDeeplist(request, env, {hash,validateState,pu
   return reply({channel:visitor.channel_id,displayName:visitor.display_name||'',label:label(visitor.channel_id,visitor.display_name),paired:!!visitor.token_hash,player:`/deeplist.html?user=${visitor.channel_id}`},200,extra);
  }
  if(path==='/api/deeplist/listeners'&&method==='GET') {
-  const rows=await env.DB.prepare("SELECT channel_id, (SELECT display_name FROM deeplist_visitor_names n WHERE n.channel_id=deeplist_visitors.channel_id) AS display_name, json_extract(payload,'$.title') AS title, json_extract(payload,'$.artist') AS artist, json_extract(payload,'$.playing') AS playing FROM deeplist_visitors WHERE token_hash IS NOT NULL AND payload IS NOT NULL AND updated_at >= ? ORDER BY updated_at DESC,channel_id LIMIT 50").bind(Date.now()-15000).all();
-  return reply({listeners:rows.results.map(r=>({channel:r.channel_id,label:label(r.channel_id,r.display_name),title:r.title,artist:r.artist,playing:!!r.playing,player:`/deeplist.html?user=${r.channel_id}`}))});
+  const now=Date.now();
+  const rows=await env.DB.prepare("SELECT channel_id, (SELECT display_name FROM deeplist_visitor_names n WHERE n.channel_id=deeplist_visitors.channel_id) AS display_name, json_extract(payload,'$.title') AS title, json_extract(payload,'$.artist') AS artist, json_extract(payload,'$.playing') AS playing, updated_at FROM deeplist_visitors WHERE token_hash IS NOT NULL AND payload IS NOT NULL ORDER BY updated_at DESC,channel_id LIMIT 50").all();
+  const total=await env.DB.prepare('SELECT COUNT(*) AS total FROM deeplist_connection_totals').first();
+  return reply({totalConnected:total.total,listeners:rows.results.map(r=>({channel:r.channel_id,label:label(r.channel_id,r.display_name),title:r.title,artist:r.artist,live:now-r.updated_at<=15000,playing:now-r.updated_at<=15000&&!!r.playing,lastPlayedAt:r.updated_at,player:`/deeplist.html?user=${r.channel_id}`}))});
  }
  if(path==='/api/deeplist/pair'&&visitorScope&&['POST','DELETE'].includes(method)) {
   if(!browserRequest(request,'pair'))return reply({error:'same_site_session_required'},403);
@@ -67,6 +69,7 @@ export async function handleVisitorDeeplist(request, env, {hash,validateState,pu
   if(state.lines===undefined){state.lines=old?.id===state.id?old.lines||[]:[];state.lyricsVersion=old?.id===state.id?old.lyricsVersion:undefined;}
   if(!state.lyricsVersion)state.lyricsVersion=state.id+':'+await hash(JSON.stringify(state.lines));
   const now=Date.now();const result=await env.DB.prepare('UPDATE deeplist_visitors SET payload=?,updated_at=? WHERE channel_id=? AND token_hash=?').bind(JSON.stringify(state),now,row.channel_id,tokenHash).run();
+  if(result.meta?.changes)await env.DB.prepare('INSERT OR IGNORE INTO deeplist_connection_totals(channel_id) VALUES(?)').bind(row.channel_id).run();
   return result.meta?.changes?reply({connected:true,serverNow:now}):reply({error:'pairing_required'},401);
  }
  if(addressed&&method==='GET') {
