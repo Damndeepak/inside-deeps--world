@@ -275,3 +275,15 @@ h1{font-size:clamp(64px,13vw,88px);max-width:550px}
 .corner-image{filter:none}
 }
  
+/* Keep reaction controls quiet until a message is selected. */
+.cx-reactions{display:block;margin-top:0}
+.cx-reaction-counts,.cx-reaction-picker{gap:4px;flex-wrap:wrap;margin-top:7px}
+.cx-reaction-counts{display:flex}
+.cx-reaction-counts:empty{display:none}
+.cx-reaction-picker{display:none}
+.cx-row.cx-sel .cx-reaction-picker,.cx-row:focus-within .cx-reaction-picker{display:flex}
+.cx-react{min-width:44px;min-height:44px;border:1px solid var(--line);border-radius:99px;background:var(--paper);color:var(--ink);padding:6px 10px;font:500 12px var(--body)}
+.cx-react[aria-pressed=true]{border-color:var(--purple);background:#e5d8fb}
+.cx-row:focus-visible{outline:2px solid var(--purple);outline-offset:3px;border-radius:16px}
+.cx-mic.recording{color:#b52b4a;background:#fbe6ec}
+@media(hover:hover){.cx-row:hover .cx-reaction-picker{display:flex}}
