@@ -1,0 +1,14 @@
+{
+  "versionName": "13.7.0",
+  "versionCode": 153,
+  "packageId": "com.deepu.wordstorm",
+  "sizeBytes": 25394213,
+  "sha256": "d89d4a2e8d2fb9ba5cb3f7d71b60e299393327ec2f3a1ccd97eea8efd9b768d3",
+  "publishedAt": "2026-10-26",
+  "originalBuildReleaseDate": null,
+  "downloadUrl": "https://world.damndeepak.workers.dev/downloads/deeplist.apk",
+  "changelog": [
+    "Existing Deeplist Apple Neon build.",
+    "Does not include the pending Discord recovery, updater or Google sync changes."
+  ]
+}
