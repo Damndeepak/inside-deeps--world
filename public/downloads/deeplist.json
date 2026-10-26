@@ -10,5 +10,6 @@
   "changelog": [
     "Existing Deeplist Apple Neon build.",
     "Does not include the pending Discord recovery, updater or Google sync changes."
-  ]
+  ],
+  "signingCertificateSha256": "1c73c95916d7e14bac0533d0a4a20a3c01be78f066fcc0c1102254712c4bcd5d"
 }
