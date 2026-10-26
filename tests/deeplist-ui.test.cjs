@@ -25,7 +25,7 @@ async function check(privateSession){
   {time:8000,text:'Third line stays visible'}
  ]},connected=true;
  const document={getElementById:id=>nodes[id]??=new Element(),createElement:tag=>new Element(tag),addEventListener:(type,fn)=>events[type]=fn,hidden:false,head:new Element()};
- const context={document,location:{search:'?user='+channel,origin:'https://example.com',href:'https://example.com/deeplist.html?user='+channel},history:{replaceState(){}},URL,URLSearchParams,performance:{now:()=>now},setTimeout:(fn,ms)=>{timeouts.push({fn,ms});return timeouts.length;},clearTimeout(){},requestAnimationFrame:fn=>{frames.push(fn);return frames.length;},cancelAnimationFrame(){},window:{addEventListener(){}},sessionStorage:{getItem(){return null}},prompt:()=>'',navigator:{clipboard:{writeText:async()=>{}}},console,
+ const context={document,location:{search:'?user='+channel,origin:'https://example.com',href:'https://example.com/deeplist.html?user='+channel},history:{replaceState(){}},URL,URLSearchParams,AbortController,AbortSignal,performance:{now:()=>now},setTimeout:(fn,ms)=>{timeouts.push({fn,ms});return timeouts.length;},clearTimeout(){},requestAnimationFrame:fn=>{frames.push(fn);return frames.length;},cancelAnimationFrame(){},window:{addEventListener(){}},sessionStorage:{getItem(){return null}},prompt:()=>'',navigator:{clipboard:{writeText:async()=>{}}},console,
  fetch:async(path,options={})=>{
   requests.push({path,options});let data;
   if(path.startsWith('/api/deeplist/control-access'))data={canControl:privateSession};
@@ -36,6 +36,8 @@ async function check(privateSession){
  vm.createContext(context);vm.runInContext(source,context);await flush();
  const run=code=>vm.runInContext(code,context);
  assert.equal(nodes.remoteControls.hidden,!privateSession);
+ assert.ok(timeouts.some(t=>t.ms===500),'live player refreshes within 500ms');
+ assert.ok(requests.find(r=>r.path.startsWith('/api/deeplist/state')).options.signal);
  const rows=nodes.currentLine.children;
  assert.equal(rows.length,3);assert.equal(rows[0].attributes['aria-label'],'hello world');
  assert.deepEqual(rows[0].children.map(n=>n.textContent),['hello','world']);
