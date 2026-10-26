@@ -75,6 +75,11 @@ async function check(privateSession){
  state={...state,title:'Newest song'};await run('poll()');assert.equal(oldSignal.aborted,true);
  finishOld({ok:true,json:async()=>({connected:true,serverNow:now,receivedAt:now,state:{...state,title:'Late old song'}})});await oldPoll;
  assert.equal(nodes.trackTitle.textContent,'Newest song');
+ // A timeout racing with a response still schedules recovery instead of stopping the poller.
+ context.fetch=async()=>{timeouts.filter(t=>t.ms===1500).at(-1).fn();return {ok:true,json:async()=>({connected:true,serverNow:now,receivedAt:now,state})};};
+ const timerCount=timeouts.length;await run('poll()');assert.ok(timeouts.slice(timerCount).some(t=>t.ms===500));
+ assert.equal(nodes.liveStatus.textContent,'Connection unavailable. Retrying…');context.fetch=normalFetch;await run('poll()');
+
  // Repeated words and enhanced syllables retain their own timestamps.
  const native=run(`appleLineWords({time:1000,text:'Hello hello',words:[{text:'Hel',start:1000,end:1200},{text:'lo',start:1200,end:1700},{text:'hello',start:2000,end:2800}]},4000)`);
  assert.deepEqual(Array.from(native,w=>[w.start,w.end]),[[1000,1700],[2000,2800]]);
