@@ -1,3 +1,4 @@
+import { listeningWrites, publicListeningStats, monthKey } from './deeplist-stats.js';
 const ready = new WeakMap();
 const cookieName = '__Host-deeplist';
 const headers = { 'Cache-Control': 'no-store', 'Content-Type': 'application/json' };
@@ -28,9 +29,16 @@ async function readState(request, validate) {
 export async function handleVisitorDeeplist(request, env, {hash,validateState,publicState}) {
  const url=new URL(request.url),path=url.pathname,method=request.method,visitorScope=url.searchParams.get('scope')==='visitor';
  const addressed=url.searchParams.has('user');
- const relevant=path==='/api/deeplist/name'||path==='/api/deeplist/me'||path==='/api/deeplist/listeners'||(path==='/api/deeplist/pair'&&visitorScope)||(path==='/api/deeplist/state'&&(method==='POST'||addressed))||(addressed&&['/api/deeplist/history','/api/deeplist/on-repeat'].includes(path));
+ const relevant=path==='/api/deeplist/stats'||path==='/api/deeplist/name'||path==='/api/deeplist/me'||path==='/api/deeplist/listeners'||(path==='/api/deeplist/pair'&&visitorScope)||(path==='/api/deeplist/state'&&(method==='POST'||addressed))||(addressed&&['/api/deeplist/history','/api/deeplist/on-repeat'].includes(path));
  if(!relevant)return null;
  await visitorSchema(env.DB);
+ if(path==='/api/deeplist/stats'&&method==='GET') {
+  const now=Date.now(),month=url.searchParams.get('month')||monthKey(now),period=url.searchParams.get('period')||'month';
+  if(!/^(?:20[0-9]{2})-(?:0[1-9]|1[0-2])$/.test(month)||!['month','all'].includes(period))return reply({error:'invalid_period'},400);
+  const listeners=await publicListeningStats(env.DB,now,month);
+  listeners.sort((a,b)=>(period==='all'?b.totalMs-a.totalMs:b.monthMs-a.monthMs)||a.channel.localeCompare(b.channel));
+  return reply({month,period,timeZone:'Asia/Kolkata',listeners});
+ }
  if(path==='/api/deeplist/name'&&method==='POST'){
   if(!browserRequest(request,'name'))return reply({error:'same_site_session_required'},403);
   const visitor=await currentVisitor(request,env.DB,hash);if(!visitor)return reply({error:'browser_session_required'},401);
@@ -49,9 +57,9 @@ export async function handleVisitorDeeplist(request, env, {hash,validateState,pu
  }
  if(path==='/api/deeplist/listeners'&&method==='GET') {
   const now=Date.now();
-  const rows=await env.DB.prepare("SELECT channel_id, (SELECT display_name FROM deeplist_visitor_names n WHERE n.channel_id=deeplist_visitors.channel_id) AS display_name, json_extract(payload,'$.title') AS title, json_extract(payload,'$.artist') AS artist, json_extract(payload,'$.playing') AS playing, updated_at FROM deeplist_visitors WHERE token_hash IS NOT NULL AND payload IS NOT NULL ORDER BY updated_at DESC,channel_id LIMIT 50").all();
+  const rows=await env.DB.prepare("SELECT channel_id, (SELECT display_name FROM deeplist_visitor_names n WHERE n.channel_id=deeplist_visitors.channel_id) AS display_name, json_extract(payload,'$.id') AS track_id, json_extract(payload,'$.title') AS title, json_extract(payload,'$.artist') AS artist, json_extract(payload,'$.playing') AS playing, updated_at FROM deeplist_visitors WHERE token_hash IS NOT NULL AND payload IS NOT NULL ORDER BY updated_at DESC,channel_id LIMIT 50").all();
   const total=await env.DB.prepare('SELECT COUNT(*) AS total FROM deeplist_connection_totals').first();
-  return reply({serverNow:now,totalConnected:total.total,listeners:rows.results.map(r=>({channel:r.channel_id,label:label(r.channel_id,r.display_name),title:r.title,artist:r.artist,live:now-r.updated_at<=15000,playing:now-r.updated_at<=15000&&!!r.playing,lastPlayedAt:r.updated_at,player:`/deeplist.html?user=${r.channel_id}`}))});
+  return reply({serverNow:now,totalConnected:total.total,listeners:rows.results.map(r=>({channel:r.channel_id,label:label(r.channel_id,r.display_name),id:r.track_id,title:r.title,artist:r.artist,live:now-r.updated_at<=15000,playing:now-r.updated_at<=15000&&!!r.playing,lastPlayedAt:r.updated_at,player:`/deeplist.html?user=${r.channel_id}`}))});
  }
  if(path==='/api/deeplist/pair'&&visitorScope&&['POST','DELETE'].includes(method)) {
   if(!browserRequest(request,'pair'))return reply({error:'same_site_session_required'},403);
@@ -68,7 +76,7 @@ export async function handleVisitorDeeplist(request, env, {hash,validateState,pu
   let old;try{old=JSON.parse(row.payload||'null');}catch{}
   if(state.lines===undefined){state.lines=old?.id===state.id?old.lines||[]:[];state.lyricsVersion=old?.id===state.id?old.lyricsVersion:undefined;}
   if(!state.lyricsVersion)state.lyricsVersion=state.id+':'+await hash(JSON.stringify(state.lines));
-  const now=Date.now();const result=await env.DB.prepare('UPDATE deeplist_visitors SET payload=?,updated_at=? WHERE channel_id=? AND token_hash=?').bind(JSON.stringify(state),now,row.channel_id,tokenHash).run();
+  const now=Date.now();const writes=await env.DB.batch([...listeningWrites(env.DB,row.channel_id,tokenHash,state,now),env.DB.prepare('UPDATE deeplist_visitors SET payload=?,updated_at=? WHERE channel_id=? AND token_hash=? AND updated_at<=?').bind(JSON.stringify(state),now,row.channel_id,tokenHash,now)]);const result=writes.at(-1);
   if(result.meta?.changes)await env.DB.prepare('INSERT OR IGNORE INTO deeplist_connection_totals(channel_id) VALUES(?)').bind(row.channel_id).run();
   return result.meta?.changes?reply({connected:true,serverNow:now}):reply({error:'pairing_required'},401);
  }

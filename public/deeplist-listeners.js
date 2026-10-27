@@ -9,8 +9,9 @@ async function load(){
   clearExpiries();box.replaceChildren();
   if(!d.listeners?.length){const empty=document.createElement('p');empty.className='world-note';empty.textContent='No other listeners are sharing right now. Connect your Deeplist to join.';box.append(empty);}
   for(const visitor of d.listeners||[]){
-   const card=document.createElement('a');card.className='world-track';card.style.padding='12px';card.style.border='1px solid rgba(127,127,127,.18)';card.style.borderRadius='14px';card.style.flex='0 0 210px';card.href='/deeplist.html?user='+encodeURIComponent(visitor.channel);
-   const info=document.createElement('div'),name=document.createElement('strong'),song=document.createElement('span'),status=document.createElement('small');
+   const card=document.createElement('a');card.className='world-track deeplist-listener-card';card.href='/deeplist.html?user='+encodeURIComponent(visitor.channel);
+   const cover=document.createElement('div');cover.className='deeplist-listener-cover';cover.textContent='d.';if(/^[A-Za-z0-9_-]{11}$/.test(visitor.id||'')){const img=document.createElement('img');img.src='https://i.ytimg.com/vi/'+visitor.id+'/hqdefault.jpg';img.alt='';img.loading='lazy';img.referrerPolicy='no-referrer';img.onerror=()=>{cover.textContent='d.';};cover.replaceChildren(img);}
+   const info=document.createElement('div');info.className='deeplist-listener-info';const name=document.createElement('strong'),song=document.createElement('span'),status=document.createElement('small');
    name.textContent=visitor.label;song.textContent=visitor.title+' · '+visitor.artist;
    const lastShared='Last shared · '+new Date(visitor.lastPlayedAt).toLocaleDateString();
    const remaining=15000-Math.max(0,(d.serverNow??Date.now())-visitor.lastPlayedAt)-(performance.now()-started);
@@ -18,7 +19,7 @@ async function load(){
    if(live&&visitor.playing===true)name.className='deeplist-live-indicator';
    status.textContent=live?(visitor.playing?'Live · open synced lyrics':'Paused · open synced lyrics'):lastShared;
    if(live)expiryTimers.push(setTimeout(()=>{name.className='';status.textContent=lastShared;},remaining));
-   info.append(name,song,status);card.append(info);box.append(card);
+   info.append(name,song,status);card.append(cover,info);box.append(card);
   }
  }catch{clearExpiries();box.textContent='Connected listeners are unavailable right now.';}
  finally{loading=false;}

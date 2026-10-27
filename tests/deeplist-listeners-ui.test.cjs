@@ -15,7 +15,7 @@ const context={document:{hidden:false,getElementById:id=>id==='deeplistListeners
 const flush=async()=>{for(let i=0;i<8;i++)await new Promise(setImmediate);};
 (async()=>{
  vm.createContext(context);vm.runInContext(fs.readFileSync('public/deeplist-listeners.js','utf8'),context);await flush();
- const info=i=>box.children[i].children[0].children;
+ const info=i=>box.children[i].children.find(n=>n.className==='deeplist-listener-info').children;
  assert.equal(info(0)[0].className,'deeplist-live-indicator');assert.equal(info(0)[2].textContent,'Live · open synced lyrics');
  assert.equal(info(1)[0].className,'');assert.equal(info(1)[2].textContent,'Paused · open synced lyrics');
  for(const i of [2,3]){assert.equal(info(i)[0].className,'');assert.ok(info(i)[2].textContent.startsWith('Last shared'));}

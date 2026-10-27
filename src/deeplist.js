@@ -1,3 +1,4 @@
+import { listeningSchema, listeningWrites } from './deeplist-stats.js';
 import { handleConnect } from "./deeplist-connect.js";
 import { handleVisitorDeeplist } from "./deeplist-visitors.js";
 const ready = new WeakMap();
@@ -47,6 +48,7 @@ export async function handleDeeplist(request, env, isAdmin) {
   if (!path.startsWith('/api/deeplist/')) return null;
   if (!env.DB) return reply({ error: 'storage_unavailable' }, 503);
   await schema(env.DB);
+  await listeningSchema(env.DB);
   const connectResponse = await handleConnect(request, env, isAdmin, hash);
   if (connectResponse) return connectResponse;
   const visitorResponse = await handleVisitorDeeplist(request, env, {hash, validateState, publicState});
@@ -92,7 +94,8 @@ export async function handleDeeplist(request, env, isAdmin) {
     if (!state.lyricsVersion) state.lyricsVersion = state.id + ':' + await hash(JSON.stringify(state.lines));
     const now = Date.now();
     state._history = listeningSession(state, old, row.updated_at, now);
-    const result = await env.DB.prepare('UPDATE deeplist_bridge SET payload=?, updated_at=? WHERE id=1 AND token_hash=?').bind(JSON.stringify(state), now, tokenHash).run();
+    const writes = await env.DB.batch([...listeningWrites(env.DB, 'owner', tokenHash, state, now), env.DB.prepare('UPDATE deeplist_bridge SET payload=?, updated_at=? WHERE id=1 AND token_hash=? AND updated_at<=?').bind(JSON.stringify(state), now, tokenHash, now)]);
+    const result = writes.at(-1);
     if (!result.meta?.changes) return reply({ error: 'pairing_required' }, 401);
     const threshold = state.duration > 0 ? Math.min(30000, state.duration / 2) : 30000;
     if (state._history.listened >= threshold) {

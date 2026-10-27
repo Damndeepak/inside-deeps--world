@@ -4,14 +4,16 @@ import assert from 'node:assert/strict';
 import {webcrypto} from 'node:crypto';
 if(!globalThis.crypto)Object.defineProperty(globalThis,'crypto',{value:webcrypto});
 
-const visitorSource=fs.readFileSync(new URL('../src/deeplist-visitors.js',import.meta.url),'utf8');
+const statsModule='data:text/javascript;base64,'+Buffer.from(fs.readFileSync(new URL('../src/deeplist-stats.js',import.meta.url),'utf8')).toString('base64');
+const visitorSource=fs.readFileSync(new URL('../src/deeplist-visitors.js',import.meta.url),'utf8').replace("from './deeplist-stats.js'",'from '+JSON.stringify(statsModule));
 const visitorModule='data:text/javascript;base64,'+Buffer.from(visitorSource).toString('base64');
 const connectSource=fs.readFileSync(new URL('../src/deeplist-connect.js',import.meta.url),'utf8').replace("from './deeplist-visitors.js'",'from '+JSON.stringify(visitorModule));
 const connectModule='data:text/javascript;base64,'+Buffer.from(connectSource).toString('base64');
-const source=fs.readFileSync(new URL('../src/deeplist.js',import.meta.url),'utf8').replace('from "./deeplist-visitors.js"','from '+JSON.stringify(visitorModule)).replace('from "./deeplist-connect.js"','from '+JSON.stringify(connectModule));
+const source=fs.readFileSync(new URL('../src/deeplist.js',import.meta.url),'utf8').replace("from './deeplist-stats.js'",'from '+JSON.stringify(statsModule)).replace('from "./deeplist-visitors.js"','from '+JSON.stringify(visitorModule)).replace('from "./deeplist-connect.js"','from '+JSON.stringify(connectModule));
 const {handleDeeplist,validateState,listeningSession}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
 class DB {
  sqlite=new DatabaseSync(':memory:');
+ batch(statements){const run=async()=>{this.sqlite.exec('BEGIN');try{const results=[];for(const statement of statements)results.push(await statement.run());this.sqlite.exec('COMMIT');return results;}catch(error){this.sqlite.exec('ROLLBACK');throw error;}};const result=(this.pending||Promise.resolve()).then(run);this.pending=result.catch(()=>{});return result;}
  get row(){return this.sqlite.prepare('SELECT * FROM deeplist_bridge WHERE id=1').get()||null;}
  prepare(sql){const stmt=this.sqlite.prepare(sql);let args=[];return{bind(...a){args=a;return this;},async first(){return stmt.get(...args)||null;},async all(){return{results:stmt.all(...args)};},async run(){const result=stmt.run(...args);return{meta:{changes:Number(result.changes)}};}};}
 }
@@ -157,3 +159,61 @@ await call(request('/api/deeplist/pair?scope=visitor','DELETE',undefined,{Cookie
 assert.equal((await call(request('/api/deeplist/claim','POST',{code:revokedCode}))).status,410);
 assert.equal((await call(request('/api/deeplist/control','GET',undefined,{Authorization:'Bearer '+freshB.token}))).status,401);
 console.log('PASS: expiry, concurrent redemption, command replacement/ack races and revocation');
+
+// Listening totals start from acknowledged snapshots, never from an old play count.
+const statsDB=new DB(),statsEnv={DB:statsDB};
+const statsCall=r=>handleDeeplist(r,statsEnv,isAdmin);
+const realNow=Date.now;let statsNow=Date.parse('2026-10-31T18:29:59Z');Date.now=()=>statsNow;
+try {
+ const owner=await(await statsCall(request('/api/deeplist/pair','POST',undefined,{'X-Admin-Key':'correct-admin-key'}))).json();
+ const ownerHeaders={Authorization:'Bearer '+owner.token};
+ const stats=async(period='all',month='2026-11')=>(await(await statsCall(request('/api/deeplist/stats?period='+period+'&month='+month))).json());
+ const publish=async(state,headers=ownerHeaders)=>statsCall(request('/api/deeplist/state','POST',state,headers));
+ let song={...track,position:1000};await publish(song);
+ assert.equal((await stats()).listeners[0].totalMs,0,'No invented historical minutes');
+ statsNow+=2000;song={...song,position:3000};await publish(song);
+ let data=await stats();assert.equal(data.listeners[0].totalMs,2000);assert.equal(data.listeners[0].monthMs,1000,'Interval splits at India midnight');
+ assert.equal((await stats('month','2026-10')).listeners[0].monthMs,1000);
+ await Promise.all([publish(song),publish(song)]);
+ assert.equal((await stats()).listeners[0].totalMs,2000,'Concurrent duplicate snapshots do not count twice');
+ statsNow+=1000;song={...song,position:4000,playing:false};await publish(song);
+ statsNow+=10000;song={...song,playing:true};await publish(song);
+ assert.equal((await stats()).listeners[0].totalMs,3000,'Pause interval is excluded');
+ statsNow+=2000;song={...song,position:6000};await publish(song);
+ statsNow+=20000;song={...song,position:26000};await publish(song);
+ assert.equal((await stats()).listeners[0].totalMs,5000,'Long network gaps are excluded');
+ statsNow+=1000;song={...song,position:600000};await publish(song);
+ assert.equal((await stats()).listeners[0].totalMs,6000,'Seek distance is not listening time');
+ statsNow+=1000;song={...song,position:500};await publish(song);
+ statsNow+=2000;await publish(song);
+ assert.equal((await stats()).listeners[0].totalMs,6000,'Backward seek and stuck playback do not inflate time');
+ statsNow+=2000;song={...song,id:'ZYXWVUTSRQP',position:0};await publish(song);
+ assert.equal((await stats()).listeners[0].totalMs,8000,'Song transition keeps the previous playing interval');
+ const session=await statsCall(request('/api/deeplist/me','GET',undefined,browserHeaders));
+ const identity=await session.json(),cookie=session.headers.get('Set-Cookie').split(';')[0];
+ const pair=await(await statsCall(request('/api/deeplist/pair?scope=visitor','POST',undefined,{Cookie:cookie,'X-Deeplist-Action':'pair'}))).json();
+ const visitorHeaders={Authorization:'Bearer '+pair.token};
+ await publish({...track,position:0},visitorHeaders);
+ for(let i=1;i<=35;i++){statsNow+=2000;await publish({...track,position:i*2000},visitorHeaders);}
+ data=await stats('month');assert.equal(data.listeners[0].channel,identity.channel);assert.equal(data.listeners[0].monthMs,70000);
+ statsNow+=10000;await publish({...track,position:71000,playing:false},visitorHeaders);
+ assert.equal((await stats()).listeners.find(x=>x.channel===identity.channel).totalMs,71000,'Delayed pause credits only reported playback progress, not the whole gap');
+ assert.equal(data.timeZone,'Asia/Kolkata');assert.equal(data.listeners[1].channel,'owner');
+ const publicJSON=JSON.stringify(data);assert.ok(!publicJSON.includes(pair.token));assert.ok(!/session_hash|browser_hash|token_hash/.test(publicJSON));
+ assert.equal((await statsCall(request('/api/deeplist/stats?month=2026-99'))).status,400);
+ assert.equal((await statsCall(request('/api/deeplist/stats?period=secret'))).status,400);
+ await statsCall(request('/api/deeplist/pair?scope=visitor','DELETE',undefined,{Cookie:cookie,'X-Deeplist-Action':'pair'}));
+ assert.ok((await stats()).listeners.every(x=>x.channel!==identity.channel),'Revoked listener is hidden from every ranking');
+ assert.equal((await publish(track,visitorHeaders)).status,401);
+ const fresh=await(await statsCall(request('/api/deeplist/pair?scope=visitor','POST',undefined,{Cookie:cookie,'X-Deeplist-Action':'pair'}))).json();
+ statsNow+=10000;await publish({...track,position:0},{Authorization:'Bearer '+fresh.token});
+ assert.equal((await stats()).listeners.find(x=>x.channel===identity.channel).totalMs,71000,'Reconnect preserves totals without counting revoked time');
+ await statsCall(request('/api/deeplist/pair','DELETE',undefined,{'X-Admin-Key':'correct-admin-key'}));
+ assert.ok((await stats()).listeners.every(x=>x.channel!=='owner'),'Revoked owner stats are also hidden');
+ const before=statsDB.sqlite.prepare('SELECT SUM(listened_ms) AS total FROM deeplist_listening_months').get().total;
+ const {listeningWrites}=await import(statsModule);
+ const forbiddenWrites=listeningWrites(statsDB,'owner','revoked',track,statsNow+2000);
+ await statsDB.batch(forbiddenWrites);
+ assert.equal(statsDB.sqlite.prepare('SELECT SUM(listened_ms) AS total FROM deeplist_listening_months').get().total,before,'Token checks protect every transactional stats write');
+} finally {Date.now=realNow;}
+console.log('PASS: listening totals, IST month boundary, pause, offline gaps, seeks, stuck playback, concurrent deduplication, ranking, token privacy and revoke/reconnect');
