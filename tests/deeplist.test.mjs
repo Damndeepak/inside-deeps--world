@@ -16,6 +16,14 @@ class DB {
 const db=new DB(),env={DB:db},isAdmin=async r=>r.headers.get('X-Admin-Key')==='correct-admin-key';
 const request=(path,method='GET',body,headers={})=>new Request('https://example.com'+path,{method,headers,body:body===undefined?undefined:JSON.stringify(body)});
 const call=(r)=>handleDeeplist(r,env,isAdmin);
+// Public now-playing reads must not initialize unrelated chat/listening/history tables.
+const cold=new DB(),coldQueries=[],coldPrepare=cold.prepare.bind(cold);
+cold.prepare=sql=>{coldQueries.push(sql);return coldPrepare(sql)};
+assert.equal((await handleDeeplist(request('/api/deeplist/state'),{DB:cold},isAdmin)).status,200);
+assert.equal(coldQueries.length,2);assert.ok(coldQueries[0].startsWith('CREATE TABLE IF NOT EXISTS deeplist_bridge'));
+coldQueries.length=0;
+assert.equal((await handleDeeplist(request('/api/deeplist/state'),{DB:cold},isAdmin)).status,200);
+assert.equal(coldQueries.length,1);assert.ok(coldQueries[0].startsWith('SELECT payload, updated_at'));
 assert.equal((await call(request('/api/deeplist/pair','POST'))).status,403);
 assert.equal((await call(request('/api/deeplist/state'))).status,200);
 let paired=await(await call(request('/api/deeplist/pair','POST',undefined,{'X-Admin-Key':'correct-admin-key'}))).json();

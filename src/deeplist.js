@@ -3,11 +3,16 @@ import { listeningSchema, listeningWrites } from './deeplist-stats.js';
 import { handleConnect } from "./deeplist-connect.js";
 import { handleVisitorDeeplist } from "./deeplist-visitors.js";
 const ready = new WeakMap();
+const bridges = new WeakMap();
 const headers = { 'Cache-Control': 'no-store', 'Content-Type': 'application/json' };
 const reply = (data, status = 200) => new Response(JSON.stringify(data), { status, headers });
 const hash = async value => Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value))), b => b.toString(16).padStart(2, '0')).join('');
+async function bridgeSchema(db) {
+  if (!bridges.has(db)) bridges.set(db, db.prepare('CREATE TABLE IF NOT EXISTS deeplist_bridge (id INTEGER PRIMARY KEY CHECK(id=1), token_hash TEXT, payload TEXT, updated_at INTEGER)').run().catch(error=>{bridges.delete(db);throw error;}));
+  await bridges.get(db);
+}
 async function schema(db) {
-  if (!ready.has(db)) ready.set(db, Promise.all([db.prepare('CREATE TABLE IF NOT EXISTS deeplist_bridge (id INTEGER PRIMARY KEY CHECK(id=1), token_hash TEXT, payload TEXT, updated_at INTEGER)').run(), db.prepare('CREATE TABLE IF NOT EXISTS deeplist_plays (session_id TEXT PRIMARY KEY, track_id TEXT NOT NULL, name TEXT NOT NULL, artist TEXT NOT NULL, played_at INTEGER NOT NULL)').run()]).then(() => db.prepare('CREATE INDEX IF NOT EXISTS deeplist_plays_time ON deeplist_plays(played_at)').run()).catch(e => { ready.delete(db); throw e; }));
+  if (!ready.has(db)) ready.set(db, Promise.all([bridgeSchema(db), db.prepare('CREATE TABLE IF NOT EXISTS deeplist_plays (session_id TEXT PRIMARY KEY, track_id TEXT NOT NULL, name TEXT NOT NULL, artist TEXT NOT NULL, played_at INTEGER NOT NULL)').run()]).then(() => db.prepare('CREATE INDEX IF NOT EXISTS deeplist_plays_time ON deeplist_plays(played_at)').run()).catch(e => { ready.delete(db); throw e; }));
   await ready.get(db);
 }
 export function validateState(data) {
@@ -48,9 +53,18 @@ export async function handleDeeplist(request, env, isAdmin) {
   const path = new URL(request.url).pathname;
   if (!path.startsWith('/api/deeplist/')) return null;
   if (!env.DB) return reply({ error: 'storage_unavailable' }, 503);
-  await schema(env.DB);
-  await ensureIdentitySchema(env.DB);
-  await listeningSchema(env.DB);
+  // The public owner heartbeat needs only its snapshot, not chat, history or stats setup.
+  if (path === '/api/deeplist/state' && request.method === 'GET' && !new URL(request.url).searchParams.has('user')) {
+    await bridgeSchema(env.DB);
+    const row = await env.DB.prepare('SELECT payload, updated_at FROM deeplist_bridge WHERE id=1').first();
+    const now = Date.now();
+    if (!row?.payload || now - row.updated_at > 15000) return reply({ connected: false, serverNow: now });
+    let state; try { state = JSON.parse(row.payload); } catch { return reply({ connected: false, serverNow: now }); }
+    if (new URL(request.url).searchParams.get('lyricsVersion') === state.lyricsVersion) delete state.lines;
+    return reply({ connected: true, state: publicState(state), receivedAt: row.updated_at, serverNow: now });
+  }
+  await Promise.all([schema(env.DB), ensureIdentitySchema(env.DB),
+    path === '/api/deeplist/stats' || (path === '/api/deeplist/state' && request.method === 'POST') ? listeningSchema(env.DB) : Promise.resolve()]);
   const connectResponse = await handleConnect(request, env, isAdmin, hash);
   if (connectResponse) return connectResponse;
   const visitorResponse = await handleVisitorDeeplist(request, env, {hash, validateState, publicState});
@@ -105,14 +119,6 @@ export async function handleDeeplist(request, env, isAdmin) {
         .bind(state._history.session, state.id, state.title, state.artist, Math.floor(state._history.started/1000), tokenHash, state._history.session).run();
     }
     return reply({ connected: true, serverNow: now });
-  }
-  if (path === '/api/deeplist/state' && request.method === 'GET') {
-    const row = await env.DB.prepare('SELECT payload, updated_at FROM deeplist_bridge WHERE id=1').first();
-    const now = Date.now();
-    if (!row?.payload || now - row.updated_at > 15000) return reply({ connected: false, serverNow: now });
-    let state; try { state = JSON.parse(row.payload); } catch { return reply({ connected: false, serverNow: now }); }
-    if (new URL(request.url).searchParams.get('lyricsVersion') === state.lyricsVersion) delete state.lines;
-    return reply({ connected: true, state: publicState(state), receivedAt: row.updated_at, serverNow: now });
   }
   return reply({ error: 'not_found' }, 404);
 }
