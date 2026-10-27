@@ -15,7 +15,7 @@
     if (document.hidden) return;
     controller?.abort();
     const active = new AbortController(); controller = active;
-    const deadline = setTimeout(() => active.abort(), 5000);
+    const deadline = setTimeout(() => active.abort(), 15000);
     try {
       const query = new URLSearchParams({ period: period.value, month: month.value || currentMonth });
       const response = await fetch('/api/deeplist/stats?' + query, { cache: 'no-store', signal: active.signal });
