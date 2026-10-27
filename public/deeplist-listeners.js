@@ -1,3 +1,4 @@
+import {identityColor,identityLabel} from './chat-identity.js';
 (()=>{
 const box=document.getElementById('deeplistListeners');if(!box)return;let timer,loading=false,expiryTimers=[];
 function clearExpiries(){expiryTimers.forEach(clearTimeout);expiryTimers=[];}
@@ -12,7 +13,7 @@ async function load(){
    const card=document.createElement('a');card.className='world-track deeplist-listener-card';card.href='/deeplist.html?user='+encodeURIComponent(visitor.channel);
    const cover=document.createElement('div');cover.className='deeplist-listener-cover';cover.textContent='d.';if(/^[A-Za-z0-9_-]{11}$/.test(visitor.id||'')){const img=document.createElement('img');img.src='https://i.ytimg.com/vi/'+visitor.id+'/hqdefault.jpg';img.alt='';img.loading='lazy';img.referrerPolicy='no-referrer';img.onerror=()=>{cover.textContent='d.';};cover.replaceChildren(img);}
    const info=document.createElement('div');info.className='deeplist-listener-info';const name=document.createElement('strong'),song=document.createElement('span'),status=document.createElement('small');
-   name.textContent=visitor.label;song.textContent=visitor.title+' · '+visitor.artist;
+   name.textContent=identityLabel(visitor.label,visitor.symbol);if(visitor.color)name.style.color=identityColor(visitor.color);song.textContent=visitor.title+' · '+visitor.artist;
    const lastShared='Last shared · '+new Date(visitor.lastPlayedAt).toLocaleDateString();
    const remaining=15000-Math.max(0,(d.serverNow??Date.now())-visitor.lastPlayedAt)-(performance.now()-started);
    const live=visitor.live===true&&remaining>0;
@@ -25,5 +26,6 @@ async function load(){
  finally{loading=false;}
  timer=setTimeout(()=>{if((window.worldIsVisible||(()=>!document.hidden))(box.closest('section')))load();else timer=setTimeout(load,15000);},Math.max(0,750-(performance.now()-pollStarted)));
 }
-document.addEventListener('visibilitychange',()=>{if(document.hidden){clearTimeout(timer);box.querySelectorAll('.deeplist-live-indicator').forEach(node=>node.classList.remove('deeplist-live-indicator'));}else load();});load();
+document.addEventListener('visibilitychange',()=>{if(document.hidden){clearTimeout(timer);box.querySelectorAll('.deeplist-live-indicator').forEach(node=>node.classList.remove('deeplist-live-indicator'));}else load();});document.addEventListener('deeplist-identity-updated',load);
+  load();
 })();

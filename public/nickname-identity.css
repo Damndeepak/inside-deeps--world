@@ -1,0 +1,22 @@
+.cx-nickname[open]{flex:1 1 100%;min-width:0}
+.cx-nickname form{position:static;inset:auto;width:100%;max-width:520px;margin:12px 0 0;padding:22px;box-sizing:border-box;box-shadow:none}
+.cx-nickname .cx-nickname-fields{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center}
+.cx-nickname .cx-nickname-fields input{width:100%;min-width:0;margin:0;padding:12px;font-size:16px}
+.cx-nickname .cx-nickname-fields button{min-width:48px;min-height:48px;margin:0}
+.cx-nickname select{width:100%;min-width:0;background:#111114;color:var(--ink,#eee);border:1px solid var(--line,#35353d);border-radius:10px;padding:12px;font-size:16px;color-scheme:dark}
+.nickname-preview{margin:18px 0;padding:16px;border-radius:14px;background:#ffffff04;border:1px solid var(--line,#35353d)}
+.nickname-preview>small{margin:0 0 10px;text-transform:uppercase;letter-spacing:.12em;font-size:10px;color:var(--muted,#999)}
+.nickname-preview .identity-pill{max-width:100%;white-space:normal;overflow-wrap:anywhere;gap:10px}
+.nickname-preview-dot{height:7px;width:7px;flex:none;border-radius:50%}
+.nickname-preview p{font-size:11px;color:var(--muted,#999);margin:12px 0 0;line-height:1.6}
+.nickname-palette{border:0;padding:0;margin:16px 0;min-width:0}
+.nickname-palette legend{padding:0;margin-bottom:10px}
+#cxNicknameColors{display:flex;flex-wrap:wrap;gap:6px}
+.cx-nickname .nickname-swatch{width:44px;height:44px;padding:10px;min-width:44px;border:2px solid transparent;border-radius:50%;background:transparent;display:grid;place-items:center;cursor:pointer}
+.nickname-swatch:before{content:'';display:block;width:22px;height:22px;border-radius:50%;background:var(--swatch)}
+.cx-nickname .nickname-swatch[aria-pressed=true]{border-color:var(--swatch)}
+.nickname-actions{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0 12px}
+.nickname-actions button{min-height:44px;padding:10px 16px}
+.cx-nickname #cxNicknameHint,.cx-nickname #cxNicknameStatus{white-space:normal;line-height:1.6;overflow-wrap:anywhere}
+.identity-pill .status-dot{background:var(--identity-accent,var(--purple,#bca4f5))}
+@media(max-width:540px){.cx-nickname{max-width:100%}.cx-nickname form{padding:16px}.nickname-preview{padding:12px}.nickname-actions button{flex:1 1 auto}}

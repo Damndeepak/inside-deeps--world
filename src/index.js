@@ -1,3 +1,4 @@
+import { ensureIdentitySchema, identityFor, validIdentity, linkChatIdentity } from './chat-identity.js';
 import { handleDeeplist } from "./deeplist.js";
 import { ensureFeatures, handleFeatures } from "./features.js";
 
@@ -5,7 +6,7 @@ const nicknameSchemas = new WeakMap();
 const CHAT_SPAM_WINDOW_MS = 5 * 60 * 1000;
 const CHAT_SPAM_LIMIT = 20;
 const CHAT_SPAM_BAN_MS = 2 * 60 * 60 * 1000;
-const CHAT_NAME_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
+const CHAT_NAME_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 const CHAT_NAME_WORDS = [
   "potato", "noodle", "pickle", "waffle", "muffin", "pretzel", "biscuit", "nugget",
   "pancake", "taco", "burrito", "pudding", "cupcake", "meatball", "toaster", "walrus",
@@ -420,6 +421,7 @@ export default {
     }
 
     async function ensureNicknameSchema() {
+      await ensureIdentitySchema(env.DB);
       if (!nicknameSchemas.has(env.DB)) {
         const ready = (async () => {
           await env.DB.prepare(`CREATE TABLE IF NOT EXISTS chat_nicknames (
@@ -470,6 +472,7 @@ export default {
       await ensureNicknameSchema();
       await env.DB.prepare("INSERT OR IGNORE INTO chat_nicknames (user_id, default_username) VALUES (?, ?)").bind(user.id, user.username).run();
       let profile = await nicknameProfile(user.id);
+      if (await env.DB.prepare('SELECT user_id FROM chat_identity WHERE user_id=?').bind(user.id).first()) return user;
       if (!/^damn/i.test(profile.default_username)) {
         let migrated = false;
         for (const username of defaultNameCandidates()) {
@@ -499,24 +502,16 @@ export default {
       }
       user = await getUser(user.id);
       profile = await nicknameProfile(user.id);
-      if (/^damn/i.test(user.username)) return user;
-      const legacy = /^User\d+$/.test(user.username);
-      const base = legacy ? profile.default_username : "damn_" + Array.from(user.username).slice(0, 19).join("");
-      const candidates = legacy ? [base] : [base, ...Array.from({ length: 24 }, () => Array.from(base).slice(0, 22).join("") + (10 + randomNameNumber(90)))];
-      for (const username of candidates) {
-        user = await getUser(user.id);
-        profile = await nicknameProfile(user.id);
-        if (/^damn/i.test(user.username)) return user;
-        if (await migrateDisplayName(user, username, profile)) return getUser(user.id);
-      }
-      throw new Error("Could not migrate the public username");
+      if (!/^User\d+$/.test(user.username)) return user;
+      if (await migrateDisplayName(user, profile.default_username, profile)) return getUser(user.id);
+      return getUser(user.id);
     }
 
     if (url.pathname === "/api/user" && request.method === "GET") {
       try {
         const existingUser = await getUser(getUserId(request));
         if (existingUser) {
-          return Response.json({ success: true, user: await migrateChatIdentity(existingUser) }, { headers: { "Cache-Control": "no-store" } });
+          return Response.json({ success: true, user: { ...await migrateChatIdentity(existingUser), ...await identityFor(env.DB,existingUser.id) } }, { headers: { "Cache-Control": "no-store" } });
         }
         await ensureNicknameSchema();
         const id = crypto.randomUUID();
@@ -551,21 +546,24 @@ export default {
         let user = await getUser(getUserId(request));
         if (!user) return reply({ success: false, error: "Please reload the page before choosing a nickname." }, 401);
         let nickname;
+        const previousIdentity=await identityFor(env.DB,user.id);
+        let symbol=previousIdentity.symbol,color=previousIdentity.color;
         if (request.method === "POST") {
           const origin = request.headers.get("Origin");
-          if ((origin && origin !== url.origin) || !request.headers.get("Content-Type")?.startsWith("application/json")) {
+          if ((origin && origin !== url.origin) || request.headers.get("Sec-Fetch-Site")==="cross-site" || !request.headers.get("Content-Type")?.startsWith("application/json")) {
             return reply({ success: false, error: "Invalid request." }, 403);
           }
           const raw = await request.text();
           if (raw.length > 512) return reply({ success: false, error: invalidName }, 400);
           let body; try { body = JSON.parse(raw); } catch { return reply({ success: false, error: "Invalid request." }, 400); }
           if (typeof body?.nickname !== "string") return reply({ success: false, error: "Enter a nickname or leave it blank." }, 400);
-          nickname = body.nickname.normalize("NFC").trim().replace(/\s+/g, " ");
+          symbol=body.symbol??symbol;color=body.color??color;
+          if(!validIdentity(symbol,color))return reply({success:false,error:"Choose a symbol and colour from the available options."},400);
+          nickname = body.nickname.normalize("NFKC").trim().replace(/\s+/g, " ");
           // Keep the established allowed-character check.
           if (nickname && (Array.from(nickname).length < 2 || Array.from(nickname).length > 24 || !/^[\p{L}\p{M}\p{N} ._'-]+$/u.test(nickname))) {
             return reply({ success: false, error: invalidName }, 400);
           }
-          if (nickname && !/^damn/i.test(nickname)) nickname = "damn_" + nickname;
           if (Array.from(nickname).length > 24) return reply({ success: false, error: invalidName }, 400);
         }
         user = await migrateChatIdentity(user);
@@ -578,6 +576,7 @@ export default {
             profile = await nicknameProfile(user.id);
             const username = nickname || profile.default_username;
             const now = Date.now(), cutoff = now - CHAT_NAME_COOLDOWN_MS;
+            const allowName=Number(admin||username===user.username);
             // Both statements repeat the eligibility and availability guards.
             // A taken-name attempt updates neither username nor last_changed.
             const results = await env.DB.batch([
@@ -585,27 +584,35 @@ export default {
                 AND EXISTS (SELECT 1 FROM chat_nicknames WHERE user_id = ? AND revision = ?
                   AND (? = 1 OR last_changed IS NULL OR last_changed <= ?))
                 AND ${availableNameSQL}`)
-                .bind(username, user.id, user.username, user.id, profile.revision, Number(admin), cutoff, username, user.id, username, user.id),
-              env.DB.prepare(`UPDATE chat_nicknames SET last_changed = ?, revision = revision + 1
+                .bind(username, user.id, user.username, user.id, profile.revision, allowName, cutoff, username, user.id, username, user.id),
+              env.DB.prepare(`UPDATE chat_nicknames SET last_changed = CASE WHEN ?=1 THEN ? ELSE last_changed END, revision = revision + 1
                 WHERE user_id = ? AND revision = ? AND (? = 1 OR last_changed IS NULL OR last_changed <= ?)
                 AND EXISTS (SELECT 1 FROM users WHERE id = ? AND username = ?)
                 AND ${availableNameSQL}`)
-                .bind(now, user.id, profile.revision, Number(admin), cutoff, user.id, username, username, user.id, username, user.id)
+                .bind(Number(username!==user.username),now, user.id, profile.revision, allowName, cutoff, user.id, username, username, user.id, username, user.id),
+              env.DB.prepare(`INSERT INTO chat_identity(user_id,symbol,color,revision)
+                SELECT ?,?,?,? WHERE EXISTS(SELECT 1 FROM chat_nicknames WHERE user_id=? AND revision=?)
+                  AND EXISTS(SELECT 1 FROM users WHERE id=? AND username=?)
+                  AND NOT EXISTS(SELECT 1 FROM chat_identity WHERE user_id=? AND revision>=?)
+                ON CONFLICT(user_id) DO UPDATE SET symbol=excluded.symbol,color=excluded.color,revision=excluded.revision`)
+                .bind(user.id,symbol,color,profile.revision+1,user.id,profile.revision+1,user.id,username,user.id,profile.revision+1)
             ]);
-            if (results[0].meta.changes && results[1].meta.changes) { saved = true; break; }
+            if (results[0].meta.changes && results[1].meta.changes && results[2].meta.changes) { saved = true; break; }
             const latest = await nicknameProfile(user.id);
-            if (!admin && latest.last_changed !== null && latest.last_changed > cutoff) {
-              const days = Math.max(1, Math.ceil((latest.last_changed + CHAT_NAME_COOLDOWN_MS - now) / 86400000));
-              return reply({ success: false, error: `Patience, damn_human. New name unlocks in ${days} days.` }, 429);
-            }
             if (latest.revision !== profile.revision) continue;
+            if (!admin && latest.last_changed !== null && latest.last_changed > cutoff) {
+              const hours = Math.max(1, Math.ceil((latest.last_changed + CHAT_NAME_COOLDOWN_MS - now) / 3600000));
+              return reply({ success: false, error: `You can change your name again in ${hours} hours. Symbol and colour can still be changed.` }, 429);
+            }
             return reply({ success: false, error: takenName }, 409);
           }
           if (!saved) return reply({ success: false, error: "Name changed in another tab. Reload and try again." }, 409);
           user = await getUser(user.id);
           profile = await nicknameProfile(user.id);
         }
-        return reply({ success: true, user, nickname: user.username === profile.default_username ? "" : user.username });
+        await linkChatIdentity(request,env.DB,{owner:request.method==='POST'&&await chatIsAdmin(request)});
+        return reply({ success: true, user:{...user,...await identityFor(env.DB,user.id)}, nickname: user.username === profile.default_username ? "" : user.username,
+          defaultName:profile.default_username,nextNameChangeAt:profile.last_changed?profile.last_changed+CHAT_NAME_COOLDOWN_MS:null });
       } catch {
         return reply({ success: false, error: "Could not save your nickname. Try again." }, 500);
       }
@@ -1403,6 +1410,7 @@ export default {
         await ensureFeatures(env.DB);
         const userId = getUserId(request);
         const me = userId ? await getUser(userId) : null;
+        await ensureIdentitySchema(env.DB);
 
         const limit = Math.min(Math.max(parseInt(url.searchParams.get("limit") || "100", 10) || 100, 1), 200);
         const before = url.searchParams.get("before");
@@ -1415,7 +1423,7 @@ export default {
               m.parent_id,
               m.created_at,
               m.sender_id,
-              COALESCE(u.username, 'Unknown') AS username,
+              COALESCE(u.username, 'Unknown') AS username, ci.symbol AS identity_symbol,ci.color AS identity_color,
               (mi.message_id IS NOT NULL) AS has_image,
               (ma.message_id IS NOT NULL) AS has_audio,
               pm.id AS p_id,
@@ -1425,6 +1433,7 @@ export default {
               (pmi.message_id IS NOT NULL) AS p_has_image
             FROM messages m
             LEFT JOIN users u ON u.id = m.sender_id
+            LEFT JOIN chat_identity ci ON ci.user_id=m.sender_id
             LEFT JOIN message_images mi ON mi.message_id = m.id
             LEFT JOIN message_audio ma ON ma.message_id = m.id
             LEFT JOIN messages pm ON pm.id = m.parent_id
@@ -1445,7 +1454,7 @@ export default {
           id: r.id,
           message: r.message || "",
           created_at: r.created_at,
-          username: r.username,
+          username: r.username,symbol:r.identity_symbol||"",color:r.identity_color||null,
           mine: Boolean(userId) && r.sender_id === userId,
           image: Boolean(r.has_image),
           audio: Boolean(r.has_audio),
@@ -1463,7 +1472,7 @@ export default {
 
         return Response.json({
           success: true,
-          me: me ? { username: me.username } : null,
+          me: me ? { username: me.username,...await identityFor(env.DB,me.id) } : null,
           has_more: hasMore,
           messages
         }, { headers: chatHeaders });

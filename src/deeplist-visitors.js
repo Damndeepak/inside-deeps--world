@@ -1,3 +1,4 @@
+import {linkChatIdentity} from './chat-identity.js';
 import { listeningWrites, publicListeningStats, monthKey } from './deeplist-stats.js';
 const ready = new WeakMap();
 const cookieName = '__Host-deeplist';
@@ -42,11 +43,13 @@ export async function handleVisitorDeeplist(request, env, {hash,validateState,pu
  if(path==='/api/deeplist/name'&&method==='POST'){
   if(!browserRequest(request,'name'))return reply({error:'same_site_session_required'},403);
   const visitor=await currentVisitor(request,env.DB,hash);if(!visitor)return reply({error:'browser_session_required'},401);
+  if(await env.DB.prepare('SELECT l.channel_id FROM deeplist_identity_links l JOIN chat_identity p ON p.user_id=l.user_id WHERE l.channel_id=?').bind(visitor.channel_id).first())return reply({error:'Edit your shared name from Set your nickname on the homepage.'},409);
   const data=await readState(request,x=>x&&typeof x.displayName==='string'?x:null);
   if(!data)return reply({error:'invalid_name'},400);
   const name=data.displayName.normalize('NFKC').replace(/[\p{Cc}\p{Cf}]/gu,'').replace(/\s+/gu,' ').trim();
   if(Array.from(name).length>32)return reply({error:'name_too_long'},400);
   await env.DB.prepare('INSERT INTO deeplist_visitor_names(channel_id,display_name) VALUES(?,?) ON CONFLICT(channel_id) DO UPDATE SET display_name=excluded.display_name').bind(visitor.channel_id,name).run();
+  await linkChatIdentity(request,env.DB,{channel:visitor.channel_id});
   return reply({channel:visitor.channel_id,displayName:name,label:label(visitor.channel_id,name)});
  }
  if(path==='/api/deeplist/me'&&method==='GET') {
@@ -57,9 +60,13 @@ export async function handleVisitorDeeplist(request, env, {hash,validateState,pu
  }
  if(path==='/api/deeplist/listeners'&&method==='GET') {
   const now=Date.now();
-  const rows=await env.DB.prepare("SELECT channel_id, (SELECT display_name FROM deeplist_visitor_names n WHERE n.channel_id=deeplist_visitors.channel_id) AS display_name, json_extract(payload,'$.id') AS track_id, json_extract(payload,'$.title') AS title, json_extract(payload,'$.artist') AS artist, json_extract(payload,'$.playing') AS playing, updated_at FROM deeplist_visitors WHERE token_hash IS NOT NULL AND payload IS NOT NULL ORDER BY updated_at DESC,channel_id LIMIT 50").all();
+  const rows=await env.DB.prepare(`SELECT v.channel_id,COALESCE(u.username,n.display_name) AS display_name,p.symbol,p.color,
+    json_extract(v.payload,'$.id') AS track_id,json_extract(v.payload,'$.title') AS title,json_extract(v.payload,'$.artist') AS artist,json_extract(v.payload,'$.playing') AS playing,v.updated_at
+    FROM deeplist_visitors v LEFT JOIN deeplist_visitor_names n ON n.channel_id=v.channel_id
+    LEFT JOIN deeplist_identity_links l ON l.channel_id=v.channel_id LEFT JOIN users u ON u.id=l.user_id LEFT JOIN chat_identity p ON p.user_id=l.user_id
+    WHERE v.token_hash IS NOT NULL AND v.payload IS NOT NULL ORDER BY v.updated_at DESC,v.channel_id LIMIT 50`).all();
   const total=await env.DB.prepare('SELECT COUNT(*) AS total FROM deeplist_connection_totals').first();
-  return reply({serverNow:now,totalConnected:total.total,listeners:rows.results.map(r=>({channel:r.channel_id,label:label(r.channel_id,r.display_name),id:r.track_id,title:r.title,artist:r.artist,live:now-r.updated_at<=15000,playing:now-r.updated_at<=15000&&!!r.playing,lastPlayedAt:r.updated_at,player:`/deeplist.html?user=${r.channel_id}`}))});
+  return reply({serverNow:now,totalConnected:total.total,listeners:rows.results.map(r=>({channel:r.channel_id,label:label(r.channel_id,r.display_name),symbol:r.symbol||'',color:r.color||null,id:r.track_id,title:r.title,artist:r.artist,live:now-r.updated_at<=15000,playing:now-r.updated_at<=15000&&!!r.playing,lastPlayedAt:r.updated_at,player:`/deeplist.html?user=${r.channel_id}`}))});
  }
  if(path==='/api/deeplist/pair'&&visitorScope&&['POST','DELETE'].includes(method)) {
   if(!browserRequest(request,'pair'))return reply({error:'same_site_session_required'},403);
@@ -83,7 +90,7 @@ export async function handleVisitorDeeplist(request, env, {hash,validateState,pu
  if(addressed&&method==='GET') {
   const channel=url.searchParams.get('user');if(!uuid(channel))return reply({error:'invalid_channel'},400);
   if(path!=='/api/deeplist/state')return reply({error:'visitor_history_not_enabled'},404);
-  const row=await env.DB.prepare('SELECT payload,updated_at,(SELECT display_name FROM deeplist_visitor_names n WHERE n.channel_id=deeplist_visitors.channel_id) AS display_name FROM deeplist_visitors WHERE channel_id=? AND token_hash IS NOT NULL').bind(channel).first();
+  const row=await env.DB.prepare('SELECT v.payload,v.updated_at,COALESCE(u.username,n.display_name) AS display_name FROM deeplist_visitors v LEFT JOIN deeplist_visitor_names n ON n.channel_id=v.channel_id LEFT JOIN deeplist_identity_links l ON l.channel_id=v.channel_id LEFT JOIN users u ON u.id=l.user_id WHERE v.channel_id=? AND v.token_hash IS NOT NULL').bind(channel).first();
   const now=Date.now();if(!row?.payload||now-row.updated_at>15000)return reply({connected:false,channel,label:label(channel,row?.display_name),serverNow:now});
   let state;try{state=JSON.parse(row.payload);}catch{return reply({connected:false,serverNow:now});}
   if(url.searchParams.get('lyricsVersion')===state.lyricsVersion)delete state.lines;

@@ -10,7 +10,7 @@ const context={console:{warn(){}},document,Date,URLSearchParams,AbortController,
 const flush=async()=>{for(let i=0;i<8;i++)await new Promise(setImmediate);};
 (async()=>{
  nodes.deeplistStatsPeriod=new Node('select');nodes.deeplistStatsPeriod.value='month';
- vm.createContext(context);vm.runInContext(fs.readFileSync('public/deeplist-stats.js','utf8'),context);await flush();
+ vm.createContext(context);vm.runInContext(fs.readFileSync('public/chat-identity.js','utf8').replace(/^export /gm,'')+'\n'+fs.readFileSync('public/deeplist-stats.js','utf8').replace(/^import .*\n/,''),context);await flush();
  const row=i=>nodes.deeplistLeaderboard.children[i].children[0];
  assert.equal(row(0).href,'/deeplist.html');assert.equal(row(0).children[2].children[0].textContent,'1 min');
  assert.equal(row(1).children[1].children[0].textContent,'<img onerror=bad>');assert.equal(row(1).children[2].children[0].textContent,'<1 min');

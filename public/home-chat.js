@@ -1,3 +1,5 @@
+import {identityColor,identityLabel} from './chat-identity.js';
+import {initNicknameControls} from './nickname-controls.js';
 (()=>{
 "use strict";
 const $=id=>document.getElementById(id);
@@ -39,13 +41,13 @@ let toastTimer=0;
 function toast(msg){E.toast.textContent=msg;E.toast.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>{E.toast.hidden=true},3200)}
 
 /* ---------- rendering ---------- */
-function sigOf(m,w){return[m.username,m.parent?(m.parent.deleted?"d":[m.parent.id,m.parent.username,m.parent.snippet,m.parent.image].join("~")):"",S.admin?1:0,m.pending||"",m.mine?1:0,m.created_at].join("|")}
+function sigOf(m,w){return[m.username,m.symbol||"",m.color||"",m.parent?(m.parent.deleted?"d":[m.parent.id,m.parent.username,m.parent.snippet,m.parent.image].join("~")):"",S.admin?1:0,m.pending||"",m.mine?1:0,m.created_at].join("|")}
 
 function buildRow(m){
   const row=h("div","cx-row"+(m.mine?" mine":""));row.dataset.id=m.id;row.tabIndex=0;
   const av=h("div","cx-avatar",tag(m.username));av.style.cssText="background:hsl("+hue(m.username)+" 32% 20%);color:hsl("+hue(m.username)+" 55% 78%)";
   const bub=h("div","cx-bubble");
-  const name=h("div","cx-name","@"+m.username);
+  const name=h("div","cx-name",identityLabel(m.username,m.symbol,"@"));
   const quote=h("button","cx-quote");quote.type="button";
   bub.append(name,quote);
   if(m.image){
@@ -69,8 +71,9 @@ function paint(row,w){
   row.classList.toggle("pending",m.pending==="sending");row.classList.toggle("failed",m.pending==="failed");
   row._name.style.display=showName?"":"none";row._av.style.visibility=showName?"visible":"hidden";
   const sig=sigOf(m,w);if(row._sig===sig)return;row._sig=sig;
-  row._name.textContent="@"+m.username;row._av.textContent=tag(m.username);
+  row._name.textContent=identityLabel(m.username,m.symbol,"@");row._name.style.color=m.color?identityColor(m.color):"";row._av.textContent=tag(m.username);
   row._av.style.cssText="background:hsl("+hue(m.username)+" 32% 20%);color:hsl("+hue(m.username)+" 55% 78%)";
+  if(m.color){row._av.style.background=identityColor(m.color)+"25";row._av.style.color=identityColor(m.color);}
   row._time.textContent=t2(m.created_at);
   const q=row._quote;q.textContent="";
   if(m.parent){
@@ -155,7 +158,7 @@ async function loadFeed(sig){
   const r=await fetch("/api/chat?limit=100",{cache:"no-store",signal:AbortSignal.timeout(10000)});const d=await r.json();
   if(!d.success)throw new Error("feed");
   const first=!S.ready;
-  if(d.me){S.me=d.me;E.me.textContent="@"+d.me.username}
+  if(d.me){S.me=d.me;paintMyIdentity()}
   applyFeed(d.messages,d.has_more,first);S.ready=true;if(sig!=null)S.sig=sig;
 }
 
@@ -606,39 +609,19 @@ if("ResizeObserver" in window)new ResizeObserver(scheduleSeen).observe(E.list);
 E.list.addEventListener("load",scheduleSeen,true);
 setInterval(loadSeenAdmin,30000);
 
-/* ---------- optional nickname ---------- */
-const nicknameInput=$("cxNickname"),nicknameSave=$("cxNicknameSave"),nicknameReset=$("cxNicknameReset"),nicknameStatus=$("cxNicknameStatus");
-let nicknameBusy=false;
-function nicknameLimit(){nicknameInput.maxLength=/^damn/i.test(nicknameInput.value)?24:19;}
-nicknameInput.addEventListener("input",nicknameLimit);
-async function loadNickname(){
-  try{const r=await fetch("/api/user/nickname",{cache:"no-store"});const d=await r.json();if(!r.ok||!d.success)throw new Error(d.error||"Could not load nickname settings.");nicknameInput.value=d.nickname||"";nicknameLimit();nicknameSave.disabled=false;nicknameReset.disabled=false;}
-  catch(e){nicknameStatus.textContent="Nickname settings unavailable. You can still chat with your random name.";}
-}
-async function saveNickname(value){
-  if(nicknameBusy)return;nicknameBusy=true;nicknameSave.disabled=true;nicknameReset.disabled=true;nicknameInput.disabled=true;nicknameStatus.textContent="Saving…";
-  try{
-    const headers={"Content-Type":"application/json"};
-    if(S.admin&&S.adminKey)headers["X-Admin-Key"]=S.adminKey;
-    const r=await fetch("/api/user/nickname",{method:"POST",headers,body:JSON.stringify({nickname:value})});const d=await r.json();
-    if(!r.ok||!d.success)throw new Error(d.error||"Could not save nickname.");
-    S.me=d.user;E.me.textContent="@"+d.user.username;nicknameInput.value=d.nickname||"";nicknameLimit();
-    for(const m of S.msgs.concat(S.pending))if(m.mine)m.username=d.user.username;
-    for(const m of S.local.values())if(m.mine)m.username=d.user.username;
-    reconcile(false);nicknameStatus.textContent=value.trim()?"Nice. You're now "+d.user.username+".":"Back to your random name.";
-    try{await loadFeed(await getState());}catch{};
-  }catch(e){nicknameStatus.textContent=e.message||"Could not save nickname. Try again.";}
-  finally{nicknameBusy=false;nicknameSave.disabled=false;nicknameReset.disabled=false;nicknameInput.disabled=false;}
-}
-$("cxNicknameForm").addEventListener("submit",e=>{e.preventDefault();saveNickname(nicknameInput.value);});
-nicknameReset.addEventListener("click",()=>saveNickname(""));
+/* ---------- listener identity ---------- */
+function paintMyIdentity(){E.me.textContent=S.me?identityLabel(S.me.username,S.me.symbol,'@'):'Guest';E.me.closest('.identity-pill')?.style.setProperty('--identity-accent',identityColor(S.me?.color));}
+const nicknameControls=initNicknameControls({
+ headers:()=>({'Content-Type':'application/json',...(S.admin&&S.adminKey?{'X-Admin-Key':S.adminKey}:{})}),
+ onSaved:user=>{S.me=user;paintMyIdentity();for(const m of S.msgs.concat(S.pending,...S.local.values()))if(m.mine){m.username=user.username;m.symbol=user.symbol;m.color=user.color;}reconcile(false);}
+});
 
 /* ---------- start ---------- */
 (async()=>{
   grow();updateSend();
-  try{const r=await fetch("/api/user",{signal:AbortSignal.timeout(10000)});const d=await r.json();if(d.success&&d.user)S.me={username:d.user.username}}catch(e){}
-  E.me.textContent=S.me?"@"+S.me.username:"Guest";
-  if(S.me)loadNickname();
+  try{const r=await fetch("/api/user",{signal:AbortSignal.timeout(10000)});const d=await r.json();if(d.success&&d.user)S.me=d.user}catch(e){}
+  paintMyIdentity();
+  if(S.me)nicknameControls.load();
   await boot();
   startCommunity();scheduleSeen();
   if(S.adminKey&&await checkAdmin(S.adminKey)){S.admin=true;paintAdmin()}else{S.adminKey="";try{sessionStorage.removeItem("cxAdminKey")}catch(e){}}

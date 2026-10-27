@@ -1,3 +1,4 @@
+import {ensureIdentitySchema} from './chat-identity.js';
 import { listeningSchema, listeningWrites } from './deeplist-stats.js';
 import { handleConnect } from "./deeplist-connect.js";
 import { handleVisitorDeeplist } from "./deeplist-visitors.js";
@@ -48,6 +49,7 @@ export async function handleDeeplist(request, env, isAdmin) {
   if (!path.startsWith('/api/deeplist/')) return null;
   if (!env.DB) return reply({ error: 'storage_unavailable' }, 503);
   await schema(env.DB);
+  await ensureIdentitySchema(env.DB);
   await listeningSchema(env.DB);
   const connectResponse = await handleConnect(request, env, isAdmin, hash);
   if (connectResponse) return connectResponse;

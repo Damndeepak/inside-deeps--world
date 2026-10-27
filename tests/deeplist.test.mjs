@@ -4,15 +4,11 @@ import assert from 'node:assert/strict';
 import {webcrypto} from 'node:crypto';
 if(!globalThis.crypto)Object.defineProperty(globalThis,'crypto',{value:webcrypto});
 
-const statsModule='data:text/javascript;base64,'+Buffer.from(fs.readFileSync(new URL('../src/deeplist-stats.js',import.meta.url),'utf8')).toString('base64');
-const visitorSource=fs.readFileSync(new URL('../src/deeplist-visitors.js',import.meta.url),'utf8').replace("from './deeplist-stats.js'",'from '+JSON.stringify(statsModule));
-const visitorModule='data:text/javascript;base64,'+Buffer.from(visitorSource).toString('base64');
-const connectSource=fs.readFileSync(new URL('../src/deeplist-connect.js',import.meta.url),'utf8').replace("from './deeplist-visitors.js'",'from '+JSON.stringify(visitorModule));
-const connectModule='data:text/javascript;base64,'+Buffer.from(connectSource).toString('base64');
-const source=fs.readFileSync(new URL('../src/deeplist.js',import.meta.url),'utf8').replace("from './deeplist-stats.js'",'from '+JSON.stringify(statsModule)).replace('from "./deeplist-visitors.js"','from '+JSON.stringify(visitorModule)).replace('from "./deeplist-connect.js"','from '+JSON.stringify(connectModule));
-const {handleDeeplist,validateState,listeningSession}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
+const statsModule=new URL('../src/deeplist-stats.js',import.meta.url).href;
+const {handleDeeplist,validateState,listeningSession}=await import('../src/deeplist.js');
 class DB {
  sqlite=new DatabaseSync(':memory:');
+ constructor(){this.sqlite.exec('CREATE TABLE users(id TEXT PRIMARY KEY,username TEXT,created_at TEXT)');}
  batch(statements){const run=async()=>{this.sqlite.exec('BEGIN');try{const results=[];for(const statement of statements)results.push(await statement.run());this.sqlite.exec('COMMIT');return results;}catch(error){this.sqlite.exec('ROLLBACK');throw error;}};const result=(this.pending||Promise.resolve()).then(run);this.pending=result.catch(()=>{});return result;}
  get row(){return this.sqlite.prepare('SELECT * FROM deeplist_bridge WHERE id=1').get()||null;}
  prepare(sql){const stmt=this.sqlite.prepare(sql);let args=[];return{bind(...a){args=a;return this;},async first(){return stmt.get(...args)||null;},async all(){return{results:stmt.all(...args)};},async run(){const result=stmt.run(...args);return{meta:{changes:Number(result.changes)}};}};}

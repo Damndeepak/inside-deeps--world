@@ -1,3 +1,4 @@
+import {identityColor,identityLabel} from './chat-identity.js';
 (() => {
   'use strict';
   const box = document.getElementById('deeplistStats');
@@ -29,7 +30,7 @@
         link.href = listener.channel === 'owner' ? '/deeplist.html' : '/deeplist.html?user=' + encodeURIComponent(listener.channel);
         const rank = document.createElement('span'); rank.className = 'deeplist-rank-number'; rank.textContent = String(index + 1).padStart(2, '0');
         const identity = document.createElement('span'), name = document.createElement('strong'), detail = document.createElement('small');
-        name.textContent = listener.label;
+        name.textContent = identityLabel(listener.label,listener.symbol);if(listener.color)name.style.color=identityColor(listener.color);
         detail.textContent = listener.trackingSince ? 'Recorded since ' + new Date(listener.trackingSince).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' }) : 'Starts with the next shared playback';
         identity.append(name, detail);
         const time = document.createElement('span'); time.className = 'deeplist-rank-time';
@@ -50,5 +51,6 @@
   period.onchange = () => { month.disabled = period.value === 'all'; load(); };
   month.onchange = load;
   document.addEventListener('visibilitychange', () => { if (document.hidden) { clearTimeout(timer); controller?.abort(); } else load(); });
+  document.addEventListener('deeplist-identity-updated',load);
   load();
 })();

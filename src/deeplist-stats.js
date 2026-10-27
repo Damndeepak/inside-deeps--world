@@ -41,18 +41,18 @@ export function listeningWrites(db, channel, tokenHash, state, now) {
 }
 export async function publicListeningStats(db, now, month = monthKey(now)) {
   const result = await db.prepare(`WITH visible AS (
-    SELECT 'owner' AS channel_id,'Deepu' AS label FROM deeplist_bridge WHERE id=1 AND token_hash IS NOT NULL AND payload IS NOT NULL
+    SELECT 'owner' AS channel_id,COALESCE(u.username,'Deepu') AS label,p.symbol,p.color FROM deeplist_bridge b LEFT JOIN deeplist_identity_links l ON l.channel_id='owner' LEFT JOIN users u ON u.id=l.user_id LEFT JOIN chat_identity p ON p.user_id=l.user_id WHERE b.id=1 AND b.token_hash IS NOT NULL AND b.payload IS NOT NULL
     UNION ALL
-    SELECT v.channel_id,COALESCE(NULLIF(n.display_name,''),'Listener · '||SUBSTR(v.channel_id,1,6))
-      FROM deeplist_visitors v LEFT JOIN deeplist_visitor_names n ON n.channel_id=v.channel_id
+    SELECT v.channel_id,COALESCE(u.username,NULLIF(n.display_name,''),'Listener · '||SUBSTR(v.channel_id,1,6)),p.symbol,p.color
+      FROM deeplist_visitors v LEFT JOIN deeplist_visitor_names n ON n.channel_id=v.channel_id LEFT JOIN deeplist_identity_links l ON l.channel_id=v.channel_id LEFT JOIN users u ON u.id=l.user_id LEFT JOIN chat_identity p ON p.user_id=l.user_id
       WHERE v.token_hash IS NOT NULL AND v.payload IS NOT NULL
-    ) SELECT v.channel_id,v.label,c.first_at,
+    ) SELECT v.channel_id,v.label,v.symbol,v.color,c.first_at,
       COALESCE(SUM(m.listened_ms),0) AS total_ms,
       COALESCE(SUM(CASE WHEN m.month=? THEN m.listened_ms ELSE 0 END),0) AS month_ms
       FROM visible v LEFT JOIN deeplist_listening_clock c ON c.channel_id=v.channel_id
       LEFT JOIN deeplist_listening_months m ON m.channel_id=v.channel_id
       GROUP BY v.channel_id ORDER BY total_ms DESC,v.channel_id`).bind(month).all();
-  return result.results.map(row => ({ channel: row.channel_id, label: row.label,
+  return result.results.map(row => ({ channel: row.channel_id, label: row.label,symbol:row.symbol||'',color:row.color||null,
     totalMs: row.total_ms, monthMs: row.month_ms, trackingSince: row.first_at || null,
     player: row.channel_id === 'owner' ? '/deeplist.html' : '/deeplist.html?user=' + row.channel_id }));
 }
