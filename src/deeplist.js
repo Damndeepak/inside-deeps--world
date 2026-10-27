@@ -55,13 +55,20 @@ export async function handleDeeplist(request, env, isAdmin) {
   if (!env.DB) return reply({ error: 'storage_unavailable' }, 503);
   // The public owner heartbeat needs only its snapshot, not chat, history or stats setup.
   if (path === '/api/deeplist/state' && request.method === 'GET' && !new URL(request.url).searchParams.has('user')) {
+    const began = performance.now();
     await bridgeSchema(env.DB);
+    const schemaDone = performance.now();
     const row = await env.DB.prepare('SELECT payload, updated_at FROM deeplist_bridge WHERE id=1').first();
+    const answer = data => {
+      const response = reply(data);
+      response.headers.set('Server-Timing', `schema;dur=${(schemaDone-began).toFixed(1)}, snapshot;dur=${(performance.now()-schemaDone).toFixed(1)}`);
+      return response;
+    };
     const now = Date.now();
-    if (!row?.payload || now - row.updated_at > 15000) return reply({ connected: false, serverNow: now });
-    let state; try { state = JSON.parse(row.payload); } catch { return reply({ connected: false, serverNow: now }); }
+    if (!row?.payload || now - row.updated_at > 15000) return answer({ connected: false, serverNow: now });
+    let state; try { state = JSON.parse(row.payload); } catch { return answer({ connected: false, serverNow: now }); }
     if (new URL(request.url).searchParams.get('lyricsVersion') === state.lyricsVersion) delete state.lines;
-    return reply({ connected: true, state: publicState(state), receivedAt: row.updated_at, serverNow: now });
+    return answer({ connected: true, state: publicState(state), receivedAt: row.updated_at, serverNow: now });
   }
   await Promise.all([schema(env.DB), ensureIdentitySchema(env.DB),
     path === '/api/deeplist/stats' || (path === '/api/deeplist/state' && request.method === 'POST') ? listeningSchema(env.DB) : Promise.resolve()]);
