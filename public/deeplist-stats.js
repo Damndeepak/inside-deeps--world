@@ -19,7 +19,7 @@
     try {
       const query = new URLSearchParams({ period: period.value, month: month.value || currentMonth });
       const response = await fetch('/api/deeplist/stats?' + query, { cache: 'no-store', signal: active.signal });
-      if (!response.ok) throw Error('unavailable');
+      if (!response.ok) throw Error('HTTP '+response.status);
       const data = await response.json();
       if (controller !== active || active.signal.aborted) return;
       list.replaceChildren();
@@ -39,7 +39,8 @@
         time.append(score, total); link.append(rank, identity, time); row.append(link); list.append(row);
       }
       note.textContent = data.listeners?.length ? 'Per music connection · shared playback only · pauses and offline gaps excluded · months use India time. Earlier listening was not recorded.' : 'No shared listening yet. Connect Deeplist to start recording minutes.';
-    } catch {
+    } catch (error) {
+      if (controller === active) console.warn('Deeplist stats:', error.name, error.message);
       if (controller === active) { list.replaceChildren(); note.textContent = 'Listening stats are unavailable. Retrying shortly.'; }
     } finally {
       clearTimeout(deadline);

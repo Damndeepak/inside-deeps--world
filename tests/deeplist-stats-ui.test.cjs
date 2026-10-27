@@ -6,7 +6,7 @@ class Node {
 const nodes={},events={},timers=[],requests=[];let failure=false;
 let listeners=[{channel:'owner',label:'Deepu',monthMs:61000,totalMs:120000,trackingSince:Date.parse('2026-10-27T00:00:00Z')},{channel:'visitor',label:'<img onerror=bad>',monthMs:500,totalMs:1000,trackingSince:null}];
 const document={hidden:false,getElementById:id=>nodes[id]??=new Node(),createElement:tag=>new Node(tag),addEventListener:(type,fn)=>events[type]=fn};
-const context={document,Date,URLSearchParams,AbortController,clearTimeout(){},setTimeout:(fn,ms)=>{timers.push({fn,ms});return timers.length;},fetch:async(url,options)=>{requests.push({url,options});if(failure)throw Error('offline');const query=new URLSearchParams(url.split('?')[1]);return {ok:true,json:async()=>({period:query.get('period'),month:query.get('month'),listeners:structuredClone(listeners)})};}};
+const context={console:{warn(){}},document,Date,URLSearchParams,AbortController,clearTimeout(){},setTimeout:(fn,ms)=>{timers.push({fn,ms});return timers.length;},fetch:async(url,options)=>{requests.push({url,options});if(failure)throw Error('offline');const query=new URLSearchParams(url.split('?')[1]);return {ok:true,json:async()=>({period:query.get('period'),month:query.get('month'),listeners:structuredClone(listeners)})};}};
 const flush=async()=>{for(let i=0;i<8;i++)await new Promise(setImmediate);};
 (async()=>{
  nodes.deeplistStatsPeriod=new Node('select');nodes.deeplistStatsPeriod.value='month';
