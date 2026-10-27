@@ -2,7 +2,9 @@ const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/st
 class Node{
  constructor(){this.children=[];this.className='';this.style={};this.classList={remove:c=>{if(this.className===c)this.className='';}};}
  set textContent(text){this.text=text;this.children=[];}get textContent(){return this.text||'';}
- append(...nodes){this.children.push(...nodes);}replaceChildren(){this.children=[];}closest(){return this;}
+ append(...nodes){for(const n of nodes){n.parent=this;this.children.push(n);}}replaceChildren(){this.children=[];}closest(){return this;}
+ insertBefore(node,ref){node.remove();node.parent=this;const index=this.children.indexOf(ref);this.children.splice(index<0?this.children.length:index,0,node);}
+ remove(){if(this.parent){this.parent.children=this.parent.children.filter(n=>n!==this);this.parent=null;}}
  querySelectorAll(selector){const all=this.children.flatMap(n=>[n,...n.querySelectorAll(selector)]);return all.filter(n=>'.'+n.className===selector);}
 }
 const box=new Node(),count=new Node(),timers=[],events={};let fail=false;
@@ -20,6 +22,10 @@ const flush=async()=>{for(let i=0;i<8;i++)await new Promise(setImmediate);};
  assert.equal(info(1)[0].className,'');assert.equal(info(1)[2].textContent,'Paused · open synced lyrics');
  for(const i of [2,3]){assert.equal(info(i)[0].className,'');assert.ok(info(i)[2].textContent.startsWith('Last shared'));}
  assert.equal(count.textContent,'4 music connections recorded');
+ const firstCard=box.children[0],secondCard=box.children[1];box.scrollLeft=150;
+ // Heartbeats update status without replacing focused/swiped cards or resetting the rail.
+ events['deeplist-identity-updated']();await flush();
+ assert.equal(box.children[0],firstCard);assert.equal(box.children[1],secondCard);assert.equal(box.scrollLeft,150);
  timers.find(t=>t.ms===14500).fn();assert.equal(info(0)[0].className,'');assert.ok(info(0)[2].textContent.startsWith('Last shared'));
  fail=true;timers.find(t=>t.ms===750).fn();await flush();assert.equal(box.textContent,'Connected listeners are unavailable right now.');assert.equal(box.children.length,0);
  console.log('PASS: tiny live markers only for fresh playing listeners; paused, offline, stale and network failure never blink');

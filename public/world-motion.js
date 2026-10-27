@@ -34,7 +34,7 @@
       },{rootMargin:'80px'});
       document.querySelectorAll('.media-entry,.lfm,.cx-card,.world-card,.song-player').forEach(node=>visible.observe(node));
     }
-    observe(document.body);
+    if(document.body.dataset.worldMotion!=='premium')observe(document.body);
     // Observe only dynamic memory/ranking containers, never chat tokens or lyrics.
     const dynamic=document.querySelectorAll('#worldMemories,#worldRepeat');
     if(dynamic.length&&'MutationObserver' in window){const updates=new MutationObserver(records=>{
