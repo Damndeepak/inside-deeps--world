@@ -11,9 +11,16 @@
  const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
  function overflow(rail){return Math.max(0,rail.scrollWidth-rail.clientWidth)}
  function updateProgress(){
-  frame=0;if(!progress)return;
+  frame=0;updateFilm();if(!progress)return;
   const height=document.documentElement.scrollHeight-innerHeight;
   progress.style.transform='scaleX('+clamp(height>0?scrollY/height:0,0,1)+')';
+ }
+ function updateFilm(){
+  if(!pin)return;
+  const distance=pin.end-pin.start;
+  pin.start=film.getBoundingClientRect().top+scrollY-48;pin.end=pin.start+distance;
+  const position=clamp((scrollY-pin.start)/(pin.end-pin.start),0,1);
+  pinUpdate=true;photos.scrollLeft=overflow(photos)*position;pinUpdate=false;syncButtons(photos);
  }
  addEventListener('scroll',()=>{if(!frame)frame=requestAnimationFrame(updateProgress)},{passive:true});
  function syncButtons(rail){
@@ -79,23 +86,21 @@
   const hint=film?.querySelector('.rail-hint');if(hint)hint.textContent=pinned?'Scroll to explore · reverse to rewind':'Swipe or use the arrows to explore';
  }
  function removePin(){
-  if(pin){pin.kill(true);pin=null;photos.scrollLeft=0;syncButtons(photos)}
+  if(pin){pin=null;film.style.removeProperty('height');photos.scrollLeft=0;syncButtons(photos)}
   stage?.classList.remove('is-pinned');setHint(false);
  }
  function refreshLayout(){
   clearTimeout(refreshTimer);
   rails.forEach((_,rail)=>syncButtons(rail));updateProgress();
-  if(!ST)return;
   // Only desktop gets a pin. Touch users keep native page scrolling + horizontal swipe.
   const canPin=!reduced.matches&&desktop.matches&&stage&&photos?.querySelectorAll('.public-memory').length>1&&overflow(photos)>2;
-  if(canPin&&!pin){
-   photos.scrollLeft=0;stage.classList.add('is-pinned');setHint(true);
-   pin=ST.create({trigger:stage,start:'top 48px',end:()=>'+='+overflow(photos),pin:stage,pinSpacing:true,invalidateOnRefresh:true,anticipatePin:1,
-    onUpdate:self=>{pinUpdate=true;photos.scrollLeft=overflow(photos)*self.progress;pinUpdate=false;syncButtons(photos)},
-    onRefresh:self=>{photos.scrollLeft=overflow(photos)*self.progress;syncButtons(photos)}
-   });
+  if(canPin){
+   stage.classList.add('is-pinned');setHint(true);
+   const distance=overflow(photos),start=film.getBoundingClientRect().top+scrollY-48;
+   film.style.height=(stage.offsetHeight+distance)+'px';
+   pin={start,end:start+distance};updateFilm();
   }else if(!canPin)removePin();
-  ST.refresh();updateProgress();
+  ST?.refresh();updateProgress();
  }
  function scheduleLayout(){clearTimeout(refreshTimer);refreshTimer=setTimeout(refreshLayout,120)}
  // Watch only the rails, not chat or the continuously updating lyric/progress elements.
@@ -139,7 +144,7 @@
   for(const animation of animations){if(document.hidden)animation.pause();else animation.play()}
  });
  // Fixed-version CDN scripts are integrity checked and never block chat/player boot.
- // If unavailable, rails, buttons, progress and content still work without pin/parallax.
+ // If unavailable, rails, native sticky pin, buttons and progress still work.
  function script(src,integrity){return new Promise((resolve,reject)=>{
   const tag=document.createElement('script');tag.src=src;tag.integrity='sha384-'+integrity;tag.crossOrigin='anonymous';tag.async=true;
   const timeout=setTimeout(()=>{tag.remove();reject(Error('motion timeout'))},8000);
@@ -157,5 +162,5 @@
   }catch{/* Native scrolling remains fully functional. */}
   finally{loadingLibrary=false;}
  }
- updateProgress();loadMotionLibrary();
+ updateProgress();scheduleLayout();loadMotionLibrary();
 })();
