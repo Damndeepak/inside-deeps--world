@@ -26,7 +26,9 @@ self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   event.waitUntil((async () => {
     const wins = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
-    for (const c of wins) { if ("focus" in c) { await c.focus(); return; } }
+    for (const c of wins) {
+      if ("focus" in c) { await c.navigate(new URL("/#cxChat", self.location.origin).href); await c.focus(); return; }
+    }
     await self.clients.openWindow("/#cxChat");
   })());
 });

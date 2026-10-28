@@ -1,0 +1,13 @@
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+const source=fs.readFileSync('public/home-chat.js','utf8');
+const part=source.slice(source.indexOf('const messageOrder='),source.indexOf('\nasync function loadFeed('));
+const S={msgs:[],local:new Map(),hasMore:false,unseen:0},E={pill:{}};
+const context={S,E,Map,Set,Date,reconcile(){},nearBottom:()=>false,toBottom(){}};vm.createContext(context);
+vm.runInContext(part,context);
+const message=id=>({id,created_at:'2026-10-28T10:00:00.000Z',mine:true});
+S.msgs=[1,2,3,4].map(i=>message('msg-'+i));
+context.latest=[message('msg-3'),message('msg-4'),message('msg-5')];
+vm.runInContext('applyFeed(latest,false,false)',context);
+assert.deepEqual(Array.from(S.msgs,m=>m.id),['msg-1','msg-2','msg-3','msg-4','msg-5'],'Refreshing the newest page must preserve older loaded messages sharing its timestamp');
+assert.ok(source.includes('&before_id='),'Older-page requests include the unique-ID cursor');
+console.log('PASS: feed refresh preserves tied older messages and uses deterministic order and compound cursors');

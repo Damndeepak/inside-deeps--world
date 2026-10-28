@@ -39,7 +39,18 @@ async function poll() {
   finally{clearTimeout(deadline);}
   if(epoch===channelEpoch&&pollController===controller)timer=setTimeout(poll,Math.max(0,500-(performance.now()-started)));
 }
-function loadAPI(){if(window.YT?.Player)return Promise.resolve();if(apiPromise)return apiPromise;apiPromise=new Promise((resolve,reject)=>{const old=window.onYouTubeIframeAPIReady;window.onYouTubeIframeAPIReady=()=>{if(old)old();resolve();};const script=document.createElement('script');script.src='https://www.youtube.com/iframe_api';script.onerror=()=>reject(Error('YouTube could not load'));document.head.append(script);});return apiPromise;}
+function loadAPI(){
+  if(window.YT?.Player)return Promise.resolve();
+  if(apiPromise)return apiPromise;
+  apiPromise=new Promise((resolve,reject)=>{
+    const old=window.onYouTubeIframeAPIReady,script=document.createElement('script');
+    const fail=()=>{clearTimeout(deadline);script.remove?.();reject(Error('YouTube could not load'));};
+    const deadline=setTimeout(fail,15000);
+    window.onYouTubeIframeAPIReady=()=>{clearTimeout(deadline);if(old)old();resolve();};
+    script.src='https://www.youtube.com/iframe_api';script.onerror=fail;document.head.append(script);
+  }).catch(error=>{apiPromise=null;throw error;});
+  return apiPromise;
+}
 E.listen.onclick=async()=>{
   if(listening){listening=false;if(playerReady)player.pauseVideo();E.listen.textContent='Listen here';E.audioStatus.textContent='Audio stopped on this device.';return;}
   listening=true;E.listen.textContent='Stop listening';E.videoWrap.hidden=false;
@@ -75,7 +86,7 @@ loadDirectory();poll();
 document.addEventListener('deeplist-players-updated',event=>{if(event.detail?.deleted===channel)selectChannel('');else poll();loadDirectory();});
 
 function privateHeaders(){const headers={'X-Deeplist-Action':'control'};if(!channel){try{const key=sessionStorage.getItem('cxAdminKey');if(key)headers['X-Admin-Key']=key;}catch{}}return headers;}
-async function checkControl(){const epoch=channelEpoch;try{const r=await fetch('/api/deeplist/control-access'+(channel?'?user='+encodeURIComponent(channel):''),{headers:privateHeaders(),cache:'no-store'});const d=await r.json();if(epoch!==channelEpoch)return;canControl=r.ok&&d.canControl;E.remoteControls.hidden=!canControl;updateLyricControl();}catch{canControl=false;E.remoteControls.hidden=true;updateLyricControl();}}
+async function checkControl(){const epoch=channelEpoch;try{const r=await fetch('/api/deeplist/control-access'+(channel?'?user='+encodeURIComponent(channel):''),{headers:privateHeaders(),cache:'no-store'});const d=await r.json();if(epoch!==channelEpoch)return;canControl=r.ok&&d.canControl;E.remoteControls.hidden=!canControl;updateLyricControl();}catch{if(epoch!==channelEpoch)return;canControl=false;E.remoteControls.hidden=true;updateLyricControl();}}
 async function command(action,position){if(!canControl||!snapshot||controlPending)return;controlPending=true;E.remoteStatus.textContent='Sending to app…';try{const r=await fetch('/api/deeplist/control'+(channel?'?user='+encodeURIComponent(channel):''),{method:'POST',headers:{...privateHeaders(),'Content-Type':'application/json'},body:JSON.stringify({action,trackId:snapshot.id,...(position===undefined?{}:{position})})});if(!r.ok)throw Error();E.remoteStatus.textContent='Sent. Waiting for app sync…';}catch{E.remoteStatus.textContent='Could not control app. Check the connection.';}finally{controlPending=false;}}
 E.remotePlay.onclick=()=>command(snapshot?.playing?'pause':'play');E.remoteSeek.onchange=()=>command('seek',Number(E.remoteSeek.value)*1000);
 function resetAppleLyrics(message='Lyrics unavailable for this song.') {

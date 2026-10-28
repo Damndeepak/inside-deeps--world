@@ -3,6 +3,9 @@ import { handleDeeplist } from "./deeplist.js";
 import { ensureFeatures, handleFeatures } from "./features.js";
 
 const nicknameSchemas = new WeakMap();
+const chatSchemas = new WeakMap();
+const pushSchemas = new WeakMap();
+const vapidKeys = new WeakMap();
 const CHAT_SPAM_WINDOW_MS = 5 * 60 * 1000;
 const CHAT_SPAM_LIMIT = 20;
 const CHAT_SPAM_BAN_MS = 2 * 60 * 60 * 1000;
@@ -18,6 +21,20 @@ const CHAT_NAME_WORDS = [
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    if (url.pathname.startsWith('/api/') && !['GET', 'HEAD', 'OPTIONS'].includes(request.method)) {
+      const origin = request.headers.get('Origin');
+      if ((origin && origin !== url.origin) || request.headers.get('Sec-Fetch-Site') === 'cross-site') {
+        return Response.json({ success: false, error: 'Forbidden origin' }, { status: 403, headers: { 'Cache-Control': 'no-store' } });
+      }
+    }
+    if (['/metrolist', '/metrolist.html', '/metrolist/'].includes(url.pathname)) {
+      url.pathname = '/deeplist.html';
+      return Response.redirect(url.href, 302);
+    }
+    // Legacy deletion must share media/reaction cleanup with the current endpoint.
+    if (request.method === 'DELETE' && /^\/api\/messages\/[A-Za-z0-9_-]{1,64}$/.test(url.pathname)) {
+      url.pathname = url.pathname.replace('/api/messages/', '/api/chat/message/');
+    }
     const deeplistResponse = await handleDeeplist(request, env, chatIsAdmin);
     if (deeplistResponse) return deeplistResponse;
 
@@ -55,18 +72,6 @@ export default {
       }
 
       const mainId = main.id;
-
-      await env.DB
-        .prepare(
-          "UPDATE messages SET conversation_id = ? WHERE conversation_id != ?"
-        )
-        .bind(mainId, mainId)
-        .run();
-
-      await env.DB
-        .prepare("DELETE FROM conversations WHERE id != ?")
-        .bind(mainId)
-        .run();
 
       return mainId;
     }
@@ -511,7 +516,7 @@ export default {
       try {
         const existingUser = await getUser(getUserId(request));
         if (existingUser) {
-          return Response.json({ success: true, user: { ...await migrateChatIdentity(existingUser), ...await identityFor(env.DB,existingUser.id) } }, { headers: { "Cache-Control": "no-store" } });
+          return Response.json({ success: true, user: { ...await migrateChatIdentity(existingUser), ...await identityFor(env.DB,existingUser.id) } }, { headers: { "Cache-Control": "no-store", "Set-Cookie": `deep_user=${existingUser.id}; Path=/; Max-Age=31536000; SameSite=Lax; HttpOnly; Secure` } });
         }
         await ensureNicknameSchema();
         const id = crypto.randomUUID();
@@ -528,7 +533,7 @@ export default {
             headers: {
               "Content-Type": "application/json",
               "Cache-Control": "no-store",
-              "Set-Cookie": `deep_user=${id}; Path=/; Max-Age=31536000; SameSite=Lax`
+              "Set-Cookie": `deep_user=${id}; Path=/; Max-Age=31536000; SameSite=Lax; HttpOnly; Secure`
             }
           });
         }
@@ -852,6 +857,7 @@ export default {
 
         const parentId = body.parent_id || null;
 
+        if (message.length > 1000) return Response.json({ success: false, error: "Message is too long" }, { status: 400 });
         if (!message) {
           return Response.json(
             { success: false, error: "Message is required" },
@@ -914,74 +920,6 @@ export default {
       }
     }
 
-    // Delete own message
-    const messageMatch =
-      url.pathname.match(/^\/api\/messages\/([^/]+)$/);
-
-    if (messageMatch && request.method === "DELETE") {
-      try {
-        const userId = getUserId(request);
-
-        if (!userId) {
-          return Response.json(
-            { success: false, error: "User not found" },
-            { status: 401 }
-          );
-        }
-
-        const messageId = messageMatch[1];
-
-        const message = await env.DB
-          .prepare(
-            "SELECT id, sender_id FROM messages WHERE id = ?"
-          )
-          .bind(messageId)
-          .first();
-
-        if (!message) {
-          return Response.json(
-            {
-              success: false,
-              error: "Message not found"
-            },
-            { status: 404 }
-          );
-        }
-
-        if (message.sender_id !== userId) {
-          return Response.json(
-            {
-              success: false,
-              error: "Not allowed"
-            },
-            { status: 403 }
-          );
-        }
-
-        await env.DB
-          .prepare(
-            "UPDATE messages SET parent_id = NULL WHERE parent_id = ?"
-          )
-          .bind(messageId)
-          .run();
-
-        await env.DB
-          .prepare("DELETE FROM messages WHERE id = ?")
-          .bind(messageId)
-          .run();
-
-        return Response.json({ success: true });
-      } catch {
-        return Response.json(
-          {
-            success: false,
-            error: "Could not delete message"
-          },
-          { status: 500 }
-        );
-      }
-    }
-
     // Conversations list
     if (url.pathname === "/api/conversations" && request.method === "GET") {
       try {
@@ -1014,21 +952,18 @@ export default {
               (
                 SELECT m.message
                 FROM messages m
-                WHERE m.conversation_id = c.id
                 ORDER BY m.created_at DESC
                 LIMIT 1
               ) AS last_message,
               (
                 SELECT m.created_at
                 FROM messages m
-                WHERE m.conversation_id = c.id
                 ORDER BY m.created_at DESC
                 LIMIT 1
               ) AS last_message_time,
               (
                 SELECT COUNT(*)
                 FROM messages m
-                WHERE m.conversation_id = c.id
               ) AS message_count
             FROM conversations c
             WHERE c.id = ?`
@@ -1086,17 +1021,15 @@ export default {
             JOIN users u ON u.id = m.sender_id
             LEFT JOIN messages pm ON pm.id = m.parent_id
             LEFT JOIN users pu ON pu.id = pm.sender_id
-            WHERE m.conversation_id = ?
-            ORDER BY m.created_at ASC`
+            ORDER BY m.created_at ASC, m.id ASC`
           )
-          .bind(mainId)
           .all();
 
         return Response.json({
           success: true,
           conversation_id: mainId,
-          messages: result.results
-        });
+          messages: result.results.map(({ sender_id, ...message }) => ({ ...message, mine: sender_id === user.id }))
+        }, { headers: { 'Cache-Control': 'no-store' } });
       } catch {
         return Response.json(
           {
@@ -1111,8 +1044,7 @@ export default {
     // ---------------------------------------------------------------
     // Chat v2 (additive): read-only feed, polling state, image sharing
     // (R2), inline delete, admin delete. Never alters or drops existing
-    // message data. Old /api/messages and /api/conversations routes are
-    // left exactly as they were.
+    // message data. Legacy routes use the same ownership and deletion rules.
     // ---------------------------------------------------------------
     const CHAT_MAX_TEXT = 1000;
     const CHAT_MAX_IMAGE_BYTES = 8 * 1024 * 1024;
@@ -1121,8 +1053,8 @@ export default {
     const chatHeaders = { "Cache-Control": "no-store" };
 
     async function ensureChatSchema() {
-      if (globalThis.__chatSchemaReady) return;
-      await env.DB.batch([
+      if (chatSchemas.has(env.DB)) return chatSchemas.get(env.DB);
+      const ready = env.DB.batch([
         env.DB.prepare(`
           CREATE TABLE IF NOT EXISTS message_images (
             message_id TEXT PRIMARY KEY,
@@ -1135,7 +1067,8 @@ export default {
         env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_messages_created ON messages(created_at)"),
         env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_messages_sender_created ON messages(sender_id, created_at)")
       ]);
-      globalThis.__chatSchemaReady = true;
+      chatSchemas.set(env.DB, ready);
+      try { await ready; } catch (error) { chatSchemas.delete(env.DB); throw error; }
     }
 
     function chatSniffImage(bytes) {
@@ -1184,8 +1117,8 @@ export default {
     };
 
     async function ensurePushSchema() {
-      if (globalThis.__pushSchemaReady) return;
-      await env.DB.batch([
+      if (pushSchemas.has(env.DB)) return pushSchemas.get(env.DB);
+      const ready = (async () => { await env.DB.batch([
         env.DB.prepare(`
           CREATE TABLE IF NOT EXISTS push_subscriptions (
             endpoint TEXT PRIMARY KEY,
@@ -1203,11 +1136,13 @@ export default {
       await env.DB
         .prepare("CREATE INDEX IF NOT EXISTS idx_push_user ON push_subscriptions(user_id)")
         .run();
-      globalThis.__pushSchemaReady = true;
+      })();
+      pushSchemas.set(env.DB, ready);
+      try { await ready; } catch (error) { pushSchemas.delete(env.DB); throw error; }
     }
 
     async function getVapid() {
-      if (globalThis.__vapid) return globalThis.__vapid;
+      if (vapidKeys.has(env.DB)) return vapidKeys.get(env.DB);
       await ensurePushSchema();
       let row = await env.DB.prepare("SELECT v FROM push_config WHERE k = 'vapid'").first();
       let jwk;
@@ -1233,8 +1168,9 @@ export default {
       const x = b64uToBytes(jwk.x), y = b64uToBytes(jwk.y);
       const raw = new Uint8Array(65);
       raw[0] = 4; raw.set(x, 1); raw.set(y, 33);
-      globalThis.__vapid = { key, publicKey: b64u(raw) };
-      return globalThis.__vapid;
+      const vapid = { key, publicKey: b64u(raw) };
+      vapidKeys.set(env.DB, vapid);
+      return vapid;
     }
 
     async function sendPush(endpoint, vapid) {
@@ -1414,6 +1350,7 @@ export default {
 
         const limit = Math.min(Math.max(parseInt(url.searchParams.get("limit") || "100", 10) || 100, 1), 200);
         const before = url.searchParams.get("before");
+        const beforeId = url.searchParams.get("before_id");
 
         const result = await env.DB
           .prepare(`
@@ -1439,11 +1376,11 @@ export default {
             LEFT JOIN messages pm ON pm.id = m.parent_id
             LEFT JOIN users pu ON pu.id = pm.sender_id
             LEFT JOIN message_images pmi ON pmi.message_id = pm.id
-            ${before ? "WHERE m.created_at < ?" : ""}
+            ${before ? (beforeId ? "WHERE (m.created_at < ? OR (m.created_at = ? AND m.id < ?))" : "WHERE m.created_at < ?") : ""}
             ORDER BY m.created_at DESC, m.id DESC
             LIMIT ?
           `)
-          .bind(...(before ? [before, limit + 1] : [limit + 1]))
+          .bind(...(before ? (beforeId ? [before, before, beforeId, limit + 1] : [before, limit + 1]) : [limit + 1]))
           .all();
 
         const rows = result.results || [];

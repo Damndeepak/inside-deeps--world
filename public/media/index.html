@@ -170,6 +170,9 @@ h1{animation:deepTitleIn .9s cubic-bezier(.22,1,.36,1) both}
   function mediaDocuments(){
     const docs=[document];
     for(let i=0;i<docs.length;i++){
+      docs[i].querySelectorAll('*').forEach(element=>{
+        if(element.shadowRoot&&!docs.includes(element.shadowRoot))docs.push(element.shadowRoot);
+      });
       docs[i].querySelectorAll('iframe').forEach(frame=>{
         try{
           const child=frame.contentDocument;
@@ -189,9 +192,11 @@ h1{animation:deepTitleIn .9s cubic-bezier(.22,1,.36,1) both}
     });
   }
   function bind(doc){
-    if(bound.has(doc))return;
-    bound.add(doc);
-    doc.addEventListener('play',onPlay,true);
+    if(!bound.has(doc)){
+      bound.add(doc);
+      doc.addEventListener('play',onPlay,true);
+    }
+    doc.querySelectorAll('*').forEach(element=>{if(element.shadowRoot)bind(element.shadowRoot)});
     doc.querySelectorAll('iframe').forEach(frame=>{
       const bindChild=()=>{
         try{if(frame.contentDocument)bind(frame.contentDocument)}catch(e){}
@@ -201,6 +206,8 @@ h1{animation:deepTitleIn .9s cubic-bezier(.22,1,.36,1) both}
     });
   }
   bind(document);
+  // Inline/deferred players attach their shadow roots after this coordinator runs.
+  document.addEventListener('DOMContentLoaded',()=>bind(document),{once:true});
 })();
 </script>
 <script id="deep-look-polish-js">

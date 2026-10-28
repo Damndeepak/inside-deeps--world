@@ -137,15 +137,16 @@ E.pill.addEventListener("click",()=>toBottom(true));
 /* ---------- data ---------- */
 async function getState(){try{const r=await fetch("/api/chat/state",{cache:"no-store",signal:AbortSignal.timeout(10000)});const d=await r.json();if(d.success){E.count.textContent=d.count+(d.count===1?" message":" messages");return d.count+"|"+d.latest+"|"+(d.names_version||0)}}catch(e){}return null}
 
+const messageOrder=(a,b)=>a.created_at<b.created_at?-1:a.created_at>b.created_at?1:a.id<b.id?-1:a.id>b.id?1:0;
 function applyFeed(srv,hasMore,first){
   const before=new Set(S.msgs.map(m=>m.id)),atBottom=first||nearBottom();
-  const cut=srv.length?srv[0].created_at:null;
-  const older=cut?S.msgs.filter(m=>m.created_at<cut):[];
+  const cut=srv[0];
+  const older=cut?S.msgs.filter(m=>messageOrder(m,cut)<0):[];
   const now=Date.now();
   srv.forEach(m=>{const l=S.local.get(m.id);if(l){if(l.localUrl)m.localUrl=l.localUrl;S.local.delete(m.id)}});
   const have=new Set(srv.map(m=>m.id)),extra=[];
   for(const[id,m]of S.local){if(now-m.localAt>15000){S.local.delete(id);continue}if(!have.has(id))extra.push(m)}
-  const merged=older.concat(srv,extra).sort((a,b)=>a.created_at<b.created_at?-1:a.created_at>b.created_at?1:0);
+  const merged=older.concat(srv,extra).sort(messageOrder);
   if(!older.length)S.hasMore=hasMore;
   S.msgs=merged;
   const fresh=merged.filter(m=>!before.has(m.id)&&!m.mine).length;
@@ -177,7 +178,7 @@ async function boot(){
 E.more.addEventListener("click",async()=>{
   if(S.loading||!S.hasMore||!S.msgs.length)return;S.loading=true;E.more.textContent="loading…";
   try{
-    const r=await fetch("/api/chat?limit=50&before="+encodeURIComponent(S.msgs[0].created_at),{cache:"no-store"});const d=await r.json();
+    const r=await fetch("/api/chat?limit=50&before="+encodeURIComponent(S.msgs[0].created_at)+"&before_id="+encodeURIComponent(S.msgs[0].id),{cache:"no-store",signal:AbortSignal.timeout(10000)});const d=await r.json();
     if(!d.success)throw new Error("older");
     const h0=E.thread.scrollHeight,t0=E.thread.scrollTop;
     S.msgs=d.messages.concat(S.msgs);S.hasMore=d.has_more;reconcile(false);
@@ -357,7 +358,7 @@ async function post(p){
     const real={id:d.message_id,message:p.message,created_at:d.created_at,username:p.username,mine:true,image:p.image,localUrl:p.localUrl,parent:p.parent,localAt:Date.now()};
     S.pending=S.pending.filter(x=>x!==p);
     const old=nodes.get("m:"+p.id);if(old){nodes.delete("m:"+p.id);nodes.set("m:"+real.id,old);old.dataset.id=real.id;old._sig=""}
-    S.msgs.push(real);S.msgs.sort((a,b)=>a.created_at<b.created_at?-1:a.created_at>b.created_at?1:0);S.local.set(real.id,real);
+    S.msgs.push(real);S.msgs.sort(messageOrder);S.local.set(real.id,real);
     reconcile(false);toBottom(false);
     getState().then(sig=>{if(sig)S.sig=sig});
   }catch(e){

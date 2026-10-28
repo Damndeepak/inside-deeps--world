@@ -92,6 +92,19 @@ async function check(privateSession){
  document.hidden=true;events.visibilitychange();assert.ok(!nodes.liveStage.classes.has('am-playing'));document.hidden=false;
  connected=false;await run('poll()');assert.equal(nodes.currentLine.children.length,0);assert.equal(nodes.lyricsMessage.hidden,false);assert.equal(nodes.listen.disabled,true);
  connected=true;state={...state,lines:[],lyricsVersion:'empty'};await run('poll()');assert.equal(nodes.currentLine.children.length,0);assert.equal(nodes.lyricsMessage.textContent,'Lyrics unavailable for this song.');
+ // Failed/expired YouTube loads must allow a fresh retry.
+ const failedAPI=run('loadAPI()');const failedCheck=assert.rejects(failedAPI,/YouTube could not load/);
+ document.head.children.at(-1).onerror();await failedCheck;
+ const retryAPI=run('loadAPI()');const timeoutCheck=assert.rejects(retryAPI,/YouTube could not load/);
+ assert.equal(document.head.children.length,2);
+ timeouts.filter(t=>t.ms===15000).at(-1).fn();await timeoutCheck;
+ const workingAPI=run('loadAPI()');context.window.onYouTubeIframeAPIReady();await workingAPI;
+ // Failure from the previous player's control check cannot lock the new player.
+ const originalFetch=context.fetch;let failOldControl;
+ context.fetch=()=>new Promise((resolve,reject)=>{failOldControl=reject;});
+ const pendingControl=run('checkControl()');run('channelEpoch++');context.fetch=originalFetch;
+ await run('checkControl()');failOldControl(Error('old network failure'));await pendingControl;
+ assert.equal(nodes.remoteControls.hidden,!privateSession);
  await nodes.createPair.onclick();assert.ok(nodes.openApp.href.startsWith('deeplist://connect?'));assert.ok(!nodes.openApp.href.includes('a'.repeat(64)));assert.equal(nodes.pairResult.hidden,true);
 }
 (async()=>{await check(false);await check(true);console.log('PASS: full-line Apple lyrics, word timing/fill, pause, seek, offset, track change, offline, look controls and private pairing');})().catch(e=>{console.error(e);process.exitCode=1});
