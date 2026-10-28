@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import {DatabaseSync} from 'node:sqlite';
 import {webcrypto} from 'node:crypto';
 import worker from '../src/index.js';
@@ -33,7 +34,9 @@ assert.equal(legacy.messages.find(m=>m.id==='message-0').mine,true);
 assert.equal(legacy.messages.find(m=>m.id==='message-1').mine,false);
 assert.ok(!JSON.stringify(legacy).includes(bob.user.id),'Legacy feed must not publish identity credentials');
 const list=await(await call('/api/conversations',{cookie:alice.cookie})).json();assert.equal(list.conversations[0].message_count,8);
+const redirects=fs.readFileSync('public/_redirects','utf8').split(/\r?\n/).filter(Boolean);
 for(const path of ['/metrolist','/metrolist.html','/metrolist/']){
+ assert.ok(redirects.includes(path+' /deeplist.html 302'),'Static assets must redirect before Worker routing');
  const redirect=await call(path+'?user=abc');assert.equal(redirect.status,302);assert.equal(redirect.headers.get('Location'),'https://example.com/deeplist.html?user=abc');
 }
 let cursor='',ids=[];
