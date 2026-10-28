@@ -10,6 +10,7 @@ const modes=[
  {id:'wordstorm',track:'allgirls',song:'All Girls Are The Same',artist:'Juice WRLD',name:'Wordstorm',tag:'One word. All the feeling.',glyph:'☄',preview:['real','LOVE','a minute'],desc:'All Girls Are The Same · one oversized word at a time, with a kinetic trail.'}
 ];
 const styleDescriptions={apple:'Soft full-line scrolling with a word-by-word highlight.',fisheye:'A curved lyric wheel with a magnified centre.',ship:'Floating, staggered lyrics on an ocean-coloured stage.',visual:'Centred uppercase lyrics over a pulsing visualizer.','fisheye-visual':'Curved line depth inside a circular visualizer.',neon:'An outlined lyric stack with a luminous right edge.',wordstorm:'One oversized word at a time, with a kinetic trail.',original:'A restrained, serif, line-by-line reading view.',experimental:'Individual word highlights inside a lyric card.'};
+const modeLooks={apple:{size:'30',font:'sans',accent:'#c7adff'},fisheye:{size:'28',font:'sans',accent:'#d8c7ff'},ship:{size:'29',font:'handwritten',accent:'#a9f5e6'},visual:{size:'28',font:'sans',accent:'#d0ff8d'},neon:{size:'27',font:'sans',accent:'#e4adff'},wordstorm:{size:'32',font:'sans',accent:'#efb4d1'},original:{size:'30',font:'serif',accent:'#f6e8cf'},experimental:{size:'30',font:'rounded',accent:'#c7adff'}};
 const $=id=>document.getElementById(id),ring=$('labRing'),viewport=$('labViewport'),dialog=$('labDialog'),stage=$('labStage'),lyrics=$('labLyrics'),audio=$('labAudio'),play=$('labPlay'),seek=$('labSeek'),status=$('labPlaybackStatus');
 let selected=0,turn=0,drag=null,suppressClick=false,lastTick=-Infinity,ctx,sound=true,soundBuffer,soundLoad,voice,inertia=0,spinVelocity=0,lastSoundTurn=0,data=null,dataPromise,catalogue=null,loadEpoch=0,raf=0,lastPaint=0,activeLine=-1,activeWord=-1,viewMode='apple',openedBy=null,loading=false,visible=true;
 const step=360/modes.length,reduced=matchMedia('(prefers-reduced-motion:reduce)');
@@ -78,7 +79,7 @@ function getData(track=modes[selected].track){if(!dataPromise)dataPromise=fetch(
 async function openDemo(index,trigger){
  stopSpin();selected=index;openedBy=trigger;const mode=modes[index],epoch=++loadEpoch;
  audio.pause();data=null;play.disabled=true;lyrics.replaceChildren();lyrics.style.transform='';$('labTrackTitle').textContent=mode.song;$('labTrackArtist').textContent=mode.artist;$('labElapsed').textContent='0:00';$('labDuration').textContent='—';seek.value='0';
- $('labStyle').value=mode.id;viewMode=mode.id;$('labDialogTitle').textContent=mode.name;$('labDescription').textContent=mode.desc;
+ $('labStyle').value=mode.id;viewMode=mode.id;resetModeLook();$('labDialogTitle').textContent=mode.name;$('labDescription').textContent=mode.desc;
  if(!dialog.open)dialog.showModal();document.body.classList.add('lab-dialog-open');applyMode();status.textContent='Loading '+mode.song+'…';
  try{const track=await getData(mode.track);if(epoch!==loadEpoch||!dialog.open)return;data=track;
  if(audio.dataset.track!==mode.track){audio.src=track.src;audio.dataset.track=mode.track;audio.load();}audio.currentTime=0;
@@ -109,11 +110,12 @@ audio.addEventListener('play',()=>{document.querySelectorAll('audio,video').forE
 audio.addEventListener('pause',()=>{stage.classList.remove('lab-playing');play.textContent='▶';play.setAttribute('aria-label','Play sample');cancelAnimationFrame(raf);raf=0;paint();});
 audio.addEventListener('ended',()=>{status.textContent='Sample finished. Play again or try another style.';});audio.addEventListener('seeked',wake);audio.addEventListener('timeupdate',()=>{if(!raf)paint();});audio.addEventListener('error',()=>{status.textContent='Audio unavailable. Please try again.';});
 seek.oninput=()=>{if(data){audio.currentTime=Number(seek.value);wake();}};
-$('labStyle').onchange=()=>{viewMode=$('labStyle').value;applyMode();};
+$('labStyle').onchange=()=>{viewMode=$('labStyle').value;resetModeLook();applyMode();};
 const defaults={size:'30',spacing:'1.3',font:'sans',glow:true,motion:true,accent:'#c7adff',backdrop:'aurora'};
-function settings(){stage.style.setProperty('--lab-size',$('labSize').value+'px');stage.style.setProperty('--lab-spacing',$('labSpacing').value);stage.style.setProperty('--lab-accent',$('labAccent').value);stage.dataset.font=$('labFont').value;stage.dataset.backdrop=$('labBackdrop').value;stage.classList.toggle('lab-no-glow',!$('labGlow').checked);stage.classList.toggle('lab-still',!$('labMotion').checked||reduced.matches);$('labSizeValue').textContent=$('labSize').value+'px';$('labSpacingValue').textContent=Number($('labSpacing').value).toFixed(1);paint();}
+function settings(){stage.style.setProperty('--lab-size',$('labSize').value+'px');stage.style.setProperty('--lab-spacing',$('labSpacing').value);stage.style.setProperty('--lab-accent',$('labAccent').value);stage.dataset.font=$('labFont').value;stage.style.setProperty('--lab-font-family',({sans:'Inter, sans-serif',rounded:'Trebuchet MS, sans-serif',serif:'Georgia, serif',mono:'monospace',handwritten:'Caveat, cursive'})[$('labFont').value]);stage.dataset.backdrop=$('labBackdrop').value;stage.classList.toggle('lab-no-glow',!$('labGlow').checked);stage.classList.toggle('lab-still',!$('labMotion').checked||reduced.matches);$('labSizeValue').textContent=$('labSize').value+'px';$('labSpacingValue').textContent=Number($('labSpacing').value).toFixed(1);paint();}
 for(const id of ['labSize','labSpacing','labFont','labGlow','labMotion','labAccent','labBackdrop'])$(id).addEventListener('input',settings);
-$('labReset').onclick=()=>{for(const [key,value]of Object.entries(defaults)){const node=$('lab'+key[0].toUpperCase()+key.slice(1));if(typeof value==='boolean')node.checked=value;else node.value=value;}settings();};
+function resetModeLook(){for(const [key,value]of Object.entries({...defaults,...modeLooks[viewMode]})){const node=$('lab'+key[0].toUpperCase()+key.slice(1));if(typeof value==='boolean')node.checked=value;else node.value=value;}settings();}
+$('labReset').onclick=resetModeLook;
 reduced.addEventListener?.('change',settings);
 document.addEventListener('visibilitychange',()=>{if(document.hidden){stopSpin();audio.pause();ctx?.suspend().catch(()=>{});}});
 if('IntersectionObserver'in window)new IntersectionObserver(entries=>{visible=entries[0].isIntersecting;root.classList.toggle('lab-in-view',visible);if(!visible)stopSpin();}).observe(root);
