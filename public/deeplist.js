@@ -3,6 +3,21 @@ const E = Object.fromEntries(['openApp','remoteControls','remotePlay','remoteSee
 let snapshot = null, received = 0, trackId = '', lineIndex = -2, timer, frame = 0, listening = false, player, playerReady = false, playerVideo = '', apiPromise;
 let freshnessTimer, pollController, ownerName='damndeepak';
 let canControl=false, controlPending=false, lyricRows=[], timelineVersion='';
+let backdropTrack='', backdropRequest=0;
+function updateCoverBackdrop(id='') {
+  if(id===backdropTrack)return;
+  backdropTrack=id;const request=++backdropRequest;
+  E.liveStage.style.setProperty('--live-art','none');
+  if(!/^[A-Za-z0-9_-]{11}$/.test(id))return;
+  const image=document.createElement('img');
+  image.referrerPolicy='no-referrer';image.decoding='async';
+  image.onload=()=>{
+    if(request===backdropRequest&&image.naturalWidth>0)
+      E.liveStage.style.setProperty('--live-art','url('+JSON.stringify(image.src)+')');
+  };
+  image.onerror=()=>{if(request===backdropRequest)E.liveStage.style.setProperty('--live-art','none');};
+  image.src='https://i.ytimg.com/vi/'+id+'/hqdefault.jpg';
+}
 let channel=new URLSearchParams(location.search).get('user')||'', channelEpoch=0, directoryTimer, mySessionPromise;
 const time = ms => `${Math.floor(ms/60000)}:${String(Math.floor(ms/1000)%60).padStart(2,'0')}`;
 function position() { if (!snapshot) return 0; return Math.min(snapshot.duration||86400000, snapshot.position + (snapshot.playing ? performance.now()-received : 0)); }
@@ -17,7 +32,7 @@ function paint() {
 }
 function tick(now) { frame=0;if(document.hidden||!snapshot)return;paint();if(snapshot.playing)frame=requestAnimationFrame(tick); }
 function wake(){cancelAnimationFrame(frame);frame=requestAnimationFrame(tick);}
-function offline(message='Deeplist is offline. Start live sharing in the app.') {clearTimeout(freshnessTimer);snapshot=null;trackId='';E.trackTitle.textContent='Deeplist';E.trackArtist.textContent='';E.progressFill.style.width='0%';E.positionLabel.textContent='0:00';E.durationLabel.textContent='0:00';E.liveStatus.textContent=message;E.listen.disabled=true;resetAppleLyrics('The room is quiet.');E.liveStage.classList.remove('am-playing');E.liveStatus.classList.remove('deeplist-live-indicator');cancelAnimationFrame(frame);if(playerReady)player.pauseVideo();}
+function offline(message='Deeplist is offline. Start live sharing in the app.') {clearTimeout(freshnessTimer);snapshot=null;trackId='';updateCoverBackdrop();E.trackTitle.textContent='Deeplist';E.trackArtist.textContent='';E.progressFill.style.width='0%';E.positionLabel.textContent='0:00';E.durationLabel.textContent='0:00';E.liveStatus.textContent=message;E.listen.disabled=true;resetAppleLyrics('The room is quiet.');E.liveStage.classList.remove('am-playing');E.liveStatus.classList.remove('deeplist-live-indicator');cancelAnimationFrame(frame);if(playerReady)player.pauseVideo();}
 function syncAudio(force=false) {
   if (!listening||!playerReady||!snapshot) return;
   const p=position()/1000;
@@ -34,7 +49,7 @@ async function poll() {
   try{const start=performance.now();const r=await fetch('/api/deeplist/state'+(query.size?'?'+query:''),{cache:'no-store',signal:controller.signal});if(!r.ok)throw Error();const d=await r.json();if(epoch!==channelEpoch||pollController!==controller)return;if(controller.signal.aborted)throw Error('Request expired');
     if(channel&&d.label){E.channelLabel.textContent=d.label+'’s player';ensureOption(channel);Array.from(E.channelSelect.options).find(o=>o.value===channel).textContent=d.label;}if(!d.connected)offline();else{const previous=snapshot;const next=d.state;if(next.lines===undefined)next.lines=previous?.id===next.id&&previous?.lyricsVersion===next.lyricsVersion?previous.lines||[]:[];if(previous?.lyricsVersion!==next.lyricsVersion)lineIndex=-2;snapshot=next;buildAppleLyrics();const latency=Math.max(0,(performance.now()-start)/2);received=performance.now()-Math.max(0,d.serverNow-d.receivedAt)-latency;clearTimeout(freshnessTimer);freshnessTimer=setTimeout(()=>offline(),Math.max(0,15000-(performance.now()-received)));
       if(trackId!==snapshot.id){trackId=snapshot.id;lineIndex=-2;}
-      E.trackTitle.textContent=snapshot.title;E.trackArtist.textContent=snapshot.artist;E.liveStatus.textContent=snapshot.playing?'DEEPLIST · LIVE':'DEEPLIST · PAUSED';E.listen.disabled=false;E.remoteSeek.max=String(snapshot.duration/1000);if(document.activeElement!==E.remoteSeek)E.remoteSeek.value=String(position()/1000);paint();wake();syncAudio();}
+      updateCoverBackdrop(snapshot.id);E.trackTitle.textContent=snapshot.title;E.trackArtist.textContent=snapshot.artist;E.liveStatus.textContent=snapshot.playing?'DEEPLIST · LIVE':'DEEPLIST · PAUSED';E.listen.disabled=false;E.remoteSeek.max=String(snapshot.duration/1000);if(document.activeElement!==E.remoteSeek)E.remoteSeek.value=String(position()/1000);paint();wake();syncAudio();}
   }catch{if(epoch===channelEpoch&&pollController===controller)offline('Connection unavailable. Retrying…');}
   finally{clearTimeout(deadline);}
   if(epoch===channelEpoch&&pollController===controller)timer=setTimeout(poll,Math.max(0,500-(performance.now()-started)));
