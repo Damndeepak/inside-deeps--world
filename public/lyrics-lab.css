@@ -28,3 +28,8 @@
 .lab-stage:is([data-mode=fisheye],[data-mode=fisheye-visual],[data-mode=ship]) .lab-line.lab-line-visible{scale:1;translate:none}
 /* Explicit customizations take priority over the renderer's initial palette. */
 .lab-stage[data-backdrop=midnight] .lab-ambient{background:#0b1018}.lab-stage[data-backdrop=warm] .lab-ambient{background:radial-gradient(ellipse at 0 0,#b15c3e99,transparent 65%),radial-gradient(ellipse at 90% 90%,#7d386d88,transparent 65%),#21111c}.lab-stage[data-font] .lab-line{font-family:var(--lab-font-family,Inter,sans-serif)!important}.lab-stage[data-mode=ship] .lab-line.lab-line-current,.lab-stage[data-mode=fisheye] .lab-line.lab-line-current{color:var(--lab-accent)}.lab-stage[data-mode=visual] .lab-line.lab-line-current .lab-word-current{color:var(--lab-accent)}
+
+/* Only the active lyric is rendered in spatial views. Hidden old rows must not
+   leak through older fisheye opacity rules or cross-fade over the new line. */
+.lab-stage .lab-line[hidden]{display:none!important;visibility:hidden!important;opacity:0!important;pointer-events:none!important;transition:none!important}
+.lab-stage .lab-word-trail{display:none!important}
