@@ -14,10 +14,8 @@ const modeLooks={apple:{size:'30',font:'sans',accent:'#c7adff'},fisheye:{size:'2
 const $=id=>document.getElementById(id),ring=$('labRing'),viewport=$('labViewport'),dialog=$('labDialog'),stage=$('labStage'),lyrics=$('labLyrics'),audio=$('labAudio'),play=$('labPlay'),seek=$('labSeek'),status=$('labPlaybackStatus');
 let selected=0,turn=0,drag=null,suppressClick=false,lastTick=-Infinity,ctx,sound=true,soundBuffer,soundLoad,voice,inertia=0,spinVelocity=0,lastSoundTurn=0,data=null,dataPromise,catalogue=null,loadEpoch=0,raf=0,lastPaint=0,activeLine=-1,activeWord=-1,viewMode='apple',openedBy=null,loading=false,visible=true;
 const step=360/modes.length,reduced=matchMedia('(prefers-reduced-motion:reduce)');
-try{sound=localStorage.getItem('deep-lab-sound')!=='off';}catch{}
 
-function soundLabel(){$('labSound').textContent=sound?'♪ Sound on':'♪ Sound off';$('labSound').setAttribute('aria-pressed',String(sound));}
-soundLabel();
+
 // The supplied click is decoded once. No sound is played before an interaction.
 function unlockSound(){
  if(!sound)return Promise.resolve();
@@ -63,7 +61,6 @@ function randomSpin(){
 }
 $('labSpin').onclick=randomSpin;
 $('labPrevious').onclick=()=>rotate(-1);$('labNext').onclick=()=>rotate(1);$('labOpen').onclick=e=>openDemo(selected,e.currentTarget);
-$('labSound').onclick=()=>{sound=!sound;soundLabel();try{localStorage.setItem('deep-lab-sound',sound?'on':'off');}catch{}if(sound)unlockSound().then(()=>tick(.1));else stopVoice();};
 viewport.addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key==='ArrowLeft'){e.preventDefault();rotate(e.key==='ArrowRight'?1:-1);cards[selected].focus({preventScroll:true});}});
 viewport.addEventListener('pointerdown',e=>{if(e.button!==0)return;stopSpin();unlockSound();lastSoundTurn=turn;drag={x:e.clientX,y:e.clientY,turn,selected,start:performance.now(),lastX:e.clientX,lastAt:performance.now(),velocity:0,moved:false,vertical:false};});
 viewport.addEventListener('pointermove',e=>{if(!drag||drag.vertical)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(!drag.moved&&Math.abs(dy)>Math.abs(dx)&&Math.abs(dy)>10){drag.vertical=true;return;}if(!drag.moved&&Math.abs(dx)>4){drag.moved=true;viewport.setPointerCapture?.(e.pointerId);root.classList.add('lab-dragging');}if(!drag.moved)return;
