@@ -8,7 +8,7 @@ const uuid = value => /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]
 const secret = () => Array.from(crypto.getRandomValues(new Uint8Array(32)), b => b.toString(16).padStart(2,'0')).join('');
 const label = (id,name) => name || 'Listener · '+id.slice(0,6);
 export async function visitorSchema(db) {
- if(!ready.has(db))ready.set(db,db.prepare('CREATE TABLE IF NOT EXISTS deeplist_visitors (channel_id TEXT PRIMARY KEY, browser_hash TEXT UNIQUE NOT NULL, token_hash TEXT UNIQUE, payload TEXT, updated_at INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL)').run().then(()=>db.prepare('CREATE INDEX IF NOT EXISTS deeplist_visitors_updated ON deeplist_visitors(updated_at)').run()).then(()=>db.prepare('CREATE TABLE IF NOT EXISTS deeplist_visitor_names (channel_id TEXT PRIMARY KEY, display_name TEXT NOT NULL)').run()).then(()=>db.prepare('CREATE TABLE IF NOT EXISTS deeplist_connection_totals (channel_id TEXT PRIMARY KEY)').run()).then(()=>db.prepare('INSERT OR IGNORE INTO deeplist_connection_totals(channel_id) SELECT channel_id FROM deeplist_visitors WHERE payload IS NOT NULL').run()).catch(e=>{ready.delete(db);throw e;}));
+ if(!ready.has(db))ready.set(db,db.prepare('CREATE TABLE IF NOT EXISTS deeplist_visitors (channel_id TEXT PRIMARY KEY, browser_hash TEXT UNIQUE NOT NULL, token_hash TEXT UNIQUE, payload TEXT, updated_at INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL)').run().then(()=>db.prepare('CREATE INDEX IF NOT EXISTS deeplist_visitors_updated ON deeplist_visitors(updated_at)').run()).then(()=>db.prepare('CREATE TABLE IF NOT EXISTS deeplist_visitor_names (channel_id TEXT PRIMARY KEY, display_name TEXT NOT NULL)').run()).then(()=>db.prepare('CREATE TABLE IF NOT EXISTS deeplist_player_names (channel_id TEXT PRIMARY KEY, display_name TEXT NOT NULL)').run()).then(()=>db.prepare('CREATE TABLE IF NOT EXISTS deeplist_connection_totals (channel_id TEXT PRIMARY KEY)').run()).then(()=>db.prepare('INSERT OR IGNORE INTO deeplist_connection_totals(channel_id) SELECT channel_id FROM deeplist_visitors WHERE payload IS NOT NULL').run()).catch(e=>{ready.delete(db);throw e;}));
  await ready.get(db);
 }
 export function browserRequest(request, action) {
@@ -60,13 +60,14 @@ export async function handleVisitorDeeplist(request, env, {hash,validateState,pu
  }
  if(path==='/api/deeplist/listeners'&&method==='GET') {
   const now=Date.now();
-  const rows=await env.DB.prepare(`SELECT v.channel_id,COALESCE(u.username,n.display_name) AS display_name,p.symbol,p.color,
+  const rows=await env.DB.prepare(`SELECT v.channel_id,COALESCE(a.display_name,u.username,n.display_name) AS display_name,p.symbol,p.color,
     json_extract(v.payload,'$.id') AS track_id,json_extract(v.payload,'$.title') AS title,json_extract(v.payload,'$.artist') AS artist,json_extract(v.payload,'$.playing') AS playing,v.updated_at
-    FROM deeplist_visitors v LEFT JOIN deeplist_visitor_names n ON n.channel_id=v.channel_id
+    FROM deeplist_visitors v LEFT JOIN deeplist_player_names a ON a.channel_id=v.channel_id LEFT JOIN deeplist_visitor_names n ON n.channel_id=v.channel_id
     LEFT JOIN deeplist_identity_links l ON l.channel_id=v.channel_id LEFT JOIN users u ON u.id=l.user_id LEFT JOIN chat_identity p ON p.user_id=l.user_id
     WHERE v.token_hash IS NOT NULL AND v.payload IS NOT NULL ORDER BY v.updated_at DESC,v.channel_id LIMIT 50`).all();
   const total=await env.DB.prepare('SELECT COUNT(*) AS total FROM deeplist_connection_totals').first();
-  return reply({serverNow:now,totalConnected:total.total,listeners:rows.results.map(r=>({channel:r.channel_id,label:label(r.channel_id,r.display_name),symbol:r.symbol||'',color:r.color||null,id:r.track_id,title:r.title,artist:r.artist,live:now-r.updated_at<=15000,playing:now-r.updated_at<=15000&&!!r.playing,lastPlayedAt:r.updated_at,player:`/deeplist.html?user=${r.channel_id}`}))});
+  const owner=await env.DB.prepare("SELECT display_name FROM deeplist_player_names WHERE channel_id='owner'").first();
+  return reply({owner:{channel:'owner',label:owner?.display_name||'damndeepak'},serverNow:now,totalConnected:total.total,listeners:rows.results.map(r=>({channel:r.channel_id,label:label(r.channel_id,r.display_name),symbol:r.symbol||'',color:r.color||null,id:r.track_id,title:r.title,artist:r.artist,live:now-r.updated_at<=15000,playing:now-r.updated_at<=15000&&!!r.playing,lastPlayedAt:r.updated_at,player:`/deeplist.html?user=${r.channel_id}`}))});
  }
  if(path==='/api/deeplist/pair'&&visitorScope&&['POST','DELETE'].includes(method)) {
   if(!browserRequest(request,'pair'))return reply({error:'same_site_session_required'},403);
@@ -90,7 +91,7 @@ export async function handleVisitorDeeplist(request, env, {hash,validateState,pu
  if(addressed&&method==='GET') {
   const channel=url.searchParams.get('user');if(!uuid(channel))return reply({error:'invalid_channel'},400);
   if(path!=='/api/deeplist/state')return reply({error:'visitor_history_not_enabled'},404);
-  const row=await env.DB.prepare('SELECT v.payload,v.updated_at,COALESCE(u.username,n.display_name) AS display_name FROM deeplist_visitors v LEFT JOIN deeplist_visitor_names n ON n.channel_id=v.channel_id LEFT JOIN deeplist_identity_links l ON l.channel_id=v.channel_id LEFT JOIN users u ON u.id=l.user_id WHERE v.channel_id=? AND v.token_hash IS NOT NULL').bind(channel).first();
+  const row=await env.DB.prepare('SELECT v.payload,v.updated_at,COALESCE(a.display_name,u.username,n.display_name) AS display_name FROM deeplist_visitors v LEFT JOIN deeplist_player_names a ON a.channel_id=v.channel_id LEFT JOIN deeplist_visitor_names n ON n.channel_id=v.channel_id LEFT JOIN deeplist_identity_links l ON l.channel_id=v.channel_id LEFT JOIN users u ON u.id=l.user_id WHERE v.channel_id=? AND v.token_hash IS NOT NULL').bind(channel).first();
   const now=Date.now();if(!row?.payload||now-row.updated_at>15000)return reply({connected:false,channel,label:label(channel,row?.display_name),serverNow:now});
   let state;try{state=JSON.parse(row.payload);}catch{return reply({connected:false,serverNow:now});}
   if(url.searchParams.get('lyricsVersion')===state.lyricsVersion)delete state.lines;

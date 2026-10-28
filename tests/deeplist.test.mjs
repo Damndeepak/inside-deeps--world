@@ -221,3 +221,46 @@ try {
  assert.equal(statsDB.sqlite.prepare('SELECT SUM(listened_ms) AS total FROM deeplist_listening_months').get().total,before,'Token checks protect every transactional stats write');
 } finally {Date.now=realNow;}
 console.log('PASS: listening totals, IST month boundary, pause, offline gaps, seeks, stuck playback, concurrent deduplication, ranking, token privacy and revoke/reconnect');
+
+{
+// Admin can rename every player, with overrides independent of chat identity.
+const adminDB=new DB(),adminEnv={DB:adminDB};
+const adminCall=(path,method='GET',body,headers={})=>handleDeeplist(request(path,method,body,headers),adminEnv,isAdmin);
+const manage='/api/deeplist/admin/players',adminHeaders={'X-Admin-Key':'correct-admin-key','X-Deeplist-Action':'admin'};
+assert.equal((await adminCall(manage)).status,403);
+assert.equal((await adminCall(manage,'GET',undefined,{'X-Deeplist-Action':'admin','X-Admin-Key':'wrong'})).status,403);
+assert.equal((await adminCall(manage,'GET',undefined,{...adminHeaders,Origin:'https://evil.example'})).status,403);
+assert.equal((await adminCall(manage,'GET',undefined,{...adminHeaders,'Sec-Fetch-Site':'cross-site'})).status,403);
+let management=await(await adminCall(manage,'GET',undefined,adminHeaders)).json();assert.equal(management.players[0].label,'damndeepak');
+const visitorSession=await adminCall('/api/deeplist/me','GET',undefined,{'X-Deeplist-Action':'session'});
+const visitorInfo=await visitorSession.json(),visitorCookie=visitorSession.headers.get('Set-Cookie').split(';')[0];
+const visitorPair=await(await adminCall('/api/deeplist/pair?scope=visitor','POST',undefined,{Cookie:visitorCookie,'X-Deeplist-Action':'pair'})).json();
+const visitorBearer={Authorization:'Bearer '+visitorPair.token};
+await adminCall('/api/deeplist/state','POST',track,visitorBearer);
+const mainPair=await(await adminCall('/api/deeplist/pair','POST',undefined,adminHeaders)).json();
+await adminCall('/api/deeplist/state','POST',track,{Authorization:'Bearer '+mainPair.token});
+const target=manage+'?channel='+visitorInfo.channel;
+for(const name of ['', ' '.repeat(4),'x'.repeat(33),42])assert.equal((await adminCall(target,'PATCH',{name},adminHeaders)).status,400);
+assert.equal((await adminCall(manage+'?channel=bad','DELETE',undefined,adminHeaders)).status,400);
+assert.equal((await adminCall(target,'PATCH',{name:'not allowed'},{'X-Deeplist-Action':'admin'})).status,403);
+assert.equal((await adminCall(manage+'?channel=owner','PATCH',{name:'damndeepak'},adminHeaders)).status,200);
+assert.equal((await adminCall(target,'PATCH',{name:'  New   listener  '},adminHeaders)).status,200);
+// Even a linked chat nickname cannot overwrite the admin's music-player name.
+adminDB.sqlite.exec("INSERT INTO users(id,username) VALUES('linked','Chat nickname'); INSERT INTO deeplist_identity_links(channel_id,user_id) VALUES('"+visitorInfo.channel+"','linked')");
+let directory=await(await adminCall('/api/deeplist/listeners')).json();assert.equal(directory.owner.label,'damndeepak');assert.equal(directory.listeners[0].label,'New listener');
+let visitorSnapshot=await(await adminCall('/api/deeplist/state?user='+visitorInfo.channel)).json();assert.equal(visitorSnapshot.label,'New listener');
+let ranking=await(await adminCall('/api/deeplist/stats')).json();assert.equal(ranking.listeners.find(r=>r.channel===visitorInfo.channel).label,'New listener');
+assert.equal((await adminCall(manage+'?channel=owner','PATCH',{name:'Owner renamed'},adminHeaders)).status,200);
+directory=await(await adminCall('/api/deeplist/listeners')).json();assert.equal(directory.owner.label,'Owner renamed');
+ranking=await(await adminCall('/api/deeplist/stats')).json();assert.equal(ranking.listeners.find(r=>r.channel==='owner').label,'Owner renamed');
+management=await(await adminCall(manage,'GET',undefined,adminHeaders)).json();assert.equal(management.players.length,2);assert.ok(!/token_hash|browser_hash/.test(JSON.stringify(management)));assert.ok(!JSON.stringify(management).includes(visitorPair.token));
+assert.equal((await adminCall(manage+'?channel=owner','DELETE',undefined,adminHeaders)).status,409);
+assert.equal((await adminCall(target,'DELETE',undefined,adminHeaders)).status,200);
+assert.equal((await adminCall('/api/deeplist/state','POST',track,visitorBearer)).status,401,'Deleted apps cannot republish');
+directory=await(await adminCall('/api/deeplist/listeners')).json();assert.equal(directory.listeners.length,0);assert.equal(directory.totalConnected,0);
+assert.equal((await(await adminCall('/api/deeplist/stats')).json()).listeners.length,1);
+assert.equal(adminDB.sqlite.prepare('SELECT username FROM users WHERE id=?').get('linked').username,'Chat nickname','Deleting a music player preserves the chat account');
+assert.equal((await adminCall(target,'DELETE',undefined,adminHeaders)).status,404);
+console.log('PASS: admin authentication, CSRF, owner/visitor rename persistence across directory/state/rankings, validation, token privacy, deletion and app revocation');
+
+}

@@ -1,3 +1,4 @@
+import {handlePlayerAdmin} from './deeplist-admin.js';
 import {ensureIdentitySchema} from './chat-identity.js';
 import { listeningSchema, listeningWrites } from './deeplist-stats.js';
 import { handleConnect } from "./deeplist-connect.js";
@@ -72,6 +73,8 @@ export async function handleDeeplist(request, env, isAdmin) {
   }
   await Promise.all([schema(env.DB), ensureIdentitySchema(env.DB),
     path === '/api/deeplist/stats' || (path === '/api/deeplist/state' && request.method === 'POST') ? listeningSchema(env.DB) : Promise.resolve()]);
+  const adminResponse = await handlePlayerAdmin(request, env, isAdmin);
+  if (adminResponse) return adminResponse;
   const connectResponse = await handleConnect(request, env, isAdmin, hash);
   if (connectResponse) return connectResponse;
   const visitorResponse = await handleVisitorDeeplist(request, env, {hash, validateState, publicState});

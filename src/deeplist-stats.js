@@ -41,10 +41,10 @@ export function listeningWrites(db, channel, tokenHash, state, now) {
 }
 export async function publicListeningStats(db, now, month = monthKey(now)) {
   const result = await db.prepare(`WITH visible AS (
-    SELECT 'owner' AS channel_id,COALESCE(u.username,'Deepu') AS label,p.symbol,p.color FROM deeplist_bridge b LEFT JOIN deeplist_identity_links l ON l.channel_id='owner' LEFT JOIN users u ON u.id=l.user_id LEFT JOIN chat_identity p ON p.user_id=l.user_id WHERE b.id=1 AND b.token_hash IS NOT NULL AND b.payload IS NOT NULL
+    SELECT 'owner' AS channel_id,COALESCE(a.display_name,'damndeepak') AS label,p.symbol,p.color FROM deeplist_bridge b LEFT JOIN deeplist_player_names a ON a.channel_id='owner' LEFT JOIN deeplist_identity_links l ON l.channel_id='owner' LEFT JOIN users u ON u.id=l.user_id LEFT JOIN chat_identity p ON p.user_id=l.user_id WHERE b.id=1 AND b.token_hash IS NOT NULL AND b.payload IS NOT NULL
     UNION ALL
-    SELECT v.channel_id,COALESCE(u.username,NULLIF(n.display_name,''),'Listener · '||SUBSTR(v.channel_id,1,6)),p.symbol,p.color
-      FROM deeplist_visitors v LEFT JOIN deeplist_visitor_names n ON n.channel_id=v.channel_id LEFT JOIN deeplist_identity_links l ON l.channel_id=v.channel_id LEFT JOIN users u ON u.id=l.user_id LEFT JOIN chat_identity p ON p.user_id=l.user_id
+    SELECT v.channel_id,COALESCE(a.display_name,u.username,NULLIF(n.display_name,''),'Listener · '||SUBSTR(v.channel_id,1,6)),p.symbol,p.color
+      FROM deeplist_visitors v LEFT JOIN deeplist_player_names a ON a.channel_id=v.channel_id LEFT JOIN deeplist_visitor_names n ON n.channel_id=v.channel_id LEFT JOIN deeplist_identity_links l ON l.channel_id=v.channel_id LEFT JOIN users u ON u.id=l.user_id LEFT JOIN chat_identity p ON p.user_id=l.user_id
       WHERE v.token_hash IS NOT NULL AND v.payload IS NOT NULL
     ) SELECT v.channel_id,v.label,v.symbol,v.color,c.first_at,
       COALESCE(SUM(m.listened_ms),0) AS total_ms,
