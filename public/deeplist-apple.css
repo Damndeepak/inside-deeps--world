@@ -19,3 +19,21 @@
 @media(max-width:480px){.apple-live .am-window{height:clamp(360px,56svh,560px)}}
 
 .apple-live .am-line:dir(rtl) .am-word{background-image:linear-gradient(270deg,#fff var(--fill,0%),#ffffff55 var(--fill,0%))}
+
+/* Keep even bright artwork subdued; only the cover layer blurs and drifts. */
+.apple-demo.apple-live{background:#090a0e!important}
+.apple-live .am-ambient{
+  z-index:-2;
+  background-image:var(--live-art,none);
+  background-color:#10121a;
+  background-position:center;
+  background-size:cover;
+  background-repeat:no-repeat;
+  filter:blur(var(--am-blur)) saturate(.7) brightness(.36);
+}
+.apple-live::before{
+  content:'';position:absolute;inset:0;z-index:-1;pointer-events:none;
+  background:linear-gradient(180deg,rgba(3,4,8,.26),rgba(3,4,8,.42) 55%,rgba(3,4,8,.76));
+}
+.apple-live .timeline>div{background:#e6e4ed}
+.apple-live #remoteSeek{accent-color:#e6e4ed}

@@ -18,13 +18,13 @@ assert.ok(!fs.readFileSync('public/deeplist.css','utf8').includes('.wordstorm-st
 assert.ok(fs.readFileSync('public/deeplist-live.css','utf8').includes('prefers-reduced-motion'));
 const flush=async()=>{for(let i=0;i<8;i++)await new Promise(setImmediate);};
 async function check(privateSession){
- const nodes={},requests=[],frames=[],events={},timeouts=[];const channel='abc123';let now=1000;
+ const nodes={},requests=[],frames=[],events={},timeouts=[],images=[];const channel='abc123';let now=1000;
  let state={id:'abcdefghijk',title:'Test song',artist:'Artist',playing:true,position:1500,duration:60000,lyricsVersion:'one',offset:0,lines:[
   {time:0,text:'hello world',words:[{text:'hello',start:0,end:2000},{text:'world',start:2000,end:4000}]},
   {time:4000,text:'Full second line'},
   {time:8000,text:'Third line stays visible'}
  ]},connected=true;
- const document={getElementById:id=>nodes[id]??=new Element(),createElement:tag=>new Element(tag),addEventListener:(type,fn)=>events[type]=fn,hidden:false,head:new Element()};
+ const document={getElementById:id=>nodes[id]??=new Element(),createElement:tag=>{const node=new Element(tag);if(tag==='img')images.push(node);return node;},addEventListener:(type,fn)=>events[type]=fn,hidden:false,head:new Element()};
  const context={document,location:{search:'?user='+channel,origin:'https://example.com',href:'https://example.com/deeplist.html?user='+channel},history:{replaceState(){}},URL,URLSearchParams,AbortController,AbortSignal,performance:{now:()=>now},setTimeout:(fn,ms)=>{timeouts.push({fn,ms});return timeouts.length;},clearTimeout(){},requestAnimationFrame:fn=>{frames.push(fn);return frames.length;},cancelAnimationFrame(){},window:{addEventListener(){}},sessionStorage:{getItem(){return null}},prompt:()=>'',navigator:{clipboard:{writeText:async()=>{}}},console,
  fetch:async(path,options={})=>{
   requests.push({path,options});let data;
@@ -68,6 +68,15 @@ async function check(privateSession){
  state={id:'zyxwvutsrqp',title:'New song',artist:'New artist',playing:true,position:0,duration:30000,lyricsVersion:'one',lines:[{time:0,text:'<img onerror=bad> safe'}]};await run('poll()');
  assert.equal(nodes.currentLine.children.length,1);assert.equal(nodes.currentLine.children[0].attributes['aria-label'],'<img onerror=bad> safe');
  assert.equal(nodes.currentLine.children[0].children[0].tag,'span');
+ // Artwork loads once per track, rejects stale completions, and fails dark.
+ assert.equal(images.length,2);
+ assert.equal(nodes.liveStage.style['--live-art'],'none');
+ images[0].naturalWidth=480;images[0].onload();
+ assert.equal(nodes.liveStage.style['--live-art'],'none','old cover cannot replace new song');
+ images[1].naturalWidth=480;images[1].onload();
+ assert.ok(nodes.liveStage.style['--live-art'].includes('/zyxwvutsrqp/hqdefault.jpg'));
+ await run('poll()');assert.equal(images.length,2,'heartbeats do not reload artwork');
+ images[1].onerror();assert.equal(nodes.liveStage.style['--live-art'],'none');
  // A slow old response must never replace a newer song after a new poll supersedes it.
  const normalFetch=context.fetch;let finishOld,oldSignal;
  context.fetch=(path,options)=>{oldSignal=options.signal;return new Promise(resolve=>finishOld=resolve);};
@@ -90,7 +99,7 @@ async function check(privateSession){
  nodes.liveAppleMotion.checked=false;nodes.liveAppleMotion.onchange();assert.ok(nodes.liveStage.classes.has('am-still'));
  timeouts.filter(t=>t.ms===15000).at(-1).fn();assert.ok(!nodes.liveStatus.classes.has('deeplist-live-indicator'));assert.equal(nodes.currentLine.children.length,0);await run('poll()');
  document.hidden=true;events.visibilitychange();assert.ok(!nodes.liveStage.classes.has('am-playing'));document.hidden=false;
- connected=false;await run('poll()');assert.equal(nodes.currentLine.children.length,0);assert.equal(nodes.lyricsMessage.hidden,false);assert.equal(nodes.listen.disabled,true);
+ connected=false;await run('poll()');assert.equal(nodes.liveStage.style['--live-art'],'none');images.at(-1).naturalWidth=480;images.at(-1).onload();assert.equal(nodes.liveStage.style['--live-art'],'none','offline discards pending cover');assert.equal(nodes.currentLine.children.length,0);assert.equal(nodes.lyricsMessage.hidden,false);assert.equal(nodes.listen.disabled,true);
  connected=true;state={...state,lines:[],lyricsVersion:'empty'};await run('poll()');assert.equal(nodes.currentLine.children.length,0);assert.equal(nodes.lyricsMessage.textContent,'Lyrics unavailable for this song.');
  // Failed/expired YouTube loads must allow a fresh retry.
  const failedAPI=run('loadAPI()');const failedCheck=assert.rejects(failedAPI,/YouTube could not load/);
