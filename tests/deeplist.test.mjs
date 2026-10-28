@@ -213,7 +213,13 @@ try {
  statsNow+=10000;await publish({...track,position:0},{Authorization:'Bearer '+fresh.token});
  assert.equal((await stats()).listeners.find(x=>x.channel===identity.channel).totalMs,71000,'Reconnect preserves totals without counting revoked time');
  await statsCall(request('/api/deeplist/pair','DELETE',undefined,{'X-Admin-Key':'correct-admin-key'}));
- assert.ok((await stats()).listeners.every(x=>x.channel!=='owner'),'Revoked owner stats are also hidden');
+ const retainedOwner=(await stats()).listeners.find(x=>x.channel==='owner');
+ assert.equal(retainedOwner.totalMs,8000,'Disconnecting the main player preserves its recorded ranking');
+ assert.equal(retainedOwner.label,'damndeepak');
+ const reconnectedOwner=await(await statsCall(request('/api/deeplist/pair','POST',undefined,{'X-Admin-Key':'correct-admin-key'}))).json();
+ assert.equal((await stats()).listeners.find(x=>x.channel==='owner').totalMs,8000,'Pairing again before the next snapshot must not hide historical minutes');
+ assert.ok(reconnectedOwner.token);
+ await statsCall(request('/api/deeplist/pair','DELETE',undefined,{'X-Admin-Key':'correct-admin-key'}));
  const before=statsDB.sqlite.prepare('SELECT SUM(listened_ms) AS total FROM deeplist_listening_months').get().total;
  const {listeningWrites}=await import(statsModule);
  const forbiddenWrites=listeningWrites(statsDB,'owner','revoked',track,statsNow+2000);

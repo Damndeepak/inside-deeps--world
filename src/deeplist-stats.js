@@ -41,7 +41,8 @@ export function listeningWrites(db, channel, tokenHash, state, now) {
 }
 export async function publicListeningStats(db, now, month = monthKey(now)) {
   const result = await db.prepare(`WITH visible AS (
-    SELECT 'owner' AS channel_id,COALESCE(a.display_name,'damndeepak') AS label,p.symbol,p.color FROM deeplist_bridge b LEFT JOIN deeplist_player_names a ON a.channel_id='owner' LEFT JOIN deeplist_identity_links l ON l.channel_id='owner' LEFT JOIN users u ON u.id=l.user_id LEFT JOIN chat_identity p ON p.user_id=l.user_id WHERE b.id=1 AND b.token_hash IS NOT NULL AND b.payload IS NOT NULL
+    -- The main player keeps its recorded totals when disconnected or paired again.
+    SELECT 'owner' AS channel_id,COALESCE(a.display_name,'damndeepak') AS label,p.symbol,p.color FROM (SELECT 'owner' AS channel_id) owner LEFT JOIN deeplist_bridge b ON b.id=1 LEFT JOIN deeplist_player_names a ON a.channel_id='owner' LEFT JOIN deeplist_identity_links l ON l.channel_id='owner' LEFT JOIN users u ON u.id=l.user_id LEFT JOIN chat_identity p ON p.user_id=l.user_id WHERE (b.token_hash IS NOT NULL AND b.payload IS NOT NULL) OR EXISTS (SELECT 1 FROM deeplist_listening_clock WHERE channel_id='owner') OR EXISTS (SELECT 1 FROM deeplist_listening_months WHERE channel_id='owner')
     UNION ALL
     SELECT v.channel_id,COALESCE(a.display_name,u.username,NULLIF(n.display_name,''),'Listener · '||SUBSTR(v.channel_id,1,6)),p.symbol,p.color
       FROM deeplist_visitors v LEFT JOIN deeplist_player_names a ON a.channel_id=v.channel_id LEFT JOIN deeplist_visitor_names n ON n.channel_id=v.channel_id LEFT JOIN deeplist_identity_links l ON l.channel_id=v.channel_id LEFT JOIN users u ON u.id=l.user_id LEFT JOIN chat_identity p ON p.user_id=l.user_id
