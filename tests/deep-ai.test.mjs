@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
 import { webcrypto } from 'node:crypto';
 import worker from '../src/index.js';
-import { DEEP_AI_ID, DEEP_AI_MODEL, mentionsDeepAI, queueDeepAI, deepAIStatus } from '../src/deep-ai.js';
+import { DEEP_AI_ID, S_AI_ID, DEEP_AI_MODEL, S_AI_MODEL, aiTargets, mentionsSAI, mentionsDeepAI, queueDeepAI, deepAIStatus } from '../src/deep-ai.js';
 if (!globalThis.crypto) Object.defineProperty(globalThis, 'crypto', { value: webcrypto });
 
 class DB {
@@ -134,3 +134,37 @@ assert.equal(feed.messages.find(m => m.ai).username, 'deepAi');
 assert.ok(!JSON.stringify(feed).includes(DEEP_AI_ID), 'Public feed never leaks identity credentials');
 assert.equal(feed.messages.find(m => m.ai).mine, false);
 console.log('PASS: DeepAI mention/reply routing, private context isolation, idempotency, spam cooldowns and free daily access, outage handling, and unforgeable bot badge');
+
+// S.Ai routes independently; explicit mentions take precedence over reply targets.
+assert.equal(mentionsSAI('hey @S.Ai!'), true);
+for(const text of ['email@S.Ai', '@S.Aii', '@SxAi']) assert.equal(mentionsSAI(text), false);
+assert.deepEqual(aiTargets('@S.Ai help', DEEP_AI_ID), [S_AI_ID]);
+assert.deepEqual(aiTargets('continue', S_AI_ID), [S_AI_ID]);
+assert.deepEqual(aiTargets('@both pyaar se baat karo'), [DEEP_AI_ID,S_AI_ID]);
+assert.deepEqual(aiTargets('@deepAi @S.Ai argue about tea'), [DEEP_AI_ID,S_AI_ID]);
+t=setup();assert.equal((await queueDeepAI(t.env,t.ctx,t.source('no-key','@S.Ai hi'),t.request())).state,'unavailable');
+assert.equal(t.calls.length,0,'No silent provider substitution when Groq is missing');
+const nativeFetch=globalThis.fetch;
+const groqCalls=[];
+globalThis.fetch=async (url,options)=>{groqCalls.push({url,options,body:JSON.parse(options.body)});return new Response(JSON.stringify({choices:[{message:{content:'Tum aur tumhare dramatic headphones ♡'}}]}),{status:200});};
+try {
+ t=setup();t.env.GROQ_API_KEY='test-secret';
+ assert.equal((await queueDeepAI(t.env,t.ctx,t.source('solo','@S.Ai coding samjhao'),t.request())).state,'pending');await t.flush();
+ assert.equal(t.calls.length,0);assert.equal(groqCalls.at(-1).body.model,S_AI_MODEL);
+ let row=t.env.DB.sqlite.prepare('SELECT * FROM messages WHERE sender_id=?').get(S_AI_ID);assert.equal(row.parent_id,'solo');
+ assert.equal(await queueDeepAI(t.env,t.ctx,{id:row.id,message:'@both loop',sender_id:S_AI_ID},t.request()),null);
+ t=setup();t.env.GROQ_API_KEY='test-secret';const before=groqCalls.length;
+ assert.equal((await queueDeepAI(t.env,t.ctx,t.source('couple','@both pyaar se baat karo'),t.request())).state,'pending');await t.flush();
+ const rows=t.env.DB.sqlite.prepare('SELECT sender_id,parent_id,id FROM messages WHERE id!=? ORDER BY rowid').all('couple');
+ assert.deepEqual(rows.map(r=>r.sender_id),[DEEP_AI_ID,S_AI_ID,DEEP_AI_ID,S_AI_ID]);
+ assert.equal(groqCalls.length-before,2);assert.equal(t.calls.length,2);
+ assert.equal(rows[1].parent_id,rows[0].id);assert.equal((await deepAIStatus(t.env,'couple')).state,'done');
+ assert.ok(groqCalls.at(-1).body.messages[0].content.includes('female character'));
+ assert.ok(!JSON.stringify(groqCalls.at(-1).body).includes('test-secret'));
+ assert.equal((await call('/api/chat/send','deep_user='+S_AI_ID,{message:'forged'})).status,401);
+ t=setup();t.env.GROQ_API_KEY='test-secret';globalThis.fetch=async()=>new Response('rate limited',{status:429});
+ await queueDeepAI(t.env,t.ctx,t.source('groq-failed','@S.Ai hello'),t.request());await t.flush();
+ assert.equal((await deepAIStatus(t.env,'groq-failed')).state,'failed');
+ assert.equal(t.env.DB.sqlite.prepare('SELECT COUNT(*) AS n FROM messages').get().n,1);
+} finally {globalThis.fetch=nativeFetch;}
+console.log('PASS: exact S.Ai routing, Groq isolation, missing key, four alternating turns, no bot loops, identity protection and provider failures');

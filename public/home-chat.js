@@ -1,4 +1,4 @@
-import {initChatMentions} from './chat-mentions.js?v=1';
+import {initChatMentions} from './chat-mentions.js?v=couple-1';
 import {identityColor,identityLabel} from './chat-identity.js';
 import {initNicknameControls} from './nickname-controls.js';
 (()=>{
@@ -43,15 +43,15 @@ function toast(msg){E.toast.textContent=msg;E.toast.hidden=false;clearTimeout(to
 
 // AI stays in the existing conversation; no extra panel or send button.
 const aiWatchers=new Set();
-function paintAIWaiting(){const status=$("cxAiStatus");if(!status)return;status.hidden=!aiWatchers.size;status.textContent=aiWatchers.size?"@deepAi is thinking…":""}
+function paintAIWaiting(){const status=$("cxAiStatus");if(!status)return;status.hidden=!aiWatchers.size;status.textContent=aiWatchers.size?"AI is thinking…":""}
 function watchAI(messageId,ai){
   if(!ai)return;
   if(ai.state!=="pending"){
-    if(ai.state==="limited")toast("Give DeepAI a couple of seconds between requests; your message was sent.");
-    else if(ai.state!=="done")toast("DeepAI is unavailable right now. Your message was sent.");
+    if(ai.state==="limited")toast("Give the AI a couple of seconds between requests; your message was sent.");
+    else if(ai.state!=="done")toast("The selected AI is unavailable or not configured yet. Your message was sent.");
     return;
   }
-  aiWatchers.add(messageId);paintAIWaiting();const deadline=Date.now()+35000;
+  aiWatchers.add(messageId);paintAIWaiting();const deadline=Date.now()+40000;
   async function tick(){
     let state="pending";
     try{
@@ -62,7 +62,7 @@ function watchAI(messageId,ai){
     }catch{}
     if(state==="done"||state==="failed"||state==="missing"||Date.now()>deadline){
       aiWatchers.delete(messageId);paintAIWaiting();
-      if(state!=="done")toast("DeepAI couldn’t reply this time. Your message is still here.");
+      if(state!=="done")toast("The AI conversation could not finish this time. Your message is still here.");
       try{await loadFeed()}catch{}
       return;
     }
@@ -104,7 +104,7 @@ function paint(row,w){
   row._name.style.display=showName?"":"none";row._av.style.visibility=showName?"visible":"hidden";
   const sig=sigOf(m,w);if(row._sig===sig)return;row._sig=sig;
   row._name.textContent=identityLabel(m.username,m.symbol,"@");
-  if(m.ai){const badge=h("span","cx-ai-badge","AI");badge.title="AI assistant powered by Llama";row._name.append(badge)}
+  if(m.ai){const badge=h("span","cx-ai-badge","AI");badge.title="AI assistant · fictional character";row._name.append(badge)}
   row._name.style.color=m.color?identityColor(m.color):"";row._av.textContent=m.ai?"✦":tag(m.username);
   row._av.style.cssText="background:hsl("+hue(m.username)+" 32% 20%);color:hsl("+hue(m.username)+" 55% 78%)";
   if(m.color){row._av.style.background=identityColor(m.color)+"25";row._av.style.color=identityColor(m.color);}

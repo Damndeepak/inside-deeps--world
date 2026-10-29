@@ -1,5 +1,5 @@
 import {handleActivity, auditStatement, recordAudit} from './activity.js';
-import { DEEP_AI_ID, deepAIStatus, queueDeepAI } from './deep-ai.js';
+import { DEEP_AI_ID, isChatAI, chatAIName, deepAIStatus, queueDeepAI } from './deep-ai.js';
 import { ensureIdentitySchema, identityFor, validIdentity, linkChatIdentity } from './chat-identity.js';
 import { handleDeeplist } from "./deeplist.js";
 import { ensureFeatures, handleFeatures } from "./features.js";
@@ -49,7 +49,7 @@ export default {
     }
 
     async function getUser(userId) {
-      if (!userId || userId === DEEP_AI_ID) return null;
+      if (!userId || isChatAI(userId)) return null;
 
       return await env.DB
         .prepare("SELECT id, username FROM users WHERE id = ?")
@@ -578,7 +578,7 @@ export default {
           symbol=body.symbol??symbol;color=body.color??color;
           if(!validIdentity(symbol,color))return reply({success:false,error:"Choose a symbol and colour from the available options."},400);
           nickname = body.nickname.normalize("NFKC").trim().replace(/\s+/g, " ");
-          if (nickname.toLowerCase() === "deepai") return reply({ success: false, error: "That name is reserved for the AI assistant." }, 409);
+          if (["deepai", "s.ai", "sai", "both"].includes(nickname.toLowerCase())) return reply({ success: false, error: "That name is reserved for the AI assistant." }, 409);
           // Keep the established allowed-character check.
           if (nickname && (Array.from(nickname).length < 2 || Array.from(nickname).length > 24 || !/^[\p{L}\p{M}\p{N} ._'-]+$/u.test(nickname))) {
             return reply({ success: false, error: invalidName }, 400);
@@ -1045,7 +1045,7 @@ export default {
         return Response.json({
           success: true,
           conversation_id: mainId,
-          messages: result.results.map(({ sender_id, ...message }) => ({ ...message, ai: sender_id === DEEP_AI_ID, mine: sender_id === user.id }))
+          messages: result.results.map(({ sender_id, ...message }) => ({ ...message, ai: isChatAI(sender_id), mine: sender_id === user.id }))
         }, { headers: { 'Cache-Control': 'no-store' } });
       } catch {
         return Response.json(
@@ -1408,8 +1408,8 @@ export default {
           id: r.id,
           message: r.message || "",
           created_at: r.created_at,
-          username: r.sender_id === DEEP_AI_ID ? "deepAi" : r.username,symbol:r.identity_symbol||"",color:r.identity_color||null,
-          ai: r.sender_id === DEEP_AI_ID,
+          username: isChatAI(r.sender_id) ? chatAIName(r.sender_id) : r.username,symbol:r.identity_symbol||"",color:r.identity_color||null,
+          ai: isChatAI(r.sender_id),
           mine: Boolean(me) && r.sender_id === me.id,
           image: Boolean(r.has_image),
           audio: Boolean(r.has_audio),
@@ -1417,8 +1417,8 @@ export default {
             ? (r.p_id
                 ? {
                     id: r.p_id,
-                    username: r.p_sender_id === DEEP_AI_ID ? "deepAi" : r.p_username,
-                    ai: r.p_sender_id === DEEP_AI_ID,
+                    username: isChatAI(r.p_sender_id) ? chatAIName(r.p_sender_id) : r.p_username,
+                    ai: isChatAI(r.p_sender_id),
                     snippet: r.p_snippet || "",
                     image: Boolean(r.p_has_image)
                   }
