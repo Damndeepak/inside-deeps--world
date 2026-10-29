@@ -450,7 +450,23 @@ E.box.addEventListener("click",()=>{E.box.hidden=true;E.boxImg.removeAttribute("
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!E.box.hidden){E.box.hidden=true;E.boxImg.removeAttribute("src")}});
 
 /* ---------- admin ---------- */
-function paintAdmin(){E.admin.textContent=S.admin?"admin mode · exit":"admin";E.admin.classList.toggle("on",S.admin);reconcile(false);refreshSeenAdmin()}
+function paintAdmin(){E.admin.textContent=S.admin?"admin mode · exit":"admin";E.admin.classList.toggle("on",S.admin);reconcile(false);refreshSeenAdmin();refreshAdminOnline()}
+let adminOnlineBusy=false;
+async function refreshAdminOnline(){
+  const panel=$('cxAdminOnline'),list=$('cxAdminOnlineList');if(!panel||!list)return;
+  panel.hidden=!S.admin;
+  if(!S.admin){list.replaceChildren();return}
+  if(adminOnlineBusy)return;adminOnlineBusy=true;const key=S.adminKey;
+  try{
+    const r=await fetch('/api/chat/admin/presence',{headers:{'X-Admin-Key':key},cache:'no-store',signal:AbortSignal.timeout(5000)});
+    const d=await r.json();if(!S.admin||S.adminKey!==key)return;
+    list.replaceChildren();
+    if(!r.ok||!d.success){list.append(h('li',null,'Online list unavailable.'));return}
+    if(!d.online.length)list.append(h('li',null,'No active visitors right now.'));
+    for(const visitor of d.online)list.append(h('li',null,'@'+visitor.username));
+  }catch{if(S.admin&&S.adminKey===key)list.replaceChildren(h('li',null,'Online list unavailable.'))}
+  finally{adminOnlineBusy=false}
+}
 async function checkAdmin(key){
   try{const r=await fetch("/api/chat/admin/check",{headers:{"X-Admin-Key":key},cache:"no-store"});const d=await r.json();return!!d.admin}catch(e){return false}
 }
@@ -502,6 +518,7 @@ const online=$('cxOnline'),typing=$('cxTyping');
 let lastTyping=0,typingTimer=0,presenceBusy=false;
 function paintPresence(d){if(!d.success)return;online.textContent=d.online+' online';online.title='Active in the last minute, including you';typing.textContent=d.typing.length?d.typing.map(n=>'@'+n).join(', ')+(d.typing.length===1?' is typing…':' are typing…'):''}
 async function presence(write=false,isTyping=false,active=true){
+  if(!write)refreshAdminOnline();
   if(!S.me)return;
   if(!write&&presenceBusy)return;if(!write)presenceBusy=true;
   try{const r=await fetch('/api/chat/presence',write?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({typing:isTyping,active}),keepalive:!active}:{cache:'no-store'});const d=await r.json();if(r.ok)paintPresence(d);else if(online)online.textContent=''}catch{if(online)online.textContent=''}finally{if(!write)presenceBusy=false}

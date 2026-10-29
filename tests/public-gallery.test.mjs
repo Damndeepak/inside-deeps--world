@@ -19,6 +19,6 @@ let response=await call('/api/memories');assert.equal(response.status,200);asser
 assert.equal((await call('/api/memories/photo-1/image')).status,200);
 for(const [path,method] of [['/api/memories','POST'],['/api/memories/photo-1','PATCH'],['/api/memories/photo-1','DELETE'],['/api/memories/visits','GET']])assert.equal((await call(path,method)).status,403);
 const home=fs.readFileSync('public/index.html','utf8'),media=fs.readFileSync('public/media/index.html','utf8');
-assert.ok(!/deepPrivate|passwordModal|home-private.js|Deep Private Section/.test(home));assert.ok(home.includes('homeMemories'));assert.ok(home.includes('<video'));
+assert.ok(!/deepPrivate|passwordModal|home-private.js|Deep Private Section/.test(home));assert.ok(home.includes('homeMemories'));assert.ok(!home.includes('class="public-media-feature"'));assert.ok(!home.includes('class="deep-app"'));assert.ok(media.includes('<video'));assert.ok(home.includes('href="./media/"'));
 assert.ok(media.includes('publicPlaylist'));assert.ok(media.includes('id="appleLyricsDemo"'));assert.ok(media.includes('id="aditiPlayer"'));assert.ok(!fs.existsSync('public/home-private.js'));
 console.log('PASS: password-free gallery routes, retired password endpoint, anonymous photo/caption access, protected admin writes, public playlist/video hooks');
