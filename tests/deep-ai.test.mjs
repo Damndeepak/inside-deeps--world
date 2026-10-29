@@ -54,7 +54,7 @@ const first = t.source('ask');
 assert.equal((await queueDeepAI(t.env, t.ctx, first, t.request())).state, 'pending');
 await t.flush();
 assert.equal(t.calls[0].model, DEEP_AI_MODEL);
-assert.equal(t.calls[0].input.max_tokens, 450);
+assert.equal(t.calls[0].input.max_tokens, 180);
 assert.ok(!JSON.stringify(t.calls).includes('DO NOT SEND THIS'));
 assert.ok(!JSON.stringify(t.calls).includes('192.0.2.1'));
 const bot = t.env.DB.sqlite.prepare('SELECT * FROM messages WHERE sender_id=?').get(DEEP_AI_ID);
@@ -140,7 +140,7 @@ assert.equal(mentionsSAI('hey @S.Ai!'), true);
 for(const text of ['email@S.Ai', '@S.Aii', '@SxAi']) assert.equal(mentionsSAI(text), false);
 assert.deepEqual(aiTargets('@S.Ai help', DEEP_AI_ID), [S_AI_ID]);
 assert.deepEqual(aiTargets('continue', S_AI_ID), [S_AI_ID]);
-assert.deepEqual(aiTargets('@both pyaar se baat karo'), [DEEP_AI_ID,S_AI_ID]);
+assert.deepEqual(aiTargets('@both chai pe debate karo'), [DEEP_AI_ID,S_AI_ID]);
 assert.deepEqual(aiTargets('@deepAi @S.Ai argue about tea'), [DEEP_AI_ID,S_AI_ID]);
 t=setup();assert.equal((await queueDeepAI(t.env,t.ctx,t.source('no-key','@S.Ai hi'),t.request())).state,'unavailable');
 assert.equal(t.calls.length,0,'No silent provider substitution when Groq is missing');
@@ -154,7 +154,7 @@ try {
  let row=t.env.DB.sqlite.prepare('SELECT * FROM messages WHERE sender_id=?').get(S_AI_ID);assert.equal(row.parent_id,'solo');
  assert.equal(await queueDeepAI(t.env,t.ctx,{id:row.id,message:'@both loop',sender_id:S_AI_ID},t.request()),null);
  t=setup();t.env.GROQ_API_KEY='test-secret';const before=groqCalls.length;
- assert.equal((await queueDeepAI(t.env,t.ctx,t.source('couple','@both pyaar se baat karo'),t.request())).state,'pending');await t.flush();
+ assert.equal((await queueDeepAI(t.env,t.ctx,t.source('couple','@both chai pe debate karo'),t.request())).state,'pending');await t.flush();
  const rows=t.env.DB.sqlite.prepare('SELECT sender_id,parent_id,id FROM messages WHERE id!=? ORDER BY rowid').all('couple');
  assert.deepEqual(rows.map(r=>r.sender_id),[DEEP_AI_ID,S_AI_ID,DEEP_AI_ID,S_AI_ID]);
  assert.equal(groqCalls.length-before,2);assert.equal(t.calls.length,2);
@@ -168,3 +168,24 @@ try {
  assert.equal(t.env.DB.sqlite.prepare('SELECT COUNT(*) AS n FROM messages').get().n,1);
 } finally {globalThis.fetch=nativeFetch;}
 console.log('PASS: exact S.Ai routing, Groq isolation, missing key, four alternating turns, no bot loops, identity protection and provider failures');
+
+// Primary quota/outage failures fall back without changing identity or prompt.
+globalThis.fetch=async(url,options)=>{
+ const body=JSON.parse(options.body);
+ assert.ok(body.messages[0].content.includes('You are DeepAI'));
+ assert.ok(body.messages[0].content.includes('1-2 tiny sentences'));
+ assert.ok(!body.messages[0].content.includes('husband and wife'));
+ return new Response(JSON.stringify({choices:[{message:{content:'bhai calculator bhi thak gaya 😭'}}]}));
+};
+try {
+ t=setup();t.env.GROQ_API_KEY='test-secret';t.env.AI.run=async()=>{throw new Error('quota exceeded');};
+ await queueDeepAI(t.env,t.ctx,t.source('fallback','@deepAi roast me'),t.request());await t.flush();
+ const rows=t.env.DB.sqlite.prepare('SELECT * FROM messages WHERE sender_id=?').all(DEEP_AI_ID);
+ assert.equal(rows.length,1);assert.equal(rows[0].parent_id,'fallback');
+ assert.equal((await deepAIStatus(t.env,'fallback')).state,'done');
+ t=setup();t.env.GROQ_API_KEY='test-secret';delete t.env.AI;
+ assert.equal((await deepAIStatus(t.env)).available,true);
+ await queueDeepAI(t.env,t.ctx,t.source('no-primary','@deepAi hi'),t.request());await t.flush();
+ assert.equal((await deepAIStatus(t.env,'no-primary')).state,'done');
+} finally {globalThis.fetch=nativeFetch;}
+console.log('PASS: deepAi quota fallback preserves identity, context and short non-romantic personality');
