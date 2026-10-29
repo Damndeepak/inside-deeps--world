@@ -40,8 +40,38 @@ function fill(node,text){
 let toastTimer=0;
 function toast(msg){E.toast.textContent=msg;E.toast.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>{E.toast.hidden=true},3200)}
 
+// AI stays in the existing conversation; no extra panel or send button.
+const aiWatchers=new Set();
+function paintAIWaiting(){const status=$("cxAiStatus");if(!status)return;status.hidden=!aiWatchers.size;status.textContent=aiWatchers.size?"@deepAi is thinking…":""}
+function watchAI(messageId,ai){
+  if(!ai)return;
+  if(ai.state!=="pending"){
+    if(ai.state==="limited")toast("DeepAI needs a breather. AI limits reached; your message was sent.");
+    else if(ai.state!=="done")toast("DeepAI is unavailable right now. Your message was sent.");
+    return;
+  }
+  aiWatchers.add(messageId);paintAIWaiting();const deadline=Date.now()+35000;
+  async function tick(){
+    let state="pending";
+    try{
+      if(!document.hidden){
+        const r=await fetch("/api/chat/ai/status?message_id="+encodeURIComponent(messageId),{cache:"no-store",signal:AbortSignal.timeout(5000)});
+        const d=await r.json();if(r.ok&&d.success)state=d.state;
+      }
+    }catch{}
+    if(state==="done"||state==="failed"||state==="missing"||Date.now()>deadline){
+      aiWatchers.delete(messageId);paintAIWaiting();
+      if(state!=="done")toast("DeepAI couldn’t reply this time. Your message is still here.");
+      try{await loadFeed()}catch{}
+      return;
+    }
+    setTimeout(tick,1800);
+  }
+  setTimeout(tick,1200);
+}
+
 /* ---------- rendering ---------- */
-function sigOf(m,w){return[m.username,m.symbol||"",m.color||"",m.parent?(m.parent.deleted?"d":[m.parent.id,m.parent.username,m.parent.snippet,m.parent.image].join("~")):"",S.admin?1:0,m.pending||"",m.mine?1:0,m.created_at].join("|")}
+function sigOf(m,w){return[m.username,m.ai?1:0,m.symbol||"",m.color||"",m.parent?(m.parent.deleted?"d":[m.parent.id,m.parent.username,m.parent.snippet,m.parent.image].join("~")):"",S.admin?1:0,m.pending||"",m.mine?1:0,m.created_at].join("|")}
 
 function buildRow(m){
   const row=h("div","cx-row"+(m.mine?" mine":""));row.dataset.id=m.id;row.tabIndex=0;
@@ -67,11 +97,14 @@ function buildRow(m){
 
 function paint(row,w){
   const m=w.m,showName=w.first&&!m.mine;
+  row.classList.toggle("ai",m.ai===true);
   row.classList.toggle("first",w.first);row.classList.toggle("last",w.last);
   row.classList.toggle("pending",m.pending==="sending");row.classList.toggle("failed",m.pending==="failed");
   row._name.style.display=showName?"":"none";row._av.style.visibility=showName?"visible":"hidden";
   const sig=sigOf(m,w);if(row._sig===sig)return;row._sig=sig;
-  row._name.textContent=identityLabel(m.username,m.symbol,"@");row._name.style.color=m.color?identityColor(m.color):"";row._av.textContent=tag(m.username);
+  row._name.textContent=identityLabel(m.username,m.symbol,"@");
+  if(m.ai){const badge=h("span","cx-ai-badge","AI");badge.title="AI assistant powered by Llama";row._name.append(badge)}
+  row._name.style.color=m.color?identityColor(m.color):"";row._av.textContent=m.ai?"✦":tag(m.username);
   row._av.style.cssText="background:hsl("+hue(m.username)+" 32% 20%);color:hsl("+hue(m.username)+" 55% 78%)";
   if(m.color){row._av.style.background=identityColor(m.color)+"25";row._av.style.color=identityColor(m.color);}
   row._time.textContent=t2(m.created_at);
@@ -360,7 +393,8 @@ async function post(p){
     const old=nodes.get("m:"+p.id);if(old){nodes.delete("m:"+p.id);nodes.set("m:"+real.id,old);old.dataset.id=real.id;old._sig=""}
     S.msgs.push(real);S.msgs.sort(messageOrder);S.local.set(real.id,real);
     reconcile(false);toBottom(false);
-    getState().then(sig=>{if(sig)S.sig=sig});
+    watchAI(real.id,d.ai);
+    loadFeed().catch(()=>{});
   }catch(e){
     p.pending="failed";p.error=e.message;reconcile(false);
     const msg={413:"Image is too large",415:"Only JPG, PNG, WebP or GIF images",429:e.message,503:"Images aren't enabled yet",401:"Reload the page and try again"}[e.status];

@@ -33,3 +33,11 @@
 #cxChat .cx-options .cx-admin{padding:8px 0;min-height:44px}
 #cxChat :is(button,summary,a):focus-visible{outline:2px solid #c2a1ed;outline-offset:3px}
 @media(max-width:520px){#cxChat{margin:40px 0;border-radius:20px;padding:18px 14px}#cxChat .cx-text{font-size:14px}#cxChat .cx-form{flex-wrap:wrap;gap:0;padding:5px}#cxChat .cx-attach,#cxChat .cx-mic{width:36px;min-width:36px;height:44px}#cxChat .cx-send{padding:0 12px}#cxChat .cx-form textarea{padding:10px 4px}#cxChat .cx-bottom{gap:8px}#cxChat .public-note{max-width:24ch}}
+
+/* DeepAI is an explicitly labelled participant, never a human impersonation. */
+#cxChat .deep-chat-intro strong{color:#d4b8f2;font-weight:600}
+#cxChat .cx-ai-badge{display:inline-block;margin-left:7px;padding:2px 5px;border:1px solid #c2a1ed50;border-radius:5px;font:600 9px/1.2 var(--body);letter-spacing:.04em;color:#d4b8f2;vertical-align:middle}
+#cxChat .cx-row.ai .cx-bubble{border-color:#c2a1ed30;background:#1c1724}
+#cxChat .cx-ai-status{color:#c9b2e2;font-size:12px;margin:6px 0 12px;line-height:1.6}
+#cxChat .cx-ai-note{display:block;font-size:10px;color:#aaa0b2;max-width:62ch;margin-top:4px}
+@media(max-width:520px){#cxChat .cx-bottom .public-note{max-width:none;flex:1}}

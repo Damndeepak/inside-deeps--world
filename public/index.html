@@ -18,7 +18,7 @@
 <link rel="stylesheet" href="/home-motion.css?v=3"/>
 <script defer src="/home-motion.js?v=3"></script>
 <link rel="stylesheet" href="/chalk-world.css?v=2"/><link rel="stylesheet" href="/lyrics-lab.css?v=4"/><script defer src="/lyrics-lab.js?v=5"></script><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600;700&display=swap"/>
-<script defer src="/scroll-sound.js?v=1"></script><link rel="stylesheet" href="/home-simple.css?v=1"/></head>
+<script defer src="/scroll-sound.js?v=1"></script><link rel="stylesheet" href="/home-simple.css?v=2"/></head>
 <body data-world-motion="premium"><noscript><style>.player-skeleton{display:none}.lfm{min-height:180px}</style></noscript><a class="skip-link" href="#mainContent">Skip to content</a>
 <div aria-hidden="true" class="scroll-progress"><span id="scrollProgress"></span></div>
 <main class="wrap" id="mainContent">
@@ -32,7 +32,7 @@
  <noscript><p>Enable JavaScript to spin the demos, or <a href="/media/#appleLyricsDemo">open the lyrics sample ↗</a>.</p></noscript>
 </section>
 </div><div class="hero-bottom"><span>DEEPAK’S LITTLE CORNER OF THE INTERNET</span><a href="#cxChat">Stay a song. Leave a thought. ↓</a></div></header><div class="chalk-live-wrap"><section aria-label="Deeplist Now Playing" class="lfm" id="lfm"><div aria-hidden="true" class="player-wash"></div><div class="player-top"><span class="player-brand">deeplist<span>♪</span></span><span class="lfm-label" id="lfmLabel">THE LISTENING ROOM</span></div><div aria-live="polite" id="lfmBody"><div aria-label="Loading current track" class="player-skeleton" role="status"><div class="skeleton skeleton-cover"></div><div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line short"></div></div></div><p class="live-lyric" id="deeplistHomeLyrics"></p><div class="player-progress" hidden="" id="homeProgress"><div class="progress-track"><span id="homeProgressFill"></span></div><div class="progress-times"><span id="homeElapsed">0:00</span><span id="homeDuration">0:00</span></div></div><a class="player-open" href="/deeplist.html"><span>Open the listening room</span><span aria-hidden="true" class="round-arrow">↗</span></a><p class="player-footnote">LIVE FROM DEEPAK’S DEEPLIST</p></section></div><section aria-labelledby="chatTitle" class="cx-card" id="cxChat">
-<div class="deep-chat-intro"><p class="deep-kicker">GOOD MUSIC. BETTER COMPANY.</p><h2 id="chatTitle">Come hang out<span aria-hidden="true">.</span></h2><p>What’s on repeat? Drop a song, a thought, or just say hi.</p></div><div class="cx-head"><div class="cx-label"><span class="cx-dot"></span>The common room</div><div class="cx-count" id="cxCount"></div></div>
+<div class="deep-chat-intro"><p class="deep-kicker">GOOD MUSIC. BETTER COMPANY.</p><h2 id="chatTitle">Come hang out<span aria-hidden="true">.</span></h2><p>What’s on repeat? Drop a song, a thought, or just say hi. Mention <strong>@deepAi</strong> to ask the AI.</p></div><div class="cx-head"><div class="cx-label"><span class="cx-dot"></span>The common room</div><div class="cx-count" id="cxCount"></div></div>
 <div class="cx-id"><span class="identity-pill"><span class="status-dot"></span><b id="cxMe">Guest</b></span><details class="cx-nickname"><summary>Change name</summary>
 <form autocomplete="off" id="cxNicknameForm"><label for="cxNickname">Your listener name</label><div class="cx-nickname-fields"><input aria-describedby="cxNicknameHint" id="cxNickname" maxlength="24" name="nickname" placeholder="Your name, your vibe"/><button class="cx-tool" id="cxNicknameDice" type="button" aria-label="Suggest a random nickname" title="Roll a name">🎲</button></div>
 <div class="nickname-preview"><small>Live preview</small><div class="identity-pill"><span class="nickname-preview-dot" id="cxNicknamePreviewDot" aria-hidden="true"></span><b id="cxNicknamePreview">Your listener identity</b></div><p>Chat · linked listener cards · leaderboard</p></div>
@@ -41,6 +41,7 @@
 </details></div>
 
 <div aria-live="polite" class="cx-presence"><span data-online="" id="cxOnline"></span><span id="cxTyping"></span></div>
+<p class="cx-ai-status" id="cxAiStatus" role="status" aria-live="polite" hidden></p>
 <div class="cx-threadwrap">
 <div aria-live="polite" class="cx-thread" id="cxThread" role="log">
 <button class="cx-more" hidden="" id="cxMore" type="button">load older messages</button>
@@ -59,7 +60,7 @@
 </form>
 <div class="cx-voice-panel" hidden="" id="cxVoicePanel"><div class="cx-voice-status" id="cxVoiceStatus" role="status"></div><audio controls="" hidden="" id="cxVoicePreview" preload="metadata"></audio><div class="world-actions"><button class="world-button primary" disabled="" id="cxVoiceSend" type="button">Send voice note</button><button class="world-button" id="cxVoiceCancel" type="button">Discard</button><small>Public chat · up to 60 seconds</small></div></div>
 <input accept="image/jpeg,image/png,image/webp,image/gif" hidden="" id="cxFile" type="file"/>
-<div class="cx-foot"><span id="cxCounter"></span></div><div class="cx-bottom"><p class="public-note">Public room · Everyone can read and join.</p><details class="cx-options"><summary>Chat options</summary><div class="cx-tools"><button class="cx-tool" hidden="" id="cxInstall" type="button">📲 Install app</button><button class="cx-tool" hidden="" id="cxNotify" type="button">🔔 Notifications: off</button></div><button class="cx-admin" id="cxAdmin" type="button">admin</button></details></div>
+<div class="cx-foot"><span id="cxCounter"></span></div><div class="cx-bottom"><p class="public-note">Public room · Everyone can read and join. <span class="cx-ai-note">@deepAi uses Llama on Cloudflare · Your mention and reply thread are sent to AI.</span></p><details class="cx-options"><summary>Chat options</summary><div class="cx-tools"><button class="cx-tool" hidden="" id="cxInstall" type="button">📲 Install app</button><button class="cx-tool" hidden="" id="cxNotify" type="button">🔔 Notifications: off</button></div><button class="cx-admin" id="cxAdmin" type="button">admin</button></details></div>
 <div class="cx-toast" hidden="" id="cxToast"></div>
 </section>
 <div class="activity-grid"><section aria-label="Recent listening" class="world-card activity-panel" data-activity="" hidden=""><div class="world-heading"><h2>Recently in my ears</h2><a class="world-link" href="/on-repeat.html">This week ↗</a></div><div class="world-history" id="worldHistory"><div aria-label="Loading listening activity" class="loading-row" role="status"><span class="skeleton skeleton-thumb"></span><span class="skeleton skeleton-line"></span></div></div></section><section aria-label="Other Deeplist listeners" class="world-card activity-panel listener-panel" data-activity="" data-rail-shell hidden=""><div class="world-heading"><h2>Listening around here</h2><a class="world-link" href="/deeplist.html">Connect your Deeplist ↗</a></div><p class="world-note" id="deeplistConnectionCount" role="status"></p><div class="world-history" id="deeplistListeners" data-scroll-rail tabindex="0" role="group" aria-label="Connected listener cards"><div aria-label="Loading listening activity" class="loading-row" role="status"><span class="skeleton skeleton-thumb"></span><span class="skeleton skeleton-line"></span></div></div><div class="rail-footer"><p class="rail-hint">Their songs. Their little worlds. </p><div class="rail-controls" aria-label="Listener card controls"><button type="button" data-rail-prev="deeplistListeners" aria-label="Previous listeners" disabled>←</button><button type="button" data-rail-next="deeplistListeners" aria-label="Next listeners" disabled>→</button></div></div></section></div>
@@ -82,7 +83,7 @@
 <script defer="" src="/deeplist-home.js?v=smooth-3"></script>
 <script type="module" src="/deeplist-listeners.js?v=smooth-3"></script>
 <script type="module" src="/deeplist-stats.js?v=identity-1"></script>
-<script type="module" src="/home-chat.js?v=identity-1"></script>
+<script type="module" src="/home-chat.js?v=deepai-1"></script>
 <dialog aria-labelledby="ptTitle" class="pt-dialog" id="ptDialog"><div class="pt-dialog-close"><button aria-label="Close dialog" class="close" id="ptClose" type="button">×</button></div><section aria-labelledby="ptTitle" class="world-card pt-section" id="publicThoughts">
 <div class="world-heading"><div><div class="eyebrow">Inside Deep’s mind</div><h2 id="ptTitle">Inside Deep’s Mind</h2></div><button class="world-delete" id="ptAdmin" type="button">Admin</button></div>
 <p class="world-note">Things on my mind. Out in the open.</p>
