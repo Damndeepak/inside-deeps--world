@@ -35,7 +35,7 @@ export function deepAIAvailable(env) {
 
 export async function deepAIStatus(env, messageId) {
   const configured = deepAIAvailable(env);
-  if (!messageId) return { success: true, available: configured, name: 'deepAi', model: DEEP_AI_MODEL };
+  if (!messageId) return { success: true, available: configured, name: 'deepAi', model: DEEP_AI_MODEL, personality: 'savage-helpful' };
   if (!/^[A-Za-z0-9_-]{1,64}$/.test(messageId)) return { success: false };
   // Status reads never create a bot, job, or schema.
   const table = await env.DB.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='chat_ai_jobs'").first();
