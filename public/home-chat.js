@@ -1,3 +1,4 @@
+import {initChatMentions} from './chat-mentions.js?v=1';
 import {identityColor,identityLabel} from './chat-identity.js';
 import {initNicknameControls} from './nickname-controls.js';
 (()=>{
@@ -222,8 +223,9 @@ E.more.addEventListener("click",async()=>{
 /* ---------- composer ---------- */
 function updateSend(){E.send.disabled=!E.input.value.trim()&&!S.file}
 function grow(){E.input.style.height="auto";E.input.style.height=Math.min(Math.max(E.input.scrollHeight,42),140)+"px";const n=E.input.value.length;E.counter.textContent=n>800?n+" / "+MAX_TEXT:""}
+const mentionAutocomplete=initChatMentions(E.input,$("cxMentions"),$("cxMentionDeepAI"));
 E.input.addEventListener("input",()=>{grow();updateSend()});
-E.input.addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey&&!coarse&&!e.isComposing){e.preventDefault();submit()}});
+E.input.addEventListener("keydown",e=>{if(mentionAutocomplete?.handleKeydown(e))return;if(e.key==="Enter"&&!e.shiftKey&&!coarse&&!e.isComposing){e.preventDefault();submit()}});
 /* ---------- mobile keyboard / visual viewport ---------- */
 if(parseFloat(getComputedStyle(E.input).fontSize)<16)E.input.style.fontSize="16px";
 (()=>{
@@ -376,6 +378,7 @@ async function submit(){
   if(text.length>MAX_TEXT){toast("Message is too long");return}
   const parent=S.replyTo?{id:S.replyTo.id,username:S.replyTo.username,snippet:S.replyTo.snippet,image:S.replyTo.image,deleted:false}:null;
   const p={id:"tmp-"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),message:text,created_at:new Date().toISOString(),username:S.me?S.me.username:"you",mine:true,image:!!file,localUrl:file?S.fileUrl:"",parent,pending:"sending",_file:file,_parent:parent?parent.id:null};
+  mentionAutocomplete?.close();
   E.input.value="";grow();clearReply();clearFile(true);updateSend();
   S.pending.push(p);reconcile(true);toBottom(true);
   await post(p);
