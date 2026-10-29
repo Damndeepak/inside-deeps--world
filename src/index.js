@@ -1,3 +1,4 @@
+import {handleActivity, auditStatement, recordAudit} from './activity.js';
 import { DEEP_AI_ID, deepAIStatus, queueDeepAI } from './deep-ai.js';
 import { ensureIdentitySchema, identityFor, validIdentity, linkChatIdentity } from './chat-identity.js';
 import { handleDeeplist } from "./deeplist.js";
@@ -36,6 +37,8 @@ export default {
     if (request.method === 'DELETE' && /^\/api\/messages\/[A-Za-z0-9_-]{1,64}$/.test(url.pathname)) {
       url.pathname = url.pathname.replace('/api/messages/', '/api/chat/message/');
     }
+    const activityResponse=await handleActivity(request,env,{getUser,getUserId,chatIsAdmin});
+    if(activityResponse)return activityResponse;
     const deeplistResponse = await handleDeeplist(request, env, chatIsAdmin);
     if (deeplistResponse) return deeplistResponse;
 
@@ -915,6 +918,7 @@ export default {
           )
           .run();
 
+        await recordAudit(env.DB,user,'message_sent',messageId,{type:'text'});
         const ai = await queueDeepAI(env, ctx, { id: messageId, sender_id: user.id, message, parent_id: parentId }, request);
         return Response.json({
           success: true,
@@ -1560,6 +1564,7 @@ export default {
         await env.DB.batch(statements);
 
         if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(notifyChat(user.id));
+        await recordAudit(env.DB,user,'message_sent',messageId,{type:file?'image':'text'});
         const ai = await queueDeepAI(env, ctx, { id: messageId, sender_id: user.id, message: text, parent_id: parentId }, request);
 
         return Response.json({
@@ -1650,6 +1655,7 @@ export default {
         const audio = await env.DB.prepare("SELECT r2_key FROM message_audio WHERE message_id = ?").bind(messageId).first();
         if (audio && env.CHAT_IMAGES) await env.CHAT_IMAGES.delete(audio.r2_key);
         await env.DB.batch([
+          await auditStatement(env.DB,admin?{username:'Admin'}:await getUser(userId),'message_deleted',messageId,{author:(await getUser(msg.sender_id))?.username||(msg.sender_id===DEEP_AI_ID?'deepAi':'Unknown'),type:audio?'voice':img?'image':'text',by_admin:admin}),
           env.DB.prepare("DELETE FROM message_audio WHERE message_id = ?").bind(messageId),
           env.DB.prepare("DELETE FROM message_reactions WHERE message_id = ?").bind(messageId),
           env.DB.prepare("DELETE FROM message_images WHERE message_id = ?").bind(messageId),

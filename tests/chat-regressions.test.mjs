@@ -92,3 +92,19 @@ const reactionData=await reactionPage.json();assert.equal(reactionData.reactions
 assert.equal((await call('/api/chat/reactions',{cookie:alice.cookie,method:'POST',body:{message_id:reactionIds[99],emoji:'😂',active:false}})).status,200);
 const removedReaction=await(await call('/api/chat/reactions?ids='+reactionIds[99],{cookie:alice.cookie})).json();assert.equal(removedReaction.reactions[reactionIds[99]],undefined);
 console.log('PASS: 100-message reaction lookup within D1 bind limits, including last ID, add and remove');
+// Admin activity is private, server-timed, and never retains deleted message content.
+assert.equal((await call('/api/admin/activity')).status,403);
+assert.equal((await call('/api/admin/activity',{headers:{'X-Admin-Key':'wrong'}})).status,403);
+const visitBody={session:'test-session-0123456789',page:'/',kind:'view'};
+assert.equal((await call('/api/activity',{cookie:alice.cookie,method:'POST',body:visitBody,headers:{Origin:'https://evil.example'}})).status,403);
+assert.equal((await call('/api/activity',{cookie:alice.cookie,method:'POST',body:{...visitBody,page:'/?token=secret'}})).status,400);
+assert.equal((await call('/api/activity',{cookie:alice.cookie,method:'POST',body:visitBody,headers:{'User-Agent':'Mozilla/5.0 (Android) Chrome/130.0 Mobile'}})).status,200);
+assert.equal((await call('/api/activity',{cookie:alice.cookie,method:'POST',body:{...visitBody,kind:'heartbeat'}})).status,200);
+db.prepare('UPDATE messages SET message=? WHERE id=?').run('deleted-text-must-not-be-retained',reactionIds[0]);
+assert.equal((await call('/api/chat/message/'+reactionIds[0],{cookie:alice.cookie,method:'DELETE'})).status,200);
+const privateAudit=await call('/api/admin/activity',{headers:{'X-Admin-Key':env.ADMIN_KEY}});assert.equal(privateAudit.status,200);assert.equal(privateAudit.headers.get('Cache-Control'),'no-store');
+const activity=await privateAudit.json();assert.equal(activity.visitors[0].views,1);assert.equal(activity.sessions[0].device,'Mobile');assert.equal(activity.sessions[0].browser,'Chrome');
+const deletion=activity.events.find(e=>e.action==='message_deleted'&&e.target_id===reactionIds[0]);assert.ok(deletion);assert.equal(deletion.actor_name,alice.user.username);assert.equal(deletion.details.by_admin,false);
+assert.ok(!JSON.stringify(activity).includes('deleted-text-must-not-be-retained'));assert.ok(!JSON.stringify(activity).includes(alice.user.id));
+assert.ok(activity.events.some(e=>e.action==='reaction_added'));assert.ok(activity.events.some(e=>e.action==='reaction_removed'));
+console.log('PASS: private activity dashboard, authenticated visits, CSRF, page allowlist, device labels, view deduplication and content-free deletion audit');

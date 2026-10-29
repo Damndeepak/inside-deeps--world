@@ -450,7 +450,7 @@ E.box.addEventListener("click",()=>{E.box.hidden=true;E.boxImg.removeAttribute("
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!E.box.hidden){E.box.hidden=true;E.boxImg.removeAttribute("src")}});
 
 /* ---------- admin ---------- */
-function paintAdmin(){E.admin.textContent=S.admin?"admin mode · exit":"admin";E.admin.classList.toggle("on",S.admin);reconcile(false);refreshSeenAdmin();refreshAdminOnline()}
+function paintAdmin(){if($('cxAuditLink'))$('cxAuditLink').hidden=!S.admin;E.admin.textContent=S.admin?"admin mode · exit":"admin";E.admin.classList.toggle("on",S.admin);reconcile(false);refreshSeenAdmin();refreshAdminOnline()}
 let adminOnlineBusy=false;
 async function refreshAdminOnline(){
   const panel=$('cxAdminOnline'),list=$('cxAdminOnlineList');if(!panel||!list)return;

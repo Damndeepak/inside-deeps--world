@@ -1,3 +1,4 @@
+import {recordAudit} from './activity.js';
 // Additive community features. Existing messages and conversations are preserved.
 const ready = new WeakMap();
 export async function ensureFeatures(db) {
@@ -146,8 +147,8 @@ export async function handleFeatures(request,env,ctx,helpers) {
       if(!validId(body.message_id)||!(emojis.includes(body.emoji)||(body.active===false&&legacyEmojis.includes(body.emoji)))||typeof body.active!=='boolean')return fail('Invalid reaction');
       if(!await limit(env.DB,'reaction:'+user.id,90,60000))return fail('Slow down a little',429);
       if(!await env.DB.prepare('SELECT id FROM messages WHERE id=?').bind(body.message_id).first())return fail('Message no longer exists',404);
-      if(body.active)await env.DB.prepare('INSERT OR IGNORE INTO message_reactions(message_id,user_id,emoji) VALUES(?,?,?)').bind(body.message_id,user.id,body.emoji).run();
-      else await env.DB.prepare('DELETE FROM message_reactions WHERE message_id=? AND user_id=? AND emoji=?').bind(body.message_id,user.id,body.emoji).run();
+      const changed=body.active?await env.DB.prepare('INSERT OR IGNORE INTO message_reactions(message_id,user_id,emoji) VALUES(?,?,?)').bind(body.message_id,user.id,body.emoji).run():await env.DB.prepare('DELETE FROM message_reactions WHERE message_id=? AND user_id=? AND emoji=?').bind(body.message_id,user.id,body.emoji).run();
+      if(changed.meta.changes)await recordAudit(env.DB,user,body.active?'reaction_added':'reaction_removed',body.message_id,{emoji:body.emoji});
       return json({success:true});
     }
     if(path==='/api/chat/voice'){
@@ -173,6 +174,7 @@ export async function handleFeatures(request,env,ctx,helpers) {
         env.DB.prepare('INSERT INTO message_audio(message_id,r2_key,content_type,size,created_at) VALUES(?,?,?,?,?)').bind(id,storedKey,type,bytes.length,now)
       ]);
       storedKey=null;if(ctx?.waitUntil)ctx.waitUntil(notifyChat(user.id));
+      await recordAudit(env.DB,user,'message_sent',id,{type:'voice'});
       return json({success:true,message_id:id,created_at:now});
     }
     const audio=path.match(/^\/api\/chat\/audio\/([A-Za-z0-9_-]+)$/);
