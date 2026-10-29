@@ -124,7 +124,7 @@ function reconcile(animate){
     else E.list.insertBefore(node,ref);
   }
   E.empty.hidden=want.length>0;
-  if(!want.length)E.empty.textContent="No messages yet. Say something.";
+  if(!want.length)E.empty.textContent="You’re first here. What song should we all hear?";
   E.more.hidden=!S.hasMore;E.more.textContent="load older messages";
   paintReactions();paintSeenBy();scheduleSeen();
 }
