@@ -47,7 +47,7 @@ function paintAIWaiting(){const status=$("cxAiStatus");if(!status)return;status.
 function watchAI(messageId,ai){
   if(!ai)return;
   if(ai.state!=="pending"){
-    if(ai.state==="limited")toast("DeepAI needs a breather. AI limits reached; your message was sent.");
+    if(ai.state==="limited")toast("Give DeepAI a couple of seconds between requests; your message was sent.");
     else if(ai.state!=="done")toast("DeepAI is unavailable right now. Your message was sent.");
     return;
   }
@@ -250,6 +250,7 @@ if(parseFloat(getComputedStyle(E.input).fontSize)<16)E.input.style.fontSize="16p
     settle=setTimeout(()=>{ignoreScroll=false},100);
   }
   function restore(){
+    root.classList.remove("cx-keyboard");
     if(!resized)return;
     holdScroll();
     E.thread.style.height=saved.height;E.thread.style.minHeight=saved.minHeight;
@@ -276,12 +277,13 @@ if(parseFloat(getComputedStyle(E.input).fontSize)<16)E.input.style.fontSize="16p
     const keyboardHeight=Math.max(0,baseline-vv.height,window.innerHeight-vv.height);
     const keyboardOpen=keyboardHeight>100;
     if(keyboardOpen){
+      root.classList.add("cx-keyboard");
       const chrome=root.getBoundingClientRect().height-E.thread.getBoundingClientRect().height-extraPadding;
-      const height=Math.max(0,Math.min(normalHeight,vv.height-chrome-16));
+      const height=Math.max(160,Math.min(normalHeight,vv.height-chrome-16));
       holdScroll();
       E.thread.style.minHeight="0px";E.thread.style.height=height+"px";
       // Supply scroll room when only the visual viewport shrinks (e.g. Safari).
-      extraPadding=Math.max(0,window.innerHeight-vv.height);
+      extraPadding=0;
       root.style.paddingBottom=(basePadding+extraPadding)+"px";
       E.thread.scrollTop=pinned?E.thread.scrollHeight:readingTop;
       resized=true;

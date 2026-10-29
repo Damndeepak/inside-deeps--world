@@ -54,7 +54,7 @@ const first = t.source('ask');
 assert.equal((await queueDeepAI(t.env, t.ctx, first, t.request())).state, 'pending');
 await t.flush();
 assert.equal(t.calls[0].model, DEEP_AI_MODEL);
-assert.equal(t.calls[0].input.max_tokens, 200);
+assert.equal(t.calls[0].input.max_tokens, 450);
 assert.ok(!JSON.stringify(t.calls).includes('DO NOT SEND THIS'));
 assert.ok(!JSON.stringify(t.calls).includes('192.0.2.1'));
 const bot = t.env.DB.sqlite.prepare('SELECT * FROM messages WHERE sender_id=?').get(DEEP_AI_ID);
@@ -92,15 +92,15 @@ assert.equal((await deepAIStatus(t.env, 'failure')).state, 'failed');
 assert.ok(!JSON.stringify(await deepAIStatus(t.env, 'failure')).includes('private diagnostic'));
 assert.equal(t.env.DB.sqlite.prepare('SELECT COUNT(*) AS n FROM messages').get().n, 1);
 
-// Requests racing on different isolates/users still share one atomic global cap.
+// Free access has no room-wide daily cap; distinct visitors can all ask.
 t = setup();
 const claims = await Promise.all(Array.from({ length: 65 }, (_, i) => queueDeepAI(t.env, t.ctx, t.source('race-' + i, '@deepAi hello', null, 'user-' + i), t.request('192.0.2.' + i))));
 await t.flush();
-assert.equal(claims.filter(v => v.state === 'pending').length, 60);
-assert.equal(t.calls.length, 60, 'Global daily cap includes pending and failed attempts');
+assert.equal(claims.filter(v => v.state === 'pending').length, 65);
+assert.equal(t.calls.length, 65, 'No artificial room daily cap');
 assert.ok(t.env.DB.sqlite.prepare('SELECT ip_hash FROM chat_ai_jobs LIMIT 1').get().ip_hash.match(/^[a-f0-9]{64}$/));
 
-// Per-user daily limits survive cooldowns; resetting a cookie cannot bypass the IP cap.
+// No daily per-user or IP cap after the brief cooldown.
 for (const kind of ['user', 'ip']) {
   t = setup(); const start = realNow();
   try {
@@ -108,7 +108,7 @@ for (const kind of ['user', 'ip']) {
       Date.now = () => start + i * 21000;
       const user = kind === 'user' ? 'visitor' : 'fresh-' + i;
       const result = await queueDeepAI(t.env, t.ctx, t.source('budget-' + i, '@deepAi hi', null, user), t.request());
-      assert.equal(result.state, i < (kind === 'user' ? 10 : 20) ? 'pending' : 'limited');
+      assert.equal(result.state, 'pending');
       await t.flush();
     }
   } finally { Date.now = realNow; }
@@ -133,4 +133,4 @@ assert.equal(feed.messages.filter(m => m.ai).length, 1);
 assert.equal(feed.messages.find(m => m.ai).username, 'deepAi');
 assert.ok(!JSON.stringify(feed).includes(DEEP_AI_ID), 'Public feed never leaks identity credentials');
 assert.equal(feed.messages.find(m => m.ai).mine, false);
-console.log('PASS: DeepAI mention/reply routing, private context isolation, idempotency, atomic quota, outage handling, and unforgeable bot badge');
+console.log('PASS: DeepAI mention/reply routing, private context isolation, idempotency, spam cooldowns and free daily access, outage handling, and unforgeable bot badge');

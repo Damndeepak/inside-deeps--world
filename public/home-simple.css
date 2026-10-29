@@ -65,3 +65,19 @@
 #cxChat .cx-admin-online ul{display:flex;flex-wrap:wrap;gap:8px;list-style:none;padding:0;margin:0}
 #cxChat .cx-admin-online li{font-size:12px;padding:7px 10px;border-radius:9px;background:#c2a1ed14;overflow-wrap:anywhere;max-width:100%}
 @media(max-width:520px){#deeplistListeners .deeplist-listener-card{padding:18px!important;gap:14px;min-height:144px}#deeplistListeners .deeplist-listener-cover{width:78px;height:92px}#deeplistListeners .deeplist-listener-info strong{font-size:17px}#deeplistListeners .deeplist-listener-info span{font-size:14px}}
+
+/* Keep the composer in one row, with one focus boundary. */
+#cxChat .cx-form{display:flex;flex-wrap:nowrap;min-width:0}
+#cxChat .cx-form textarea{flex:1 1 0;width:0;box-sizing:border-box;outline:none;border-radius:8px;box-shadow:none}
+#cxChat .cx-form textarea:focus-visible{outline:none;box-shadow:none}
+#cxChat .cx-form:focus-within{box-shadow:0 0 0 1px #c2a1ed}
+#cxChat .cx-reply{min-height:0;padding:6px 10px;margin-top:6px;line-height:1.4}
+#cxChat .cx-reply-text{flex:1;font:400 12px/1.4 var(--body)}
+#cxChat .cx-x{flex:none;min-width:36px;min-height:36px}
+@media(max-width:650px){
+ #cxChat.cx-keyboard{padding:10px 12px}
+ #cxChat.cx-keyboard .deep-chat-intro,#cxChat.cx-keyboard .cx-head,#cxChat.cx-keyboard .cx-id,#cxChat.cx-keyboard .cx-bottom,#cxChat.cx-keyboard .cx-foot,#cxChat.cx-keyboard .cx-admin-online{display:none}
+ #cxChat.cx-keyboard .cx-thread{padding:8px 2px;min-height:160px}
+ #cxChat.cx-keyboard .cx-ai-status{margin:2px 0;font-size:11px}
+ #cxChat .cx-send{padding:0 10px}
+}
