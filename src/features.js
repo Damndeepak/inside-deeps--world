@@ -130,8 +130,14 @@ export async function handleFeatures(request,env,ctx,helpers) {
       if(method==='GET'){
         const ids=[...new Set((url.searchParams.get('ids')||'').split(',').filter(validId))].slice(0,100);
         if(!ids.length)return json({success:true,reactions:{}});
-        const rows=await env.DB.prepare(`SELECT message_id,emoji,COUNT(*) AS n,MAX(CASE WHEN user_id=? THEN 1 ELSE 0 END) AS mine FROM message_reactions WHERE message_id IN (${ids.map(()=>'?').join(',')}) GROUP BY message_id,emoji`).bind(userId||'',...ids).all();
-        const reactions={};for(const r of rows.results)(reactions[r.message_id]??=[]).push({emoji:r.emoji,count:Number(r.n),mine:!!r.mine});
+        const reactions={};
+        // D1 allows 100 bound parameters: reserve one for the current user.
+        // Preserve all 100 requested IDs instead of silently dropping the last one.
+        for(let offset=0;offset<ids.length;offset+=99){
+          const chunk=ids.slice(offset,offset+99);
+          const rows=await env.DB.prepare(`SELECT message_id,emoji,COUNT(*) AS n,MAX(CASE WHEN user_id=? THEN 1 ELSE 0 END) AS mine FROM message_reactions WHERE message_id IN (${chunk.map(()=>'?').join(',')}) GROUP BY message_id,emoji`).bind(userId||'',...chunk).all();
+          for(const r of rows.results)(reactions[r.message_id]??=[]).push({emoji:r.emoji,count:Number(r.n),mine:!!r.mine});
+        }
         return json({success:true,reactions});
       }
       if(method!=='POST')return fail('Method not allowed',405);
