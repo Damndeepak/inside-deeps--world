@@ -53,7 +53,7 @@ async function mediaResponse(request,bucket,key,type) {
 }
 export async function handleFeatures(request,env,ctx,helpers) {
   const url=new URL(request.url), path=url.pathname, method=request.method;
-  const known=/^\/api\/thoughts(?:\/[A-Za-z0-9_-]{1,64})?$/.test(path)||path==='/api/lastfm/history'||path==='/api/lastfm/on-repeat'||path==='/api/chat/presence'||path==='/api/chat/reactions'||path==='/api/chat/voice'||/^\/api\/chat\/audio\/[A-Za-z0-9_-]+$/.test(path)||/^\/api\/memories(?:\/[A-Za-z0-9_-]+(?:\/image)?)?$/.test(path);
+  const known=/^\/api\/thoughts(?:\/[A-Za-z0-9_-]{1,64})?$/.test(path)||path==='/api/lastfm/history'||path==='/api/lastfm/on-repeat'||path==='/api/chat/presence'||path==='/api/chat/admin/presence'||path==='/api/chat/reactions'||path==='/api/chat/voice'||/^\/api\/chat\/audio\/[A-Za-z0-9_-]+$/.test(path)||/^\/api\/memories(?:\/[A-Za-z0-9_-]+(?:\/image)?)?$/.test(path);
   if(!known)return null;
   const {getUser,getUserId,chatIsAdmin,ensureChatSchema,notifyChat,chatSniffImage}=helpers;
   let storedKey=null;
@@ -77,6 +77,14 @@ export async function handleFeatures(request,env,ctx,helpers) {
       const rows=Array.isArray(raw)?raw:raw?[raw]:[];
       const tracks=rows.filter(t=>repeat||t['@attr']?.nowplaying!=='true').slice(0,repeat?15:10).map(t=>({name:t.name||'Unknown track',artist:t.artist?.name||t.artist?.['#text']||'',image:image(t),url:t.url||'',played_at:Number(t.date?.uts||0)||null,plays:repeat?Number(t.playcount||0):null}));
       return json({success:true,configured:true,username:env.LASTFM_USERNAME,period:repeat?'7day':null,tracks});
+    }
+    if(path==='/api/chat/admin/presence'){
+      if(method!=='GET')return fail('Method not allowed',405);
+      if(!await chatIsAdmin(request))return fail('Admin access required',403);
+      await ensureFeatures(env.DB);
+      const now=Date.now();
+      const rows=await env.DB.prepare('SELECT u.username,p.seen_at FROM chat_presence p JOIN users u ON u.id=p.user_id WHERE p.seen_at>? ORDER BY p.seen_at DESC').bind(now-60000).all();
+      return json({success:true,window_seconds:60,online:rows.results.map(r=>({username:r.username,last_seen_at:new Date(r.seen_at).toISOString()}))});
     }
     await ensureFeatures(env.DB);
     if(path==='/api/thoughts'||path.startsWith('/api/thoughts/')){

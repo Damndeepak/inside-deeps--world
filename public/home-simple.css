@@ -50,3 +50,18 @@
 #cxChat .cx-mention-option strong{display:block;font-size:14px;font-weight:600}
 #cxChat .cx-mention-option strong small{font-size:9px;margin-left:5px;color:#d4b8f2}
 #cxChat .cx-mention-option strong+span{display:block;font-size:11px;line-height:1.5;margin-top:4px;color:#b8adc3}
+
+/* Give shared listeners real space instead of repeating promotional blocks. */
+.wrap>.activity-grid{grid-template-columns:1fr;gap:28px}
+#deeplistListeners .deeplist-listener-card{flex:0 0 min(440px,92%);width:min(440px,92%);min-height:154px;padding:22px!important;gap:20px;border-radius:20px}
+#deeplistListeners .deeplist-listener-cover{width:94px;height:106px;flex:none;border-radius:14px}
+#deeplistListeners .deeplist-listener-info{min-width:0;gap:9px}
+#deeplistListeners .deeplist-listener-info strong{font-size:18px;line-height:1.35}
+#deeplistListeners .deeplist-listener-info span{font-size:15px;line-height:1.5;-webkit-line-clamp:3}
+#deeplistListeners .deeplist-listener-info small{font-size:12px;line-height:1.5}
+#cxChat .cx-admin-online{margin:12px 0;padding:16px;border:1px solid #c2a1ed35;border-radius:14px;background:#17121d}
+#cxChat .cx-admin-online h3{font-size:14px;margin:0 0 6px}
+#cxChat .cx-admin-online p{font-size:11px;color:#aaa0b2;margin:0 0 10px}
+#cxChat .cx-admin-online ul{display:flex;flex-wrap:wrap;gap:8px;list-style:none;padding:0;margin:0}
+#cxChat .cx-admin-online li{font-size:12px;padding:7px 10px;border-radius:9px;background:#c2a1ed14;overflow-wrap:anywhere;max-width:100%}
+@media(max-width:520px){#deeplistListeners .deeplist-listener-card{padding:18px!important;gap:14px;min-height:144px}#deeplistListeners .deeplist-listener-cover{width:78px;height:92px}#deeplistListeners .deeplist-listener-info strong{font-size:17px}#deeplistListeners .deeplist-listener-info span{font-size:14px}}

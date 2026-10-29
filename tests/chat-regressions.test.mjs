@@ -68,3 +68,15 @@ const pushA=await(await call('/api/push/key')).json(),pushB=await(await call('/a
 assert.equal(pushA.success,true);assert.equal(pushB.success,true);assert.notEqual(pushA.key,pushB.key);
 assert.equal((await(await call('/api/push/key')).json()).key,pushA.key);
 console.log('PASS: legacy identity privacy, non-destructive reads, tied pagination, CSRF, upload cleanup, secure cookies and per-database schema/push isolation');
+
+// Online usernames are visible only to authenticated admins, with stale sessions excluded.
+db.prepare('INSERT OR REPLACE INTO chat_presence(user_id,seen_at,typing_until) VALUES(?,?,?)').run(alice.user.id,Date.now(),0);
+db.prepare('INSERT OR REPLACE INTO chat_presence(user_id,seen_at,typing_until) VALUES(?,?,?)').run(bob.user.id,Date.now()-61000,0);
+assert.equal((await call('/api/chat/admin/presence')).status,403);
+assert.equal((await call('/api/chat/admin/presence',{cookie:alice.cookie,headers:{'X-Admin-Key':'wrong'}})).status,403);
+const adminOnline=await call('/api/chat/admin/presence',{headers:{'X-Admin-Key':env.ADMIN_KEY}});
+assert.equal(adminOnline.status,200);assert.equal(adminOnline.headers.get('Cache-Control'),'no-store');
+const onlineData=await adminOnline.json();assert.equal(onlineData.online.length,1);assert.equal(onlineData.online[0].username,alice.user.username);
+assert.ok(!JSON.stringify(onlineData).includes(alice.user.id));assert.ok(!JSON.stringify(onlineData).includes(bob.user.username));
+const publicPresence=await(await call('/api/chat/presence')).json();assert.equal('online_users' in publicPresence,false);assert.equal(typeof publicPresence.online,'number');
+console.log('PASS: admin-only online names, rejected anonymous/incorrect keys, stale expiry, no identity credentials and uncached responses');
