@@ -1,3 +1,4 @@
+import { DEEP_AI_ID, deepAIStatus, queueDeepAI } from './deep-ai.js';
 import { ensureIdentitySchema, identityFor, validIdentity, linkChatIdentity } from './chat-identity.js';
 import { handleDeeplist } from "./deeplist.js";
 import { ensureFeatures, handleFeatures } from "./features.js";
@@ -45,7 +46,7 @@ export default {
     }
 
     async function getUser(userId) {
-      if (!userId) return null;
+      if (!userId || userId === DEEP_AI_ID) return null;
 
       return await env.DB
         .prepare("SELECT id, username FROM users WHERE id = ?")
@@ -405,6 +406,15 @@ export default {
       return Response.json({ success: false, error: "Private sections have been removed. Explore /memories or /media/." }, { status: 410, headers: { "Cache-Control": "no-store" } });
     }
 
+    if (url.pathname === '/api/chat/ai/status' && request.method === 'GET') {
+      try {
+        const status = await deepAIStatus(env, url.searchParams.get('message_id'));
+        return Response.json(status, { status: status.success ? 200 : 400, headers: { 'Cache-Control': 'no-store' } });
+      } catch {
+        return Response.json({ success: false, available: false }, { status: 503, headers: { 'Cache-Control': 'no-store' } });
+      }
+    }
+
     // Chat identity: only usernames change; cookies and ownership IDs stay the same.
     function randomNameNumber(max) {
       const bytes = new Uint32Array(1);
@@ -565,6 +575,7 @@ export default {
           symbol=body.symbol??symbol;color=body.color??color;
           if(!validIdentity(symbol,color))return reply({success:false,error:"Choose a symbol and colour from the available options."},400);
           nickname = body.nickname.normalize("NFKC").trim().replace(/\s+/g, " ");
+          if (nickname.toLowerCase() === "deepai") return reply({ success: false, error: "That name is reserved for the AI assistant." }, 409);
           // Keep the established allowed-character check.
           if (nickname && (Array.from(nickname).length < 2 || Array.from(nickname).length > 24 || !/^[\p{L}\p{M}\p{N} ._'-]+$/u.test(nickname))) {
             return reply({ success: false, error: invalidName }, 400);
@@ -904,9 +915,11 @@ export default {
           )
           .run();
 
+        const ai = await queueDeepAI(env, ctx, { id: messageId, sender_id: user.id, message, parent_id: parentId }, request);
         return Response.json({
           success: true,
           message_id: messageId,
+          ai,
           conversation_id: conversationId
         });
       } catch {
@@ -1028,7 +1041,7 @@ export default {
         return Response.json({
           success: true,
           conversation_id: mainId,
-          messages: result.results.map(({ sender_id, ...message }) => ({ ...message, mine: sender_id === user.id }))
+          messages: result.results.map(({ sender_id, ...message }) => ({ ...message, ai: sender_id === DEEP_AI_ID, mine: sender_id === user.id }))
         }, { headers: { 'Cache-Control': 'no-store' } });
       } catch {
         return Response.json(
@@ -1391,15 +1404,17 @@ export default {
           id: r.id,
           message: r.message || "",
           created_at: r.created_at,
-          username: r.username,symbol:r.identity_symbol||"",color:r.identity_color||null,
-          mine: Boolean(userId) && r.sender_id === userId,
+          username: r.sender_id === DEEP_AI_ID ? "deepAi" : r.username,symbol:r.identity_symbol||"",color:r.identity_color||null,
+          ai: r.sender_id === DEEP_AI_ID,
+          mine: Boolean(me) && r.sender_id === me.id,
           image: Boolean(r.has_image),
           audio: Boolean(r.has_audio),
           parent: r.parent_id
             ? (r.p_id
                 ? {
                     id: r.p_id,
-                    username: r.p_username,
+                    username: r.p_sender_id === DEEP_AI_ID ? "deepAi" : r.p_username,
+                    ai: r.p_sender_id === DEEP_AI_ID,
                     snippet: r.p_snippet || "",
                     image: Boolean(r.p_has_image)
                   }
@@ -1545,10 +1560,12 @@ export default {
         await env.DB.batch(statements);
 
         if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(notifyChat(user.id));
+        const ai = await queueDeepAI(env, ctx, { id: messageId, sender_id: user.id, message: text, parent_id: parentId }, request);
 
         return Response.json({
           success: true,
           message_id: messageId,
+          ai,
           created_at: createdAt,
           image: Boolean(file)
         }, { headers: chatHeaders });

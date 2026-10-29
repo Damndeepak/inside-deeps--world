@@ -8,7 +8,8 @@
     "html_handling": "auto-trailing-slash"
   },
   "vars": {
-    "LASTFM_USERNAME": "damndeepak"
+    "LASTFM_USERNAME": "damndeepak",
+    "DEEP_AI_ENABLED": "true"
   },
   "d1_databases": [
     {
@@ -23,5 +24,8 @@
       "bucket_name": "deep-chat-images"
     }
   ],
-  "previews": {}
+  "previews": {},
+  "ai": {
+    "binding": "AI"
+  }
 }
