@@ -1,0 +1,35 @@
+/* Quiet boundaries and one inviting shared room. No extra animation work. */
+.wrap>.activity-grid,.wrap>.deeplist-stats,.wrap>.public-moments,.wrap>.public-media-feature,.wrap>.thoughts-entry{border-bottom:1px solid #e5deec26;padding-bottom:36px}
+#cxChat{margin:52px 0 48px;padding:clamp(18px,3.5vw,38px);border:1px solid #c2a1ed38;border-radius:26px;background:radial-gradient(ellipse at top left,#c2a1ed0d,transparent 65%),#0e0d10;box-shadow:0 16px 48px #0003;scroll-margin-top:24px}
+#cxChat .deep-chat-intro:after{content:none}
+#cxChat .deep-kicker{font-size:10px;letter-spacing:.16em;margin:0 0 14px;color:#c2a1ed}
+#cxChat h2{font-size:clamp(34px,5vw,58px);line-height:1.1;margin:0;letter-spacing:-.05em}
+#cxChat h2 span{color:#c2a1ed}
+#cxChat .deep-chat-intro>p:last-child{max-width:44ch;font-size:14px;line-height:1.7;margin:14px 0 26px;color:#b7b0bd}
+#cxChat .cx-head{padding-top:18px;margin-bottom:16px;gap:12px}
+#cxChat .cx-label{letter-spacing:.07em;font-size:11px;color:#c6bdcf}
+#cxChat .cx-dot{background:#a6cfb7}
+#cxChat .cx-count{color:#aaa2b2}
+#cxChat .cx-id{gap:8px;margin-bottom:8px}
+#cxChat .identity-pill{background:transparent;border:0;padding:8px 0}
+#cxChat .cx-nickname summary{background:transparent;border:0;text-decoration:underline;text-underline-offset:4px;padding:10px 12px;color:#b8a3d3}
+#cxChat .cx-thread{height:clamp(280px,45svh,440px);min-height:260px;padding:16px 2px 22px;scrollbar-color:#44394f transparent}
+#cxChat .cx-bubble{background:#19161e;border:1px solid #ffffff08;border-radius:18px;padding:11px 14px}
+#cxChat .cx-row.mine .cx-bubble{background:#292032;border-color:#c2a1ed20}
+#cxChat .cx-text{font-size:15px;line-height:1.65}
+#cxChat .cx-name{font-size:11px}
+#cxChat .cx-avatar{width:32px;height:32px}
+#cxChat .cx-empty{padding:60px 16px;color:#b7afbf;line-height:1.8}
+#cxChat .cx-form{background:#151218;border-color:#c2a1ed42;border-radius:18px;box-shadow:0 5px 20px #0002}
+#cxChat .cx-form:focus-within{border-color:#c2a1ed}
+#cxChat .cx-form textarea{font-family:var(--body);font-size:16px}
+#cxChat .cx-form textarea::placeholder{color:#a59aaa}
+#cxChat .cx-send{background:#c9a5f1;color:#201228;padding:0 18px}
+#cxChat .cx-bottom{display:flex;align-items:start;justify-content:space-between;gap:12px}
+#cxChat .public-note{text-align:left;font-size:11px;line-height:1.7;margin:8px 0;color:#a69cab}
+#cxChat .cx-options{flex:none;max-width:55%;font-size:11px;color:#b3a8bd}
+#cxChat .cx-options summary{cursor:pointer;padding:12px 0;min-height:44px;box-sizing:border-box}
+#cxChat .cx-options .cx-tools{margin:4px 0;gap:6px}
+#cxChat .cx-options .cx-admin{padding:8px 0;min-height:44px}
+#cxChat :is(button,summary,a):focus-visible{outline:2px solid #c2a1ed;outline-offset:3px}
+@media(max-width:520px){#cxChat{margin:40px 0;border-radius:20px;padding:18px 14px}#cxChat .cx-text{font-size:14px}#cxChat .cx-form{flex-wrap:wrap;gap:0;padding:5px}#cxChat .cx-attach,#cxChat .cx-mic{width:36px;min-width:36px;height:44px}#cxChat .cx-send{padding:0 12px}#cxChat .cx-form textarea{padding:10px 4px}#cxChat .cx-bottom{gap:8px}#cxChat .public-note{max-width:24ch}}
