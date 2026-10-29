@@ -1,4 +1,4 @@
-const HANDLES = ['deepAi', 'S.Ai', 'both'];
+const HANDLES = ['deepAi', 'S.Ai'];
 
 export function mentionRange(value, start, end = start) {
   if (start !== end) return null;

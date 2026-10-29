@@ -1,4 +1,4 @@
-import {initChatMentions} from './chat-mentions.js?v=couple-1';
+import {initChatMentions} from './chat-mentions.js?v=banter-2';
 import {identityColor,identityLabel} from './chat-identity.js';
 import {initNicknameControls} from './nickname-controls.js';
 (()=>{

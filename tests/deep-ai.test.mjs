@@ -140,8 +140,8 @@ assert.equal(mentionsSAI('hey @S.Ai!'), true);
 for(const text of ['email@S.Ai', '@S.Aii', '@SxAi']) assert.equal(mentionsSAI(text), false);
 assert.deepEqual(aiTargets('@S.Ai help', DEEP_AI_ID), [S_AI_ID]);
 assert.deepEqual(aiTargets('continue', S_AI_ID), [S_AI_ID]);
-assert.deepEqual(aiTargets('@both chai pe debate karo'), [DEEP_AI_ID,S_AI_ID]);
-assert.deepEqual(aiTargets('@deepAi @S.Ai argue about tea'), [DEEP_AI_ID,S_AI_ID]);
+assert.deepEqual(aiTargets('@both chai pe debate karo'), []);
+assert.deepEqual(aiTargets('@deepAi @S.Ai argue about tea'), [S_AI_ID]);
 t=setup();assert.equal((await queueDeepAI(t.env,t.ctx,t.source('no-key','@S.Ai hi'),t.request())).state,'unavailable');
 assert.equal(t.calls.length,0,'No silent provider substitution when Groq is missing');
 const nativeFetch=globalThis.fetch;
@@ -154,10 +154,10 @@ try {
  let row=t.env.DB.sqlite.prepare('SELECT * FROM messages WHERE sender_id=?').get(S_AI_ID);assert.equal(row.parent_id,'solo');
  assert.equal(await queueDeepAI(t.env,t.ctx,{id:row.id,message:'@both loop',sender_id:S_AI_ID},t.request()),null);
  t=setup();t.env.GROQ_API_KEY='test-secret';const before=groqCalls.length;
- assert.equal((await queueDeepAI(t.env,t.ctx,t.source('couple','@both chai pe debate karo'),t.request())).state,'pending');await t.flush();
+ assert.equal((await queueDeepAI(t.env,t.ctx,t.source('couple','@deepAi love you'),t.request())).state,'pending');await t.flush();
  const rows=t.env.DB.sqlite.prepare('SELECT sender_id,parent_id,id FROM messages WHERE id!=? ORDER BY rowid').all('couple');
- assert.deepEqual(rows.map(r=>r.sender_id),[DEEP_AI_ID,S_AI_ID,DEEP_AI_ID,S_AI_ID]);
- assert.equal(groqCalls.length-before,2);assert.equal(t.calls.length,2);
+ assert.deepEqual(rows.map(r=>r.sender_id),[DEEP_AI_ID,S_AI_ID]);
+ assert.equal(groqCalls.length-before,1);assert.equal(t.calls.length,1);
  assert.equal(rows[1].parent_id,rows[0].id);assert.equal((await deepAIStatus(t.env,'couple')).state,'done');
  assert.ok(groqCalls.at(-1).body.messages[0].content.includes('female character'));
  assert.ok(!JSON.stringify(groqCalls.at(-1).body).includes('test-secret'));
@@ -173,7 +173,7 @@ console.log('PASS: exact S.Ai routing, Groq isolation, missing key, four alterna
 globalThis.fetch=async(url,options)=>{
  const body=JSON.parse(options.body);
  assert.ok(body.messages[0].content.includes('You are DeepAI'));
- assert.ok(body.messages[0].content.includes('1-2 tiny sentences'));
+ assert.ok(body.messages[0].content.includes('one short line'));
  assert.ok(!body.messages[0].content.includes('husband and wife'));
  return new Response(JSON.stringify({choices:[{message:{content:'bhai calculator bhi thak gaya 😭'}}]}));
 };
@@ -189,3 +189,11 @@ try {
  assert.equal((await deepAIStatus(t.env,'no-primary')).state,'done');
 } finally {globalThis.fetch=nativeFetch;}
 console.log('PASS: deepAi quota fallback preserves identity, context and short non-romantic personality');
+
+assert.deepEqual(aiTargets('S.Ai love you'),[S_AI_ID,DEEP_AI_ID]);
+assert.deepEqual(aiTargets('love you',S_AI_ID),[S_AI_ID,DEEP_AI_ID]);
+assert.deepEqual(aiTargets('@S.Ai no love you'),[S_AI_ID]);
+assert.deepEqual(aiTargets('@deepAi explain love you meaning'),[DEEP_AI_ID]);
+assert.deepEqual(aiTargets('love you human friend'),[]);
+assert.deepEqual(aiTargets('@both hello'),[]);
+console.log('PASS: reciprocal single jealousy reaction, plain AI name/reply targeting, negation and ordinary-message isolation');
