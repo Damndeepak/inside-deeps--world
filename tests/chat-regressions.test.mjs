@@ -7,7 +7,7 @@ if(!globalThis.crypto)Object.defineProperty(globalThis,'crypto',{value:webcrypto
 class DB {
  sqlite=new DatabaseSync(':memory:');
  constructor(){this.sqlite.exec('CREATE TABLE users(id TEXT PRIMARY KEY,username TEXT NOT NULL,created_at TEXT);CREATE TABLE messages(id TEXT PRIMARY KEY,message TEXT,parent_id TEXT,sender_id TEXT,conversation_id TEXT,created_at TEXT);');}
- prepare(sql){const db=this.sqlite;let args=[];return{bind(...values){args=values;return this;},async first(){return db.prepare(sql).get(...args)||null;},async all(){return{results:db.prepare(sql).all(...args)};},async run(){const result=db.prepare(sql).run(...args);return{meta:{changes:Number(result.changes)}};}};}
+ prepare(sql){const db=this.sqlite;let args=[];return{bind(...values){if(values.length>100)throw new Error("D1 bind parameter limit exceeded");args=values;return this;},async first(){return db.prepare(sql).get(...args)||null;},async all(){return{results:db.prepare(sql).all(...args)};},async run(){const result=db.prepare(sql).run(...args);return{meta:{changes:Number(result.changes)}};}};}
  batch(statements){const run=async()=>{this.sqlite.exec('BEGIN');try{const result=[];for(const s of statements)result.push(await s.run());this.sqlite.exec('COMMIT');return result;}catch(e){this.sqlite.exec('ROLLBACK');throw e;}};const result=(this.pending||Promise.resolve()).then(run);this.pending=result.catch(()=>{});return result;}
 }
 
@@ -80,3 +80,15 @@ const onlineData=await adminOnline.json();assert.equal(onlineData.online.length,
 assert.ok(!JSON.stringify(onlineData).includes(alice.user.id));assert.ok(!JSON.stringify(onlineData).includes(bob.user.username));
 const publicPresence=await(await call('/api/chat/presence')).json();assert.equal('online_users' in publicPresence,false);assert.equal(typeof publicPresence.online,'number');
 console.log('PASS: admin-only online names, rejected anonymous/incorrect keys, stale expiry, no identity credentials and uncached responses');
+
+// 100 message IDs plus the identity parameter must not exceed D1's 100 binds.
+const reactionIds=Array.from({length:100},(_,i)=>'reaction-boundary-'+i);
+for(const id of [reactionIds[0],reactionIds[99]]){
+ db.prepare('INSERT INTO messages(id,message,sender_id,created_at) VALUES(?,?,?,?)').run(id,'test',alice.user.id,stamp);
+ const saved=await call('/api/chat/reactions',{cookie:alice.cookie,method:'POST',body:{message_id:id,emoji:'😂',active:true}});assert.equal(saved.status,200);
+}
+const reactionPage=await call('/api/chat/reactions?ids='+encodeURIComponent(reactionIds.join(',')),{cookie:alice.cookie});assert.equal(reactionPage.status,200);
+const reactionData=await reactionPage.json();assert.equal(reactionData.reactions[reactionIds[0]][0].count,1);assert.equal(reactionData.reactions[reactionIds[99]][0].mine,true);
+assert.equal((await call('/api/chat/reactions',{cookie:alice.cookie,method:'POST',body:{message_id:reactionIds[99],emoji:'😂',active:false}})).status,200);
+const removedReaction=await(await call('/api/chat/reactions?ids='+reactionIds[99],{cookie:alice.cookie})).json();assert.equal(removedReaction.reactions[reactionIds[99]],undefined);
+console.log('PASS: 100-message reaction lookup within D1 bind limits, including last ID, add and remove');
