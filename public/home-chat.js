@@ -1,3 +1,4 @@
+import {initReactionPeople} from './chat-reaction-people.js?v=1';
 import {initChatMentions} from './chat-mentions.js?v=banter-2';
 import {identityColor,identityLabel} from './chat-identity.js';
 import {initNicknameControls} from './nickname-controls.js';
@@ -480,8 +481,9 @@ E.admin.addEventListener("click",async()=>{
 });
 
 /* ---------- reactions, presence and voice notes ---------- */
-const REACTIONS=['😡','😂','🥺','😒'];
+const REACTIONS=["😡","😂","🥺","😒","🤣","😭","💔","💀","🤔","😱","🫣","😖","😍","😕","👾","💘","💋","💞"];
 let reactionState={},reactionBusy=false,communityStarted=false;
+initReactionPeople(E.list);
 function paintReactions(){
   E.list.querySelectorAll('.cx-row').forEach(row=>{
     const m=findMsg(row.dataset.id),box=row.querySelector('.cx-reactions');if(!box||!m)return;

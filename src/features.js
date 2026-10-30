@@ -18,7 +18,7 @@ const headers = { 'Cache-Control': 'no-store' };
 const json = (data, status=200) => Response.json(data, {status, headers});
 const fail = (error,status=400) => json({success:false,error},status);
 const validId = id => /^[A-Za-z0-9_-]{1,64}$/.test(id || '');
-const emojis = ['😡','😂','🥺','😒'];
+const emojis = ["😡","😂","🥺","😒","🤣","😭","💔","💀","🤔","😱","🫣","😖","😍","😕","👾","💘","💋","💞"];
 const legacyEmojis = ['❤️','🔥','👍'];
 const text = (v,max) => typeof v === 'string' ? v.trim().slice(0,max) : '';
 const image = track => (track.image || []).find(i => i.size === 'extralarge')?.['#text'] || '';
@@ -129,6 +129,15 @@ export async function handleFeatures(request,env,ctx,helpers) {
     }
     if(path==='/api/chat/reactions'){
       if(method==='GET'){
+        if(url.searchParams.has('message_id')){
+          const id=url.searchParams.get('message_id'),emoji=url.searchParams.get('emoji'),after=url.searchParams.get('after')||'';
+          if(!validId(id)||![...emojis,...legacyEmojis].includes(emoji)||after.length>100)return fail('Invalid reaction');
+          const found=await env.DB.prepare('SELECT id FROM messages WHERE id=?').bind(id).first();
+          if(!found)return fail('Message no longer exists',404);
+          const people=await env.DB.prepare(`SELECT u.username FROM message_reactions r JOIN users u ON u.id=r.user_id
+            WHERE r.message_id=? AND r.emoji=? AND u.username>? ORDER BY u.username LIMIT 101`).bind(id,emoji,after).all();
+          return json({success:true,people:people.results.slice(0,100).map(p=>p.username),has_more:people.results.length>100,next:people.results.length>100?people.results[99].username:null});
+        }
         const ids=[...new Set((url.searchParams.get('ids')||'').split(',').filter(validId))].slice(0,100);
         if(!ids.length)return json({success:true,reactions:{}});
         const reactions={};

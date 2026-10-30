@@ -125,3 +125,22 @@ let cleanup;await worker.scheduled({},env,{waitUntil(p){cleanup=p;}});await clea
 assert.equal(db.prepare("SELECT COUNT(*) n FROM deleted_chat_archive WHERE message_id='expired-cron'").get().n,0);
 assert.ok(db.prepare('SELECT COUNT(*) n FROM deleted_chat_archive').get().n>0,'Fresh archived messages survive cleanup');
 console.log('PASS: admin-only deleted text, public absence, duplicate deletion, 30-day expiry and scheduled purge');
+
+
+// Added emoji allowlist and on-demand reactor names contain no identity cookies.
+for(const emoji of ['🤣','😭','💔','💀','🤔','😱','🫣','😖','😍','😕','👾','💘','💋','💞']){
+ assert.equal((await call('/api/chat/reactions',{cookie:alice.cookie,method:'POST',body:{message_id:reactionIds[99],emoji,active:true}})).status,200);
+ const d=await(await call('/api/chat/reactions?message_id='+reactionIds[99]+'&emoji='+encodeURIComponent(emoji))).json();
+ assert.deepEqual(d.people,[alice.user.username]);assert.ok(!JSON.stringify(d).includes(alice.user.id));
+}
+for(let n=0;n<102;n++){
+ db.prepare('INSERT INTO users(id,username) VALUES(?,?)').run('reactor-'+n,'reactor_'+String(n).padStart(3,'0'));
+ db.prepare('INSERT INTO message_reactions VALUES(?,?,?)').run(reactionIds[99],'reactor-'+n,'👾');
+}
+const firstPeople=await(await call('/api/chat/reactions?message_id='+reactionIds[99]+'&emoji='+encodeURIComponent('👾'))).json();
+assert.equal(firstPeople.people.length,100);assert.equal(firstPeople.has_more,true);
+const nextPeople=await(await call('/api/chat/reactions?message_id='+reactionIds[99]+'&emoji='+encodeURIComponent('👾')+'&after='+encodeURIComponent(firstPeople.next))).json();
+assert.equal(new Set([...firstPeople.people,...nextPeople.people]).size,103);
+assert.equal(nextPeople.has_more,false);
+assert.equal((await call('/api/chat/reactions?message_id=missing&emoji='+encodeURIComponent('😭'))).status,404);
+console.log('PASS: new reactions, public usernames without credentials, bounded paginated names and deleted/missing messages');

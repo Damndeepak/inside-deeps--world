@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict';
+import {bindReactionHold} from '../public/chat-reaction-people.js';
+const events=new Map(),list={addEventListener(name,fn,capture){const key=name+(capture?':capture':'');events.set(key,fn);}};
+const row={dataset:{id:'message-1'}},button={dataset:{emoji:'😭'},closest(s){return s==='.cx-react'?this:s==='.cx-row'?row:null;}};
+const fire=(type,extra={})=>{let blocked=false;const event={target:button,button:0,clientX:0,clientY:0,preventDefault(){blocked=true;},stopImmediatePropagation(){blocked=true;},...extra};events.get(type)?.(event);return blocked;};
+let opened=[];bindReactionHold(list,(...a)=>opened.push(a));
+fire('pointerdown');fire('pointerup');await new Promise(r=>setTimeout(r,470));assert.equal(opened.length,0,'A tap must not open people');
+fire('pointerdown');fire('pointermove',{clientX:20});await new Promise(r=>setTimeout(r,470));assert.equal(opened.length,0,'Scrolling cancels a hold');
+fire('pointerdown');await new Promise(r=>setTimeout(r,470));assert.equal(opened.length,1);assert.deepEqual(opened[0].slice(0,2),['message-1','😭']);
+assert.equal(fire('click:capture'),true,'Release after hold must not toggle a reaction');
+assert.equal(fire('click:capture'),false,'Next ordinary tap works');
+fire('pointerdown');fire('pointercancel');await new Promise(r=>setTimeout(r,470));assert.equal(opened.length,1);
+fire('keydown',{key:'F10',shiftKey:true});assert.equal(opened.length,2);
+fire('contextmenu');assert.equal(opened.length,3);
+console.log('PASS: tap/hold distinction, scroll and pointer cancellation, suppressed release click, keyboard and right-click');
