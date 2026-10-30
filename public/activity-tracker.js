@@ -1,6 +1,6 @@
 (()=>{
 'use strict';
-// Browser identity is pseudonymous. No fingerprint, IP, query string or referrer is collected.
+// Browser identity is pseudonymous. No fingerprint, raw IP, query string or referrer is stored. The server records approximate city/state/country from Cloudflare metadata.
 if(location.pathname==='/admin-activity.html')return;
 let session,busy=false,ready=false,pendingView=true;
 try{session=sessionStorage.getItem('deepVisitSession');if(!session){session=crypto.randomUUID();sessionStorage.setItem('deepVisitSession',session)}}catch{session=crypto.randomUUID()}
@@ -18,6 +18,10 @@ async function start(){
  }catch{}
 }
 if(!document.body.textContent.includes('Visits and action metadata are logged')){const note=document.createElement('p');note.textContent='Visits and action metadata are logged for site administration. Deleted message text is not retained.';note.style.cssText='color:#aaa;font:11px/1.6 system-ui;max-width:1100px;margin:24px auto;padding:0 20px';(document.querySelector('footer')||document.body).append(note)}
+const locationNote=' Approximate city, state and country from your IP are recorded for admin-only visit analytics; this is not GPS location.';
+const existingNote=document.querySelector('.public-note');
+if(existingNote)existingNote.append(document.createTextNode(locationNote));
+else {const note=document.createElement('p');note.textContent=locationNote.trim();note.style.cssText='color:#aaa;font:11px/1.6 system-ui;max-width:1100px;margin:12px auto;padding:0 20px';(document.querySelector('footer')||document.body).append(note)}
 start();setInterval(()=>track('heartbeat'),30000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)track('heartbeat')});
 })();

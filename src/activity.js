@@ -5,6 +5,8 @@ export async function ensureActivity(db){
  if(!schemas.has(db))schemas.set(db,db.batch([
   db.prepare(`CREATE TABLE IF NOT EXISTS site_sessions(session_id TEXT NOT NULL,user_id TEXT NOT NULL,page TEXT NOT NULL,first_seen INTEGER NOT NULL,last_seen INTEGER NOT NULL,views INTEGER NOT NULL,device TEXT NOT NULL,browser TEXT NOT NULL,os TEXT NOT NULL,PRIMARY KEY(session_id,user_id,page))`),
   db.prepare('CREATE INDEX IF NOT EXISTS idx_site_sessions_seen ON site_sessions(last_seen)'),
+  db.prepare(`CREATE TABLE IF NOT EXISTS site_visit_locations(session_id TEXT NOT NULL,user_id TEXT NOT NULL,page TEXT NOT NULL,city TEXT,region TEXT,country TEXT,recorded_at INTEGER NOT NULL,PRIMARY KEY(session_id,user_id,page))`),
+  db.prepare('CREATE INDEX IF NOT EXISTS idx_site_visit_locations_user_time ON site_visit_locations(user_id,recorded_at)'),
   db.prepare('CREATE TABLE IF NOT EXISTS site_activity_rate(user_id TEXT PRIMARY KEY,started INTEGER NOT NULL,n INTEGER NOT NULL)'),
   db.prepare(`CREATE TABLE IF NOT EXISTS site_audit(id TEXT PRIMARY KEY,at INTEGER NOT NULL,actor_id TEXT,actor_name TEXT NOT NULL,action TEXT NOT NULL,target_id TEXT,details TEXT NOT NULL)`),
   db.prepare('CREATE INDEX IF NOT EXISTS idx_site_audit_time ON site_audit(at,id)')
@@ -23,6 +25,12 @@ export async function recordAudit(db,actor,action,target,details={}){
 export function deviceInfo(ua){
  return {device:/iPad|Tablet/i.test(ua)?'Tablet':/Mobile|Android|iPhone/i.test(ua)?'Mobile':'Desktop',browser:/Edg\//.test(ua)?'Edge':/OPR\//.test(ua)?'Opera':/Firefox\//.test(ua)?'Firefox':/Chrome\/|CriOS\//.test(ua)?'Chrome':/Safari\//.test(ua)?'Safari':'Other',os:/Android/.test(ua)?'Android':/iPhone|iPad/.test(ua)?'iOS':/Windows/.test(ua)?'Windows':/Macintosh/.test(ua)?'macOS':/Linux/.test(ua)?'Linux':'Other'};
 }
+// Use Cloudflare's server metadata only, never a browser-submitted location or raw IP.
+export function visitLocation(request){
+ const clean=value=>typeof value==='string'?value.replace(/[\u0000-\u001f\u007f]/g,'').trim().slice(0,100)||null:null;
+ const cf=request.cf||{};
+ return {city:clean(cf.city),region:clean(cf.region),country:/^[A-Z]{2}$/.test(cf.country||'')?cf.country:null};
+}
 const pages=new Set(['/','/index.html','/memories','/memories/','/memories.html','/media','/media/','/media/index.html','/deeplist.html','/on-repeat.html','/arcade.html','/the-room.html']);
 export async function handleActivity(request,env,helpers){
  const url=new URL(request.url),admin=url.pathname==='/api/admin/activity';
@@ -34,9 +42,9 @@ export async function handleActivity(request,env,helpers){
    await ensureActivity(env.DB);
    const before=Number(url.searchParams.get('before'))||Date.now()+1,beforeId=url.searchParams.get('before_id')||'~';
    const rows=await env.DB.prepare(`SELECT id,at,actor_name,action,target_id,details FROM site_audit WHERE at<? OR(at=? AND id<?) ORDER BY at DESC,id DESC LIMIT 101`).bind(before,before,beforeId).all();
-   const visitors=await env.DB.prepare(`SELECT u.username,MIN(s.first_seen) AS first_seen,MAX(s.last_seen) AS last_seen,SUM(s.views) AS views,COUNT(DISTINCT s.session_id) AS sessions FROM site_sessions s JOIN users u ON u.id=s.user_id GROUP BY s.user_id ORDER BY last_seen DESC LIMIT 100`).all();
-   const sessions=await env.DB.prepare(`SELECT u.username,s.page,s.first_seen,s.last_seen,s.views,s.device,s.browser,s.os FROM site_sessions s JOIN users u ON u.id=s.user_id ORDER BY s.last_seen DESC LIMIT 100`).all();
-   return reply({success:true,tracking_note:'Records start with this update. Browser identities are not verified people.',visitors:visitors.results,sessions:sessions.results,events:rows.results.slice(0,100).map(r=>({...r,details:JSON.parse(r.details)})),has_more:rows.results.length>100});
+   const visitors=await env.DB.prepare(`SELECT u.username,MIN(s.first_seen) AS first_seen,MAX(s.last_seen) AS last_seen,SUM(s.views) AS views,COUNT(DISTINCT s.session_id) AS sessions,(SELECT json_object('city',l.city,'region',l.region,'country',l.country) FROM site_visit_locations l WHERE l.user_id=s.user_id ORDER BY l.recorded_at DESC LIMIT 1) AS location_json FROM site_sessions s JOIN users u ON u.id=s.user_id GROUP BY s.user_id ORDER BY last_seen DESC LIMIT 100`).all();
+   const sessions=await env.DB.prepare(`SELECT u.username,s.page,s.first_seen,s.last_seen,s.views,s.device,s.browser,s.os,l.city,l.region,l.country FROM site_sessions s JOIN users u ON u.id=s.user_id LEFT JOIN site_visit_locations l ON l.session_id=s.session_id AND l.user_id=s.user_id AND l.page=s.page ORDER BY s.last_seen DESC LIMIT 100`).all();
+   return reply({success:true,tracking_note:'Records start with this update. Browser identities are not verified people. Cities are approximate IP locations; VPNs and mobile networks can differ from physical location. Location records start with the city-location update.',visitors:visitors.results.map(({location_json,...v})=>({...v,location:location_json?JSON.parse(location_json):null})),sessions:sessions.results,events:rows.results.slice(0,100).map(r=>({...r,details:JSON.parse(r.details)})),has_more:rows.results.length>100});
   }catch{return reply({success:false,error:'Activity unavailable'},503)}
  }
  if(request.method!=='POST')return reply({success:false},405);
@@ -51,7 +59,11 @@ export async function handleActivity(request,env,helpers){
   const rate=await env.DB.prepare(`INSERT INTO site_activity_rate(user_id,started,n) VALUES(?,?,1) ON CONFLICT(user_id) DO UPDATE SET n=CASE WHEN started<=? THEN 1 ELSE n+1 END,started=CASE WHEN started<=? THEN excluded.started ELSE started END RETURNING n`).bind(user.id,now,now-60000,now-60000).first();
   if(rate.n>12)return reply({success:false},429);
   const row=await env.DB.prepare(`INSERT INTO site_sessions(session_id,user_id,page,first_seen,last_seen,views,device,browser,os) VALUES(?,?,?,?,?,?,?,?,?) ON CONFLICT(session_id,user_id,page) DO UPDATE SET last_seen=excluded.last_seen,views=site_sessions.views+? WHERE site_sessions.last_seen<=? RETURNING first_seen,views`).bind(body.session,user.id,body.page,now,now,body.kind==='view'?1:0,info.device,info.browser,info.os,body.kind==='view'?1:0,now-10000).first();
-  if(row&&body.kind==='view')await recordAudit(env.DB,user,'page_view',null,{page:body.page,...info});
+  if(row&&body.kind==='view'){
+   const location=visitLocation(request);
+   await env.DB.prepare(`INSERT INTO site_visit_locations(session_id,user_id,page,city,region,country,recorded_at) VALUES(?,?,?,?,?,?,?) ON CONFLICT(session_id,user_id,page) DO UPDATE SET city=excluded.city,region=excluded.region,country=excluded.country,recorded_at=excluded.recorded_at`).bind(body.session,user.id,body.page,location.city,location.region,location.country,now).run();
+   await recordAudit(env.DB,user,'page_view',null,{page:body.page,...info,...location});
+  }
   return reply({success:true});
  }catch{return reply({success:false},400)}
 }
