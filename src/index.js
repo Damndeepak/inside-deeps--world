@@ -1565,7 +1565,7 @@ export default {
 
         if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(notifyChat(user.id));
         await recordAudit(env.DB,user,'message_sent',messageId,{type:file?'image':'text'});
-        const ai = await queueDeepAI(env, ctx, { id: messageId, sender_id: user.id, message: text, parent_id: parentId }, request);
+        const ai = await queueDeepAI(env, ctx, { id: messageId, sender_id: user.id, message: text, parent_id: parentId, image: Boolean(file) }, request);
 
         return Response.json({
           success: true,

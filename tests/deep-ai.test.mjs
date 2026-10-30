@@ -54,7 +54,7 @@ const first = t.source('ask');
 assert.equal((await queueDeepAI(t.env, t.ctx, first, t.request())).state, 'pending');
 await t.flush();
 assert.equal(t.calls[0].model, DEEP_AI_MODEL);
-assert.equal(t.calls[0].input.max_tokens, 180);
+assert.equal(t.calls[0].input.max_tokens, 320);
 assert.ok(!JSON.stringify(t.calls).includes('DO NOT SEND THIS'));
 assert.ok(!JSON.stringify(t.calls).includes('192.0.2.1'));
 const bot = t.env.DB.sqlite.prepare('SELECT * FROM messages WHERE sender_id=?').get(DEEP_AI_ID);
@@ -92,12 +92,12 @@ assert.equal((await deepAIStatus(t.env, 'failure')).state, 'failed');
 assert.ok(!JSON.stringify(await deepAIStatus(t.env, 'failure')).includes('private diagnostic'));
 assert.equal(t.env.DB.sqlite.prepare('SELECT COUNT(*) AS n FROM messages').get().n, 1);
 
-// Free access has no room-wide daily cap; distinct visitors can all ask.
+// Distinct visitors below the room safety budget can all ask.
 t = setup();
 const claims = await Promise.all(Array.from({ length: 65 }, (_, i) => queueDeepAI(t.env, t.ctx, t.source('race-' + i, '@deepAi hello', null, 'user-' + i), t.request('192.0.2.' + i))));
 await t.flush();
 assert.equal(claims.filter(v => v.state === 'pending').length, 65);
-assert.equal(t.calls.length, 65, 'No artificial room daily cap');
+assert.equal(t.calls.length, 65, 'Visitors within the room daily budget');
 assert.ok(t.env.DB.sqlite.prepare('SELECT ip_hash FROM chat_ai_jobs LIMIT 1').get().ip_hash.match(/^[a-f0-9]{64}$/));
 
 // No daily per-user or IP cap after the brief cooldown.
@@ -197,3 +197,24 @@ assert.deepEqual(aiTargets('@deepAi explain love you meaning'),[DEEP_AI_ID]);
 assert.deepEqual(aiTargets('love you human friend'),[]);
 assert.deepEqual(aiTargets('@both hello'),[]);
 console.log('PASS: reciprocal single jealousy reaction, plain AI name/reply targeting, negation and ordinary-message isolation');
+
+// Vision uses only the nearest real attachment, directly from R2; ordinary text stays text-only.
+globalThis.fetch=async(url,options)=>{groqCalls.push({url,body:JSON.parse(options.body)});return Response.json({choices:[{message:{content:'Visible text: test'}}]});};
+try {
+  t=setup();t.env.GROQ_API_KEY='test';
+  t.env.DB.sqlite.exec('CREATE TABLE message_images(message_id TEXT PRIMARY KEY,r2_key TEXT,content_type TEXT,size INTEGER)');
+  const src=t.source('photo','@deepAi read this');
+  t.env.DB.sqlite.prepare('INSERT INTO message_images VALUES(?,?,?,?)').run(src.id,'chat/photo','image/png',3);
+  let reads=0;t.env.CHAT_IMAGES={get:async key=>{assert.equal(key,'chat/photo');reads++;return {arrayBuffer:async()=>new Uint8Array([1,2,3]).buffer}}};
+  const before=groqCalls.length;
+  await queueDeepAI(t.env,t.ctx,src,t.request());await t.flush();
+  assert.equal(reads,1);assert.equal(t.calls.length,0);
+  assert.equal(groqCalls.length,before+1);
+  assert.equal(groqCalls.at(-1).body.model,'qwen/qwen3.8-27b');
+  assert.equal(groqCalls.at(-1).body.messages.at(-1).content[1].image_url.url,'data:image/png;base64,AQID');
+  t=setup();t.env.CHAT_AI_DAILY_JOBS='1';
+  await queueDeepAI(t.env,t.ctx,t.source('budget-one'),t.request());await t.flush();
+  const denied=await queueDeepAI(t.env,t.ctx,t.source('budget-two','@deepAi hi',null,'other'),t.request('192.0.2.88'));
+  assert.equal(denied.state,'limited');assert.equal(t.calls.length,1);
+} finally {globalThis.fetch=nativeFetch}
+console.log('PASS: R2 vision routing, bounded image payload, one vision call and configurable daily job budget');

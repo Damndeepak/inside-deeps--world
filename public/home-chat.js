@@ -47,7 +47,7 @@ function paintAIWaiting(){const status=$("cxAiStatus");if(!status)return;status.
 function watchAI(messageId,ai){
   if(!ai)return;
   if(ai.state!=="pending"){
-    if(ai.state==="limited")toast("Give the AI a couple of seconds between requests; your message was sent.");
+    if(ai.state==="limited")toast("AI cooldown or daily safety budget reached; your message was sent.");
     else if(ai.state!=="done")toast("The selected AI is unavailable or not configured yet. Your message was sent.");
     return;
   }
@@ -66,9 +66,9 @@ function watchAI(messageId,ai){
       try{await loadFeed()}catch{}
       return;
     }
-    setTimeout(tick,1800);
+    setTimeout(tick,6000);
   }
-  setTimeout(tick,1200);
+  setTimeout(tick,4000);
 }
 
 /* ---------- rendering ---------- */
@@ -536,8 +536,8 @@ E.input.addEventListener('blur',()=>{clearTimeout(typingTimer);presence(true,fal
 E.form.addEventListener('submit',()=>{clearTimeout(typingTimer);presence(true,false)});
 function startCommunity(){
   if(communityStarted)return;communityStarted=true;loadReactions();presence(true);
-  setInterval(()=>{if((window.worldIsVisible||(()=>!document.hidden))(root))presence()},6000);
-  setInterval(()=>{if((window.worldIsVisible||(()=>!document.hidden))(root))loadReactions()},15000);
+  setInterval(()=>{if(!document.hidden&&(window.worldIsVisible||(()=>true))(root))presence()},20000);
+  setInterval(()=>{if((window.worldIsVisible||(()=>!document.hidden))(root))loadReactions()},30000);
   setInterval(()=>{if(!document.hidden)presence(true,document.activeElement===E.input&&!!E.input.value.trim()&&Date.now()-lastTyping<5000)},20000);
   document.addEventListener('visibilitychange',()=>{presence(true,false,!document.hidden);if(!document.hidden)loadReactions()});
   window.addEventListener('pagehide',()=>presence(true,false,false));
@@ -683,7 +683,7 @@ const nicknameControls=initNicknameControls({
   startCommunity();scheduleSeen();
   if(S.adminKey&&await checkAdmin(S.adminKey)){S.admin=true;paintAdmin()}else{S.adminKey="";try{sessionStorage.removeItem("cxAdminKey")}catch(e){}}
   root.addEventListener("world-visible",()=>{poll();loadReactions();presence()});
-  setInterval(poll,5000);
+  setInterval(poll,15000);
   document.addEventListener("visibilitychange",()=>{if(!document.hidden)poll()});
   window.addEventListener("online",poll);
 })();
