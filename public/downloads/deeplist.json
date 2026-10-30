@@ -1,21 +1,17 @@
 {
   "packageId": "com.deepu.wordstorm",
-  "versionName": "13.7.4",
-  "versionCode": 157,
-  "sizeBytes": 25378257,
-  "sha256": "8fe33b70ffb6d8ffa343b8eeac234b657694d4853cef09424c97db939882f1f1",
+  "versionName": "13.7.5",
+  "versionCode": 158,
+  "sizeBytes": 25411253,
+  "sha256": "821f240a67d599b4d85f374328fd59b4307072e5608d5c6cca81d3b343fbe638",
   "signingCertificateSha256": "1c73c95916d7e14bac0533d0a4a20a3c01be78f066fcc0c1102254712c4bcd5d",
-  "publishedAt": "2026-10-26T17:23:03.565544+00:00",
+  "publishedAt": "2026-10-30T11:59:41.708870+00:00",
   "downloadUrl": "https://world.damndeepak.workers.dev/downloads/deeplist.apk",
-  "assetUrl": "https://github.com/Damndeepak/Metrolist/releases/download/deeplist-157/Deeplist.apk",
-  "sourceCommit": "4b810c7b32a90ade69c4a7f5d431c9015c63ef34",
+  "assetUrl": "https://github.com/Damndeepak/Metrolist/releases/download/deeplist-158/Deeplist.apk",
+  "sourceCommit": "edc3d7891230a7c6acaaf9fa22b543aa56a36791",
   "changelog": [
-    "Faster live sharing: song changes, pause and seek wake the uploader immediately; remote-control requests no longer block state uploads.",
-    "Requires the matching website deployment. Sub-2-second phone-to-website latency has not been verified on a device.",
-    "Removed the separate Wasted demo entry. Existing Apple Music and Verci lyrics styles are unchanged.",
-    "Deeplist Discord branding and website buttons.",
-    "Retry failed and stale presence after reconnect; ignore stale song artwork.",
-    "Check for Deeplist updates and download from the public website.",
-    "Existing Apple, Verci, Neon and video features retained. Google cloud sync is not included."
+    "Google or Guest welcome and Spotify-style profiles. Google sign-in awaits server configuration.",
+    "App-user dashboard with approximate city/country, last active, app opens and admin block/unblock.",
+    "Profile editing, selected public collections, saved lyric moments and player fixes."
   ]
 }
