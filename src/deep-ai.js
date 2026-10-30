@@ -1,4 +1,3 @@
-import { queueDiscordMessage } from './discord.js';
 // DeepAI shares the public chat; it has no access to private site data or tools.
 export const DEEP_AI_ID = 'system-deepai';
 export const S_AI_ID = 'system-sai';
@@ -96,7 +95,7 @@ export async function queueDeepAI(env, ctx, source, request) {
       const existing = await env.DB.prepare('SELECT status FROM chat_ai_jobs WHERE message_id=?').bind(source.id).first();
       return { state: existing?.status || 'limited' };
     }
-    ctx.waitUntil(answer(env, source, parent, targets, ctx));
+    ctx.waitUntil(answer(env, source, parent, targets));
     return { state: 'pending' };
   } catch {
     // The human message is already saved: AI failure must never turn it into a failed send.
@@ -104,7 +103,7 @@ export async function queueDeepAI(env, ctx, source, request) {
   }
 }
 
-async function answer(env, source, parent, targets, ctx) {
+async function answer(env, source, parent, targets) {
   const deadline = Date.now() + 24000;
   try {
     const chain = [];
@@ -189,7 +188,6 @@ async function answer(env, source, parent, targets, ctx) {
           env.DB.prepare(`INSERT INTO messages(id,conversation_id,sender_id,message,parent_id,created_at) SELECT ?,conversation_id,?,?,id,? FROM messages WHERE id=? AND EXISTS(SELECT 1 FROM messages WHERE id=?)`).bind(messageId,id,text,createdAt,parentId,source.id)
         ]);
         if(!saved[1].meta.changes)throw new Error('deleted');
-        queueDiscordMessage(env,ctx,{id,username:name},{id:messageId,text});
         chain.push({sender_id:id,message:text});parentId=messageId;
       } finally {clearTimeout(timer);}
     }

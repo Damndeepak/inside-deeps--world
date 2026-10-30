@@ -1,5 +1,4 @@
 import {recordAudit} from './activity.js';
-import { queueDiscordMessage } from './discord.js';
 // Additive community features. Existing messages and conversations are preserved.
 const ready = new WeakMap();
 export async function ensureFeatures(db) {
@@ -175,7 +174,6 @@ export async function handleFeatures(request,env,ctx,helpers) {
         env.DB.prepare('INSERT INTO message_audio(message_id,r2_key,content_type,size,created_at) VALUES(?,?,?,?,?)').bind(id,storedKey,type,bytes.length,now)
       ]);
       storedKey=null;
-      queueDiscordMessage(env,ctx,user,{id,text:message,audio:true});
       if(ctx?.waitUntil)ctx.waitUntil(notifyChat(user.id));
       await recordAudit(env.DB,user,'message_sent',id,{type:'voice'});
       return json({success:true,message_id:id,created_at:now});
