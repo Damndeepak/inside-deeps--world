@@ -1,3 +1,4 @@
+import {handleAppAccounts} from './app-accounts.js';
 import {handleActivity, auditStatement, recordAudit} from './activity.js';
 import { DEEP_AI_ID, isChatAI, chatAIName, deepAIStatus, queueDeepAI } from './deep-ai.js';
 import { ensureIdentitySchema, identityFor, validIdentity, linkChatIdentity } from './chat-identity.js';
@@ -33,6 +34,8 @@ export default {
       url.pathname = '/deeplist.html';
       return Response.redirect(url.href, 302);
     }
+    const appResponse = await handleAppAccounts(request, env);
+    if (appResponse) return appResponse;
     // Legacy deletion must share media/reaction cleanup with the current endpoint.
     if (request.method === 'DELETE' && /^\/api\/messages\/[A-Za-z0-9_-]{1,64}$/.test(url.pathname)) {
       url.pathname = url.pathname.replace('/api/messages/', '/api/chat/message/');
