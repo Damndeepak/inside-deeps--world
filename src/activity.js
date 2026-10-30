@@ -9,7 +9,11 @@ export async function ensureActivity(db){
   db.prepare('CREATE INDEX IF NOT EXISTS idx_site_visit_locations_user_time ON site_visit_locations(user_id,recorded_at)'),
   db.prepare('CREATE TABLE IF NOT EXISTS site_activity_rate(user_id TEXT PRIMARY KEY,started INTEGER NOT NULL,n INTEGER NOT NULL)'),
   db.prepare(`CREATE TABLE IF NOT EXISTS site_audit(id TEXT PRIMARY KEY,at INTEGER NOT NULL,actor_id TEXT,actor_name TEXT NOT NULL,action TEXT NOT NULL,target_id TEXT,details TEXT NOT NULL)`),
-  db.prepare('CREATE INDEX IF NOT EXISTS idx_site_audit_time ON site_audit(at,id)')
+  db.prepare('CREATE INDEX IF NOT EXISTS idx_site_audit_time ON site_audit(at,id)'),
+  db.prepare(`CREATE TRIGGER IF NOT EXISTS audit_username_changes AFTER UPDATE OF username ON users
+   WHEN OLD.username IS NOT NEW.username BEGIN
+   INSERT INTO site_audit(id,at,actor_id,actor_name,action,target_id,details)
+   VALUES(lower(hex(randomblob(16))),CAST((julianday('now')-2440587.5)*86400000 AS INTEGER),NEW.id,NEW.username,'name_changed',NULL,json_object('old_name',OLD.username,'new_name',NEW.username)); END`)
  ]).catch(e=>{schemas.delete(db);throw e}));
  await schemas.get(db);
 }
@@ -44,7 +48,10 @@ export async function handleActivity(request,env,helpers){
    const rows=await env.DB.prepare(`SELECT id,at,actor_name,action,target_id,details FROM site_audit WHERE at<? OR(at=? AND id<?) ORDER BY at DESC,id DESC LIMIT 101`).bind(before,before,beforeId).all();
    const visitors=await env.DB.prepare(`SELECT u.username,MIN(s.first_seen) AS first_seen,MAX(s.last_seen) AS last_seen,SUM(s.views) AS views,COUNT(DISTINCT s.session_id) AS sessions,(SELECT json_object('city',l.city,'region',l.region,'country',l.country) FROM site_visit_locations l WHERE l.user_id=s.user_id ORDER BY l.recorded_at DESC LIMIT 1) AS location_json FROM site_sessions s JOIN users u ON u.id=s.user_id GROUP BY s.user_id ORDER BY last_seen DESC LIMIT 100`).all();
    const sessions=await env.DB.prepare(`SELECT u.username,s.page,s.first_seen,s.last_seen,s.views,s.device,s.browser,s.os,l.city,l.region,l.country FROM site_sessions s JOIN users u ON u.id=s.user_id LEFT JOIN site_visit_locations l ON l.session_id=s.session_id AND l.user_id=s.user_id AND l.page=s.page ORDER BY s.last_seen DESC LIMIT 100`).all();
-   return reply({success:true,tracking_note:'Records start with this update. Browser identities are not verified people. Cities are approximate IP locations; VPNs and mobile networks can differ from physical location. Location records start with the city-location update.',visitors:visitors.results.map(({location_json,...v})=>({...v,location:location_json?JSON.parse(location_json):null})),sessions:sessions.results,events:rows.results.slice(0,100).map(r=>({...r,details:JSON.parse(r.details)})),has_more:rows.results.length>100});
+   const names=await env.DB.prepare(`SELECT a.actor_id,a.at,a.details,u.username AS current_name FROM site_audit a LEFT JOIN users u ON u.id=a.actor_id WHERE a.action='name_changed' ORDER BY a.at DESC,a.id DESC LIMIT 100`).all();
+   const groups=new Map();
+   for(const row of names.results){if(!groups.has(row.actor_id))groups.set(row.actor_id,{current_name:row.current_name||JSON.parse(row.details).new_name,changes:[]});const detail=JSON.parse(row.details);groups.get(row.actor_id).changes.push({at:row.at,old_name:detail.old_name,new_name:detail.new_name});}
+   return reply({success:true,name_history:[...groups.values()],tracking_note:'Records start with this update. Browser identities are not verified people. Cities are approximate IP locations; VPNs and mobile networks can differ from physical location. Location records start with the city-location update.',visitors:visitors.results.map(({location_json,...v})=>({...v,location:location_json?JSON.parse(location_json):null})),sessions:sessions.results,events:rows.results.slice(0,100).map(r=>({...r,details:JSON.parse(r.details)})),has_more:rows.results.length>100});
   }catch{return reply({success:false,error:'Activity unavailable'},503)}
  }
  if(request.method!=='POST')return reply({success:false},405);

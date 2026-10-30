@@ -1,5 +1,5 @@
 import {handleAppAccounts} from './app-accounts.js';
-import {handleActivity, auditStatement, recordAudit} from './activity.js';
+import {handleActivity, auditStatement, recordAudit, ensureActivity} from './activity.js';
 import { DEEP_AI_ID, isChatAI, chatAIName, deepAIStatus, queueDeepAI } from './deep-ai.js';
 import { ensureIdentitySchema, identityFor, validIdentity, linkChatIdentity } from './chat-identity.js';
 import { handleDeeplist } from "./deeplist.js";
@@ -490,6 +490,7 @@ export default {
     }
 
     async function migrateChatIdentity(user) {
+      await ensureActivity(env.DB);
       await ensureNicknameSchema();
       await env.DB.prepare("INSERT OR IGNORE INTO chat_nicknames (user_id, default_username) VALUES (?, ?)").bind(user.id, user.username).run();
       let profile = await nicknameProfile(user.id);

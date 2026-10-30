@@ -53,3 +53,21 @@ const directory=await(await call('/api/deeplist/listeners')).json();assert.equal
 await call('/api/deeplist/pair?scope=visitor',{cookie:combined,method:'DELETE',headers:{'X-Deeplist-Action':'pair'}});assert.ok((await(await call('/api/deeplist/stats')).json()).listeners.every(x=>x.channel!==me.channel));
 assert.equal(db.sqlite.prepare('SELECT message FROM messages WHERE id=?').get('old-message').message,'Still here');
 console.log('PASS: prefix-free persistent names, allowlisted styles, unique claims, 24-hour cooldown, style-only edits, CSRF, saved messages, shared music identity and revocation');
+
+
+// Name history is atomic, admin-only, and excludes style-only/failed changes.
+const historyBefore=db.sqlite.prepare("SELECT COUNT(*) n FROM site_audit WHERE action='name_changed'").get().n;
+const oldName=db.sqlite.prepare('SELECT username FROM users WHERE id=?').get(first.user.id).username;
+const adminHeaders={'X-Admin-Key':env.ADMIN_KEY};
+assert.equal((await set(first,'history test','♡','mint',{headers:adminHeaders})).status,200);
+assert.equal(db.sqlite.prepare("SELECT COUNT(*) n FROM site_audit WHERE action='name_changed'").get().n,historyBefore+1);
+assert.equal((await set(first,'history test','⚡','rose',{headers:adminHeaders})).status,200);
+assert.equal(db.sqlite.prepare("SELECT COUNT(*) n FROM site_audit WHERE action='name_changed'").get().n,historyBefore+1);
+assert.equal((await call('/api/admin/activity')).status,403);
+const history=await(await call('/api/admin/activity',{headers:adminHeaders})).json();
+const person=history.name_history.find(p=>p.current_name==='history test');
+assert.ok(person);assert.ok(person.changes.some(c=>c.old_name===oldName&&c.new_name==='history test'&&Number.isFinite(c.at)));
+assert.ok(!JSON.stringify(history.name_history).includes(first.user.id));
+assert.equal((await set(second,'history test','♡','mint',{headers:adminHeaders})).status,409);
+assert.equal(db.sqlite.prepare("SELECT COUNT(*) n FROM site_audit WHERE action='name_changed'").get().n,historyBefore+1);
+console.log('PASS: atomic name history, current-name grouping, style-only and rejected rename exclusion, admin access and no identity credentials');
