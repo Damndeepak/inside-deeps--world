@@ -1,5 +1,5 @@
 import {handleAppAccounts} from './app-accounts.js';
-import {handleActivity, auditStatement, recordAudit, ensureActivity} from './activity.js';
+import {handleActivity, auditStatement, recordAudit, ensureActivity, purgeDeletedArchive} from './activity.js';
 import { DEEP_AI_ID, isChatAI, chatAIName, deepAIStatus, queueDeepAI } from './deep-ai.js';
 import { ensureIdentitySchema, identityFor, validIdentity, linkChatIdentity } from './chat-identity.js';
 import { handleDeeplist } from "./deeplist.js";
@@ -22,6 +22,9 @@ const CHAT_NAME_WORDS = [
 ];
 
 export default {
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(purgeDeletedArchive(env.DB));
+  },
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     if (url.pathname.startsWith('/api/') && !['GET', 'HEAD', 'OPTIONS'].includes(request.method)) {
@@ -1656,7 +1659,12 @@ export default {
         await ensureFeatures(env.DB);
         const audio = await env.DB.prepare("SELECT r2_key FROM message_audio WHERE message_id = ?").bind(messageId).first();
         if (audio && env.CHAT_IMAGES) await env.CHAT_IMAGES.delete(audio.r2_key);
+        await ensureActivity(env.DB);
+        const deletedAt=Date.now(),deletedBy=admin?'Admin':(await getUser(userId))?.username||'Unknown';
         await env.DB.batch([
+          env.DB.prepare(`INSERT OR IGNORE INTO deleted_chat_archive(message_id,author_name,message,created_at,deleted_at,deleted_by,type)
+            SELECT m.id,COALESCE(u.username,'Unknown'),COALESCE(m.message,''),COALESCE(m.created_at,''),?,?,? FROM messages m LEFT JOIN users u ON u.id=m.sender_id WHERE m.id=?`)
+            .bind(deletedAt,deletedBy,audio?'voice':img?'image':'text',messageId),
           await auditStatement(env.DB,admin?{username:'Admin'}:await getUser(userId),'message_deleted',messageId,{author:(await getUser(msg.sender_id))?.username||(msg.sender_id===DEEP_AI_ID?'deepAi':'Unknown'),type:audio?'voice':img?'image':'text',by_admin:admin}),
           env.DB.prepare("DELETE FROM message_audio WHERE message_id = ?").bind(messageId),
           env.DB.prepare("DELETE FROM message_reactions WHERE message_id = ?").bind(messageId),

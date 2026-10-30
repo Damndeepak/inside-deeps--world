@@ -17,7 +17,7 @@ async function start(){
   ready=true;track('view');
  }catch{}
 }
-if(!document.body.textContent.includes('Visits and action metadata are logged')){const note=document.createElement('p');note.textContent='Visits and action metadata are logged for site administration. Deleted message text is not retained.';note.style.cssText='color:#aaa;font:11px/1.6 system-ui;max-width:1100px;margin:24px auto;padding:0 20px';(document.querySelector('footer')||document.body).append(note)}
+if(!document.body.textContent.includes('Visits and action metadata are logged')){const note=document.createElement('p');note.textContent='Visits and action metadata are logged for site administration. Deleted message text is retained for admin-only moderation for 30 days.';note.style.cssText='color:#aaa;font:11px/1.6 system-ui;max-width:1100px;margin:24px auto;padding:0 20px';(document.querySelector('footer')||document.body).append(note)}
 const locationNote=' Approximate city, state and country from your IP are recorded for admin-only visit analytics; this is not GPS location.';
 const existingNote=document.querySelector('.public-note');
 if(existingNote)existingNote.append(document.createTextNode(locationNote));

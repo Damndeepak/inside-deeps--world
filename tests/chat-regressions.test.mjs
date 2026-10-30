@@ -105,6 +105,23 @@ assert.equal((await call('/api/chat/message/'+reactionIds[0],{cookie:alice.cooki
 const privateAudit=await call('/api/admin/activity',{headers:{'X-Admin-Key':env.ADMIN_KEY}});assert.equal(privateAudit.status,200);assert.equal(privateAudit.headers.get('Cache-Control'),'no-store');
 const activity=await privateAudit.json();assert.equal(activity.visitors[0].views,1);assert.equal(activity.sessions[0].device,'Mobile');assert.equal(activity.sessions[0].browser,'Chrome');
 const deletion=activity.events.find(e=>e.action==='message_deleted'&&e.target_id===reactionIds[0]);assert.ok(deletion);assert.equal(deletion.actor_name,alice.user.username);assert.equal(deletion.details.by_admin,false);
-assert.ok(!JSON.stringify(activity).includes('deleted-text-must-not-be-retained'));assert.ok(!JSON.stringify(activity).includes(alice.user.id));
+assert.ok(!JSON.stringify(activity.events).includes('deleted-text-must-not-be-retained'));
+assert.equal(activity.deleted_messages.find(m=>m.message_id===reactionIds[0]).message,'deleted-text-must-not-be-retained');assert.ok(!JSON.stringify(activity).includes(alice.user.id));
 assert.ok(activity.events.some(e=>e.action==='reaction_added'));assert.ok(activity.events.some(e=>e.action==='reaction_removed'));
 console.log('PASS: private activity dashboard, authenticated visits, CSRF, page allowlist, device labels, view deduplication and content-free deletion audit');
+
+
+// Archive is private, does not restore public messages, and expires after 30 days.
+assert.equal((await call('/api/admin/activity')).status,403);
+assert.ok(!JSON.stringify(await(await call('/api/chat')).json()).includes('deleted-text-must-not-be-retained'));
+assert.equal((await call('/api/chat/message/'+reactionIds[0],{cookie:alice.cookie,method:'DELETE'})).status,404);
+assert.equal(db.prepare('SELECT COUNT(*) n FROM deleted_chat_archive WHERE message_id=?').get(reactionIds[0]).n,1);
+db.prepare('UPDATE deleted_chat_archive SET deleted_at=? WHERE message_id=?').run(Date.now()-31*86400000,reactionIds[0]);
+const expired=await(await call('/api/admin/activity',{headers:{'X-Admin-Key':env.ADMIN_KEY}})).json();
+assert.ok(!expired.deleted_messages.some(m=>m.message_id===reactionIds[0]));
+assert.equal(db.prepare('SELECT message_id FROM deleted_chat_archive WHERE message_id=?').get(reactionIds[0]),undefined);
+db.prepare('INSERT INTO deleted_chat_archive VALUES(?,?,?,?,?,?,?)').run('expired-cron','sender','expired text','2020-01-01',Date.now()-31*86400000,'Admin','text');
+let cleanup;await worker.scheduled({},env,{waitUntil(p){cleanup=p;}});await cleanup;
+assert.equal(db.prepare("SELECT COUNT(*) n FROM deleted_chat_archive WHERE message_id='expired-cron'").get().n,0);
+assert.ok(db.prepare('SELECT COUNT(*) n FROM deleted_chat_archive').get().n>0,'Fresh archived messages survive cleanup');
+console.log('PASS: admin-only deleted text, public absence, duplicate deletion, 30-day expiry and scheduled purge');

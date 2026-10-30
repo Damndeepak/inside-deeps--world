@@ -27,5 +27,10 @@
   "previews": {},
   "ai": {
     "binding": "AI"
+  },
+  "triggers": {
+    "crons": [
+      "17 * * * *"
+    ]
   }
 }
