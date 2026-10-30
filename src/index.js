@@ -34,7 +34,7 @@ export default {
       url.pathname = '/deeplist.html';
       return Response.redirect(url.href, 302);
     }
-    const appResponse = await handleAppAccounts(request, env);
+    const appResponse = await handleAppAccounts(request, env, { isWebsiteAdmin: chatIsAdmin });
     if (appResponse) return appResponse;
     // Legacy deletion must share media/reaction cleanup with the current endpoint.
     if (request.method === 'DELETE' && /^\/api\/messages\/[A-Za-z0-9_-]{1,64}$/.test(url.pathname)) {

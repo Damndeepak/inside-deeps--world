@@ -87,3 +87,30 @@ try{
  for(const key of ['google_email','google_sub','email_verified','city','country','last_active','blocked','admin'])assert.equal(publicData[key],undefined);
 }finally{globalThis.fetch=originalFetch}
 console.log('PASS Google callback: signed identity, verified owner, browser cookie, Android handoff, replay rejection and public-data isolation');
+// Reuse the production website authenticator, not a client-provided admin flag.
+const {default:worker}=await import('../src/index.js');
+const adminEnv={...env,ADMIN_KEY:'test-existing-website-key-12345'};
+async function websiteAdmin(path,{key,method='GET',data,origin,token}={}){
+ return worker.fetch(new Request('https://example.com/api/app/'+path,{method,headers:{...(key?{'X-Admin-Key':key}:{}),...(token?{Authorization:'Bearer '+token}:{}),...(origin?{Origin:origin}:{}),'Content-Type':'application/json'},...(data===undefined?{}:{body:JSON.stringify(data)})}),adminEnv,{});
+}
+assert.equal((await websiteAdmin('admin/status')).status,401);
+assert.equal((await websiteAdmin('admin/status',{key:'incorrect'})).status,401);
+let auth=await websiteAdmin('admin/status',{key:adminEnv.ADMIN_KEY});assert.equal(auth.status,200);assert.equal((await auth.json()).method,'website');
+assert.equal((await websiteAdmin('me',{key:adminEnv.ADMIN_KEY})).status,401,'website key applies only to admin endpoints');
+const pending=await(await call('auth/guest','POST',{noticeVersion:'2026-10-30'})).json();
+assert.equal((await websiteAdmin('admin/users',{key:adminEnv.ADMIN_KEY})).status,200,'Google configuration is not required');
+assert.equal((await websiteAdmin('admin/access',{key:adminEnv.ADMIN_KEY,method:'POST',data:{id:pending.user.id,blocked:true}})).status,200);
+assert.equal((await call('heartbeat','POST',{},pending.token)).status,403);
+assert.equal(sql.prepare('SELECT actor FROM app_admin_audit WHERE target=? ORDER BY at DESC LIMIT 1').get(pending.user.id).actor,'website-admin');
+assert.equal((await websiteAdmin('admin/access',{key:adminEnv.ADMIN_KEY,method:'POST',origin:'https://evil.example',data:{id:pending.user.id,blocked:false}})).status,403);
+assert.equal((await websiteAdmin('admin/access',{key:adminEnv.ADMIN_KEY,method:'POST',data:{id:pending.user.id,blocked:false}})).status,200);
+assert.equal((await(await call('me','GET',undefined,pending.token)).json()).user.blocked,false);
+assert.equal((await websiteAdmin('admin/users',{token:pending.token})).status,403);
+const rowTime=Date.now();
+for(let i=0;i<101;i++)sql.prepare('INSERT INTO app_accounts(id,provider,username,name,created_at,last_active,notice_version) VALUES(?,?,?,?,?,?,?)').run('00000000-0000-4000-8000-'+String(i).padStart(12,'0'),'guest','bulk_'+i,'Listener '+i,rowTime,rowTime,'2026-10-30');
+let page=await(await websiteAdmin('admin/users',{key:adminEnv.ADMIN_KEY})).json();assert.equal(page.users.length,100);assert.ok(page.next.beforeId);
+const ids=new Set(page.users.map(u=>u.id));
+page=await(await websiteAdmin('admin/users?'+new URLSearchParams(page.next),{key:adminEnv.ADMIN_KEY})).json();
+for(const u of page.users){assert.equal(ids.has(u.id),false,'tied timestamps do not duplicate users');ids.add(u.id)}
+assert.equal([...ids].filter(id=>id.startsWith('00000000-0000-4000-8000-')).length,101,'all tied records remain reachable');
+console.log('PASS website admin: production key verification, no Google dependency, scoped privileges, block/unblock audit, CSRF and tied pagination');

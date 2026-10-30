@@ -79,7 +79,7 @@ export async function verifyGoogle(token,clientId,nonce,fetcher=fetch) {
  if(!await crypto.subtle.verify('RSASSA-PKCS1-v1_5',key,un64(parts[2]),enc.encode(parts[0]+'.'+parts[1]))||!['https://accounts.google.com','accounts.google.com'].includes(claims.iss)||claims.aud!==clientId||(claims.azp&&claims.azp!==clientId)||!Number.isFinite(claims.exp)||claims.exp*1000<=Date.now()||claims.nonce!==nonce||typeof claims.sub!=='string'||!claims.sub||claims.email_verified!==true)throw error('Invalid Google identity',401);
  return claims;
 }
-export async function handleAppAccounts(request,env) {
+export async function handleAppAccounts(request,env,helpers={}) {
  const url=new URL(request.url),path=url.pathname;
  if(!path.startsWith('/api/app/'))return null;
  try {
@@ -150,6 +150,29 @@ export async function handleAppAccounts(request,env) {
    const object=await env.CHAT_IMAGES.get('app-avatars/'+avatarMatch[1]+'/'+avatarMatch[2]);if(!object)throw error('Image not found',404);
    return new Response(object.body,{headers:{'Content-Type':object.httpMetadata?.contentType||'image/jpeg','X-Content-Type-Options':'nosniff','Cache-Control':'public,max-age=86400'}});
   }
+  if(path.startsWith('/api/app/admin/')) {
+   const websiteAdmin=typeof helpers.isWebsiteAdmin==='function' && await helpers.isWebsiteAdmin(request);
+   const actor=websiteAdmin?{id:'website-admin'}:await userFor(request,db);
+   if(!websiteAdmin) {
+    if(!actor)throw error('Sign in with your website admin key or authorized Google account',401);
+    if(actor.blocked||!admin(actor))throw error('Admin access required',403);
+   }
+   if(path==='/api/app/admin/status'&&request.method==='GET')return reply({authorized:true,method:websiteAdmin?'website':'google'});
+   if(path==='/api/app/admin/users'&&request.method==='GET') {
+    const before=Number(url.searchParams.get('before')||Date.now()+1),beforeId=url.searchParams.get('beforeId')||'';
+    if(!Number.isSafeInteger(before)||(beforeId&&!/^[a-f0-9-]{36}$/.test(beforeId)))throw error('Invalid cursor');
+    const rows=await db.prepare('SELECT id,provider,username,name,blocked,created_at,last_active,city,country,app_version,opens FROM app_accounts WHERE created_at<? OR(created_at=? AND id<?) ORDER BY created_at DESC,id DESC LIMIT 100').bind(before,before,beforeId).all();
+    const last=rows.results.at(-1);
+    return reply({users:rows.results,next:rows.results.length===100?{before:last.created_at,beforeId:last.id}:null});
+   }
+   if(path==='/api/app/admin/access'&&request.method==='POST') {
+    const data=await body(request);if(typeof data.blocked!=='boolean'||typeof data.id!=='string')throw error('Invalid access change');
+    const target=await db.prepare('SELECT * FROM app_accounts WHERE id=?').bind(data.id).first();if(!target)throw error('Account not found',404);if(admin(target))throw error('The owner cannot be blocked',409);
+    await db.batch([db.prepare('UPDATE app_accounts SET blocked=? WHERE id=?').bind(data.blocked?1:0,data.id),db.prepare('INSERT INTO app_admin_audit(id,actor,target,action,at) VALUES(?,?,?,?,?)').bind(crypto.randomUUID(),actor.id,data.id,data.blocked?'block':'unblock',Date.now())]);return reply({ok:true});
+   }
+   if(path==='/api/app/admin/audit'&&request.method==='GET')return reply({events:(await db.prepare('SELECT id,actor,target,action,at FROM app_admin_audit ORDER BY at DESC LIMIT 100').all()).results});
+   return reply({error:'Not found'},404);
+  }
   const user=await userFor(request,db);if(!user)throw error('Sign in to continue',401);
   if(path==='/api/app/me'&&request.method==='GET')return reply({user:privateProfile(user)});
   if(path==='/api/app/session'&&request.method==='DELETE') {
@@ -185,20 +208,6 @@ export async function handleAppAccounts(request,env) {
   if(path==='/api/app/heartbeat'&&request.method==='POST') {
    const data=await body(request),geo=location(request),now=Date.now();
    await db.prepare("UPDATE app_accounts SET last_active=?,city=?,country=?,app_version=?,opens=opens+CASE WHEN last_active<=? THEN ? ELSE 0 END WHERE id=? AND (last_active<=? OR app_version='')").bind(now,geo.city,geo.country,clean(data.version,40),now-300000,data.open===true?1:0,user.id,now-300000).run();return reply({user:privateProfile(user)});
-  }
-  if(path.startsWith('/api/app/admin/')) {
-   if(!admin(user))throw error('Admin access required',403);
-   if(path==='/api/app/admin/users'&&request.method==='GET') {
-    const before=Number(url.searchParams.get('before')||Date.now()+1);if(!Number.isSafeInteger(before))throw error('Invalid cursor');
-    const rows=await db.prepare('SELECT id,provider,username,name,blocked,created_at,last_active,city,country,app_version,opens FROM app_accounts WHERE created_at<? ORDER BY created_at DESC LIMIT 100').bind(before).all();
-    return reply({users:rows.results,next:rows.results.length===100?rows.results.at(-1).created_at:null});
-   }
-   if(path==='/api/app/admin/access'&&request.method==='POST') {
-    const data=await body(request);if(typeof data.blocked!=='boolean'||typeof data.id!=='string')throw error('Invalid access change');
-    const target=await db.prepare('SELECT * FROM app_accounts WHERE id=?').bind(data.id).first();if(!target)throw error('Account not found',404);if(admin(target))throw error('The owner cannot be blocked',409);
-    await db.batch([db.prepare('UPDATE app_accounts SET blocked=? WHERE id=?').bind(data.blocked?1:0,data.id),db.prepare('INSERT INTO app_admin_audit(id,actor,target,action,at) VALUES(?,?,?,?,?)').bind(crypto.randomUUID(),user.id,data.id,data.blocked?'block':'unblock',Date.now())]);return reply({ok:true});
-   }
-   if(path==='/api/app/admin/audit'&&request.method==='GET')return reply({events:(await db.prepare('SELECT id,actor,target,action,at FROM app_admin_audit ORDER BY at DESC LIMIT 100').all()).results});
   }
   return reply({error:'Not found'},404);
  }catch(e){return reply({error:e.status?e.message:'Service temporarily unavailable'},e.status||503)}
