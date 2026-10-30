@@ -1,17 +1,17 @@
 {
   "packageId": "com.deepu.wordstorm",
-  "versionName": "13.7.5",
-  "versionCode": 158,
-  "sizeBytes": 25411253,
-  "sha256": "821f240a67d599b4d85f374328fd59b4307072e5608d5c6cca81d3b343fbe638",
+  "versionName": "13.7.6",
+  "versionCode": 159,
+  "sizeBytes": 25411937,
+  "sha256": "88f7d21c61e8a27ff63755ebb7467c29c129a5df1098d9a587744241af82c06a",
   "signingCertificateSha256": "1c73c95916d7e14bac0533d0a4a20a3c01be78f066fcc0c1102254712c4bcd5d",
-  "publishedAt": "2026-10-30T11:59:41.708870+00:00",
+  "publishedAt": "2026-10-30T16:06:59.935725+00:00",
   "downloadUrl": "https://world.damndeepak.workers.dev/downloads/deeplist.apk",
-  "assetUrl": "https://github.com/Damndeepak/Metrolist/releases/download/deeplist-158/Deeplist.apk",
-  "sourceCommit": "edc3d7891230a7c6acaaf9fa22b543aa56a36791",
+  "assetUrl": "https://github.com/Damndeepak/Metrolist/releases/download/deeplist-159/Deeplist.apk",
+  "sourceCommit": "c74529956f7308875becb9b78ab8b63d3b93d72f",
   "changelog": [
-    "Google or Guest welcome and Spotify-style profiles. Google sign-in awaits server configuration.",
-    "App-user dashboard with approximate city/country, last active, app opens and admin block/unblock.",
-    "Profile editing, selected public collections, saved lyric moments and player fixes."
+    "Restored the previous lyrics appearance and controls. Verci Ship is the default.",
+    "Your selected lyrics look stays global across songs and restarts.",
+    "Apple, Wordstorm and all Verci styles remain available. Song-specific looks and journeys are optional."
   ]
 }
