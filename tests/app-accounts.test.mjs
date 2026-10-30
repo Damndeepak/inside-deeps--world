@@ -61,3 +61,25 @@ assert.equal((await verifyGoogle(await token(),'client','nonce',fetcher)).sub,'1
 for(const changes of [{aud:'attacker'},{nonce:'wrong'},{exp:0},{email_verified:false},{iss:'attacker'}])await assert.rejects(()=>token(changes).then(t=>verifyGoogle(t,'client','nonce',fetcher)));
 const signed=await token();await assert.rejects(()=>verifyGoogle(signed.slice(0,-10)+'aaaaaaaaaa','client','nonce',fetcher));
 console.log('PASS accounts: guest defaults, private profiles, collection opt-in, throttling, verified admin, block/unblock, CSRF, deletion, PKCE replay and Google JWT validation');
+// Exercise the complete web-to-Android Google callback without external services.
+const configured={...env,DEEPLIST_GOOGLE_CLIENT_ID:'client',DEEPLIST_GOOGLE_CLIENT_SECRET:'test-client-secret'};
+const originalFetch=globalThis.fetch;
+globalThis.fetch=async url=>{
+ if(String(url)==='https://oauth2.googleapis.com/token')return Response.json({id_token:await token({email:'gandhideepak6376@gmail.com',name:'Deepu',sub:'owner-subject'})});
+ if(String(url)==='https://www.googleapis.com/oauth2/v3/certs')return fetcher();
+ throw Error('Unexpected external request');
+};
+try{
+ const oauthState='d'.repeat(64),browser='e'.repeat(64),ch='a'.repeat(43);
+ await DB.prepare('INSERT INTO app_oauth(state_hash,browser_hash,nonce,challenge,expires) VALUES(?,?,?,?,?)').bind(await digest(oauthState),await digest(browser),'nonce',ch,Date.now()+60000).run();
+ const request=()=>new Request('https://example.com/api/app/auth/callback?state='+oauthState+'&code=test-code',{headers:{Cookie:'__Host-dp-login='+browser}});
+ const result=await handleAppAccounts(request(),configured);assert.equal(result.status,302);assert.match(result.headers.get('Location'),/^deeplist:\/\/account\?code=[a-f0-9]{64}$/);
+ assert.equal(admin(sql.prepare("SELECT * FROM app_accounts WHERE google_sub='owner-subject'").get()),true);
+ assert.ok(result.headers.get('Set-Cookie').includes('__Host-dp-session='),'browser admin session set alongside Android handoff');
+ assert.equal((await handleAppAccounts(request(),configured)).status,401,'OAuth state is one use');
+ // Public endpoint never leaks Google email, subject, location, admin role or activity.
+ const owner=sql.prepare("SELECT * FROM app_accounts WHERE google_sub='owner-subject'").get();
+ const publicData=(await(await call('profiles/'+owner.username)).json()).profile;
+ for(const key of ['google_email','google_sub','email_verified','city','country','last_active','blocked','admin'])assert.equal(publicData[key],undefined);
+}finally{globalThis.fetch=originalFetch}
+console.log('PASS Google callback: signed identity, verified owner, browser cookie, Android handoff, replay rejection and public-data isolation');
