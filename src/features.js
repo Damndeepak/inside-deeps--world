@@ -18,7 +18,7 @@ const headers = { 'Cache-Control': 'no-store' };
 const json = (data, status=200) => Response.json(data, {status, headers});
 const fail = (error,status=400) => json({success:false,error},status);
 const validId = id => /^[A-Za-z0-9_-]{1,64}$/.test(id || '');
-const emojis = ["😡","😂","🥺","😒","🤣","😭","💔","💀","🤔","😱","🫣","😖","😍","😕","👾","💘","💋","💞"];
+const emojis = ["❤️","😂","😭","😡","🫦","🥺","😒","🤣","💔","💀","🤔","😱","🫣","😖","😍","😕","👾","💘","💋","💞","😈","👿","💩","☠️","👹","👺","🤡","😷","🤓","😇","🤠","😴","🥶","🤕","🤮","🫩","🥴","😵","😞","😲","😨","😮","😧","😥","🤨","😓","🙄","🤗","🫢","😔","🤐","🤭","😶‍🌫️","😐","😬","😜","🙂‍↔️","🫪","😏","😛","🥹","🙃","🤩","😉","😘","😀","😁"];
 const legacyEmojis = ['❤️','🔥','👍'];
 const text = (v,max) => typeof v === 'string' ? v.trim().slice(0,max) : '';
 const image = track => (track.image || []).find(i => i.size === 'extralarge')?.['#text'] || '';
