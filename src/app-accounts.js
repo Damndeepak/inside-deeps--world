@@ -22,6 +22,7 @@ async function schema(db) {
   for(const sql of [
    `CREATE TABLE IF NOT EXISTS app_accounts(id TEXT PRIMARY KEY,provider TEXT NOT NULL,google_sub TEXT UNIQUE,google_email TEXT,email_verified INTEGER NOT NULL DEFAULT 0,username TEXT NOT NULL UNIQUE,name TEXT NOT NULL,bio TEXT NOT NULL DEFAULT '',avatar TEXT NOT NULL DEFAULT '',collections TEXT NOT NULL DEFAULT '{"playlists":[],"favourites":[]}',blocked INTEGER NOT NULL DEFAULT 0,created_at INTEGER NOT NULL,last_active INTEGER NOT NULL,city TEXT,country TEXT,app_version TEXT NOT NULL DEFAULT '',opens INTEGER NOT NULL DEFAULT 0,notice_version TEXT NOT NULL)`,
    'CREATE INDEX IF NOT EXISTS app_accounts_last_active ON app_accounts(last_active DESC,id)',
+   'CREATE INDEX IF NOT EXISTS app_accounts_created ON app_accounts(created_at DESC,id)',
    'CREATE TABLE IF NOT EXISTS app_sessions(hash TEXT PRIMARY KEY,user_id TEXT NOT NULL,expires INTEGER NOT NULL)',
    'CREATE INDEX IF NOT EXISTS app_sessions_user ON app_sessions(user_id)',
    'CREATE TABLE IF NOT EXISTS app_oauth(state_hash TEXT PRIMARY KEY,browser_hash TEXT NOT NULL,nonce TEXT NOT NULL,challenge TEXT,expires INTEGER NOT NULL)',
@@ -183,7 +184,7 @@ export async function handleAppAccounts(request,env) {
   }
   if(path==='/api/app/heartbeat'&&request.method==='POST') {
    const data=await body(request),geo=location(request),now=Date.now();
-   await db.prepare('UPDATE app_accounts SET last_active=?,city=?,country=?,app_version=?,opens=opens+? WHERE id=? AND last_active<=?').bind(now,geo.city,geo.country,clean(data.version,40),data.open===true?1:0,user.id,now-300000).run();return reply({user:privateProfile(user)});
+   await db.prepare("UPDATE app_accounts SET last_active=?,city=?,country=?,app_version=?,opens=opens+CASE WHEN last_active<=? THEN ? ELSE 0 END WHERE id=? AND (last_active<=? OR app_version='')").bind(now,geo.city,geo.country,clean(data.version,40),now-300000,data.open===true?1:0,user.id,now-300000).run();return reply({user:privateProfile(user)});
   }
   if(path.startsWith('/api/app/admin/')) {
    if(!admin(user))throw error('Admin access required',403);
