@@ -1,4 +1,5 @@
 import {handleActivity, auditStatement, recordAudit} from './activity.js';
+import { queueDiscordMessage } from './discord.js';
 import { DEEP_AI_ID, isChatAI, chatAIName, deepAIStatus, queueDeepAI } from './deep-ai.js';
 import { ensureIdentitySchema, identityFor, validIdentity, linkChatIdentity } from './chat-identity.js';
 import { handleDeeplist } from "./deeplist.js";
@@ -918,6 +919,7 @@ export default {
           )
           .run();
 
+        queueDiscordMessage(env, ctx, user, {id:messageId, text:message});
         await recordAudit(env.DB,user,'message_sent',messageId,{type:'text'});
         const ai = await queueDeepAI(env, ctx, { id: messageId, sender_id: user.id, message, parent_id: parentId }, request);
         return Response.json({
@@ -1563,6 +1565,7 @@ export default {
 
         await env.DB.batch(statements);
 
+        queueDiscordMessage(env, ctx, user, {id:messageId, text, image:Boolean(file)});
         if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(notifyChat(user.id));
         await recordAudit(env.DB,user,'message_sent',messageId,{type:file?'image':'text'});
         const ai = await queueDeepAI(env, ctx, { id: messageId, sender_id: user.id, message: text, parent_id: parentId, image: Boolean(file) }, request);
