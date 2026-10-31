@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {DatabaseSync} from 'node:sqlite';
 import {handleAppAccounts,digest} from '../src/app-accounts.js';
+import {purgeDeletedCloud} from '../src/app-cloud.js';
 import {visitorSchema} from '../src/deeplist-visitors.js';
 const sql=new DatabaseSync(':memory:');
 const DB={prepare(query){let args=[];return {bind(...values){args=values;return this},async run(){return {meta:{changes:Number(sql.prepare(query).run(...args).changes)}}},async first(){return sql.prepare(query).get(...args)||null},async all(){return {results:sql.prepare(query).all(...args)}}}},async batch(statements){sql.exec('BEGIN');try{const result=[];for(const s of statements)result.push(await s.run());sql.exec('COMMIT');return result}catch(e){sql.exec('ROLLBACK');throw e}}};
@@ -52,3 +53,10 @@ const expired=sent.id;sent=await(await web('POST',{channel:target})).json();asse
 sql.prepare('UPDATE deeplist_visitors SET token_hash=NULL WHERE channel_id=?').run(target);assert.equal((await web('POST',{channel:target})).status,409,'revoked pairing cannot receive new invites');
 assert.equal((await app('me','DELETE',{},receiver.token)).status,200);assert.equal(objects.size,0,'account deletion removes cloud objects');assert.equal(sql.prepare('SELECT COUNT(*) n FROM app_listener_links').get().n,0);assert.equal(sql.prepare('SELECT COUNT(*) n FROM app_listen_requests').get().n,0);
 console.log('PASS private cloud isolation, CAS concurrency, quotas, storage failure, blocking and deletion; request auth, pairing proof, CSRF, ownership, accept/reject, five-minute mute and expiry');
+
+// A transient storage deletion failure is retained for the hourly deletion retry.
+await app('cloud','PUT',{revision:0,data},other.token);
+const originalDelete=env.CHAT_IMAGES.delete;env.CHAT_IMAGES.delete=async()=>{throw Error('Temporary storage failure')};
+assert.equal((await app('me','DELETE',{},other.token)).status,200);assert.equal(objects.size,1);assert.equal(sql.prepare('SELECT COUNT(*) n FROM app_cloud').get().n,1);
+env.CHAT_IMAGES.delete=originalDelete;await purgeDeletedCloud(env);assert.equal(objects.size,0);assert.equal(sql.prepare('SELECT COUNT(*) n FROM app_cloud').get().n,0);
+console.log('PASS cloud deletion: account revoked first, retry metadata retained through R2 failure, hourly purge completes deletion');

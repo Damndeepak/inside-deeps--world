@@ -1,3 +1,4 @@
+import {purgeDeletedCloud} from './app-cloud.js';
 import {handleAppAccounts} from './app-accounts.js';
 import {handleActivity, auditStatement, recordAudit, ensureActivity, purgeDeletedArchive} from './activity.js';
 import { DEEP_AI_ID, isChatAI, chatAIName, deepAIStatus, queueDeepAI } from './deep-ai.js';
@@ -24,6 +25,7 @@ const CHAT_NAME_WORDS = [
 export default {
   async scheduled(event, env, ctx) {
     ctx.waitUntil(purgeDeletedArchive(env.DB));
+    ctx.waitUntil(purgeDeletedCloud(env));
   },
   async fetch(request, env, ctx) {
     const url = new URL(request.url);

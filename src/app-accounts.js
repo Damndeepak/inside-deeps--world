@@ -227,13 +227,13 @@ export async function handleAppAccounts(request,env,helpers={}) {
   }
   if(path==='/api/app/me'&&request.method==='DELETE') {
    if(admin(user))throw error('Admin account deletion requires manual transfer of ownership',409);
-   await deleteCloud(env,user.id);
    for(const table of ['app_listener_links','app_listen_requests','app_listen_mutes']) {
     const exists=await db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name=?").bind(table).first();
     if(exists)await db.prepare('DELETE FROM '+table+' WHERE '+(table==='app_listener_links'?'user_id':'recipient')+'=?').bind(user.id).run();
    }
    if(user.avatar.startsWith(url.origin+'/api/app/avatars/'+user.id+'/'))await env.CHAT_IMAGES.delete('app-avatars/'+user.id+'/'+user.avatar.split('/').at(-1));
-   await db.batch([db.prepare('DELETE FROM app_sessions WHERE user_id=?').bind(user.id),db.prepare('DELETE FROM app_handoffs WHERE user_id=?').bind(user.id),db.prepare('DELETE FROM app_accounts WHERE id=?').bind(user.id)]);return reply({ok:true});
+   await db.batch([db.prepare('DELETE FROM app_sessions WHERE user_id=?').bind(user.id),db.prepare('DELETE FROM app_handoffs WHERE user_id=?').bind(user.id),db.prepare('DELETE FROM app_accounts WHERE id=?').bind(user.id)]);
+   await deleteCloud(env,user.id).catch(()=>{});return reply({ok:true});
   }
   if(user.blocked)throw error('This account has been blocked by the app admin',403);
   if(path==='/api/app/me'&&request.method==='PATCH') {

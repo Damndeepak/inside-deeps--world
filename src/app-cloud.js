@@ -7,8 +7,14 @@ export async function cloudSchema(db){
 }
 export async function deleteCloud(env,userId){
  await cloudSchema(env.DB);
- const row=await env.DB.prepare('DELETE FROM app_cloud WHERE user_id=? RETURNING object_key,previous_key').bind(userId).first();
- if(row)await env.CHAT_IMAGES.delete([row.object_key,row.previous_key].filter(Boolean));
+ const row=await env.DB.prepare('SELECT object_key,previous_key FROM app_cloud WHERE user_id=?').bind(userId).first();
+ if(row){await env.CHAT_IMAGES.delete([row.object_key,row.previous_key].filter(Boolean));await env.DB.prepare('DELETE FROM app_cloud WHERE user_id=? AND object_key=?').bind(userId,row.object_key).run();}
+}
+export async function purgeDeletedCloud(env){
+ const exists=await env.DB.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='app_cloud'").first();
+ if(!exists)return;
+ const rows=await env.DB.prepare('SELECT user_id FROM app_cloud WHERE NOT EXISTS(SELECT 1 FROM app_accounts WHERE id=user_id) LIMIT 20').all();
+ for(const row of rows.results)await deleteCloud(env,row.user_id).catch(()=>{});
 }
 export async function handleAppCloud(request,env,{userFor,readLimited,rate,error}){
  if(new URL(request.url).pathname!=='/api/app/cloud')return null;
