@@ -1,17 +1,18 @@
 {
   "packageId": "com.deepu.wordstorm",
-  "versionName": "13.7.6",
-  "versionCode": 159,
-  "sizeBytes": 25411937,
-  "sha256": "88f7d21c61e8a27ff63755ebb7467c29c129a5df1098d9a587744241af82c06a",
+  "versionName": "13.7.7",
+  "versionCode": 160,
+  "sizeBytes": 25409637,
+  "sha256": "021d62393fceaddccb694c74856f0564aabaf0e361f068953f3cb4f95adb78ce",
   "signingCertificateSha256": "1c73c95916d7e14bac0533d0a4a20a3c01be78f066fcc0c1102254712c4bcd5d",
-  "publishedAt": "2026-10-30T16:06:59.935725+00:00",
+  "publishedAt": "2026-10-31T14:23:04.422174+00:00",
   "downloadUrl": "https://world.damndeepak.workers.dev/downloads/deeplist.apk",
-  "assetUrl": "https://github.com/Damndeepak/Metrolist/releases/download/deeplist-159/Deeplist.apk",
-  "sourceCommit": "c74529956f7308875becb9b78ab8b63d3b93d72f",
+  "assetUrl": "https://github.com/Damndeepak/Metrolist/releases/download/deeplist-160/Deeplist.apk",
+  "sourceCommit": "b1d0913400780129d262a113185b1842bfc35860",
   "changelog": [
-    "Restored the previous lyrics appearance and controls. Verci Ship is the default.",
-    "Your selected lyrics look stays global across songs and restarts.",
-    "Apple, Wordstorm and all Verci styles remain available. Song-specific looks and journeys are optional."
+    "Fixes the startup crash caused by reading the database before its composition provider exists.",
+    "Google profile menu, JSON playlist import and integrations.",
+    "Sound Capsule and Listen Together requests with accept, reject and five-minute mute.",
+    "Private Google account sync and saved Apple lyrics appearance."
   ]
 }
