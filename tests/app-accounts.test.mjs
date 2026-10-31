@@ -114,3 +114,51 @@ page=await(await websiteAdmin('admin/users?'+new URLSearchParams(page.next),{key
 for(const u of page.users){assert.equal(ids.has(u.id),false,'tied timestamps do not duplicate users');ids.add(u.id)}
 assert.equal([...ids].filter(id=>id.startsWith('00000000-0000-4000-8000-')).length,101,'all tied records remain reachable');
 console.log('PASS website admin: production key verification, no Google dependency, scoped privileges, block/unblock audit, CSRF and tied pagination');
+
+// Upgrade a signed-in Guest in place; never merge an already-owned Google profile.
+async function linkingCall(path,method='GET',data,guestToken,cookieValue) {
+ return handleAppAccounts(new Request('https://example.com/api/app/'+path,{method,headers:{...(guestToken?{Authorization:'Bearer '+guestToken}:{}),...(cookieValue?{Cookie:cookieValue}:{}),'Content-Type':'application/json'},...(data===undefined?{}:{body:JSON.stringify(data)})}),configured);
+}
+let linkSubject='new-linked-subject',linkNonce;
+globalThis.fetch=async url=>{
+ if(String(url)==='https://oauth2.googleapis.com/token')return Response.json({id_token:await token({nonce:linkNonce,email:'listener@example.com',name:'Google Name',sub:linkSubject})});
+ if(String(url)==='https://www.googleapis.com/oauth2/v3/certs')return fetcher();
+ throw Error('Unexpected external request');
+};
+try {
+ const g=await(await call('auth/guest','POST',{noticeVersion:'2026-10-30'})).json();
+ await call('me','PATCH',{name:'Keep my profile',username:'keep_my_profile',bio:'My bio'},g.token);
+ await call('collections','PUT',collections,g.token);
+ assert.equal((await linkingCall('auth/link/google','POST',{challenge})).status,401);
+ assert.equal((await linkingCall('auth/link/google','POST',{challenge:'bad'},g.token)).status,400);
+ async function startLink(account) {
+  const r=await linkingCall('auth/link/google','POST',{challenge,user_id:'forged-target'},account.token);assert.equal(r.status,200);
+  const address=new URL((await r.json()).url),path=address.pathname.replace('/api/app/','')+address.search;
+  const browser=await linkingCall(path);assert.equal(browser.status,302);
+  assert.equal((await linkingCall(path)).status,401,'link intent is one-use');
+  const state=new URL(browser.headers.get('Location')).searchParams.get('state');
+  linkNonce=sql.prepare('SELECT nonce FROM app_oauth WHERE state_hash=?').get(await digest(state)).nonce;
+  return {state,cookie:browser.headers.get('Set-Cookie').split(';')[0]};
+ }
+ let flow=await startLink(g);
+ const callback='auth/callback?state='+flow.state+'&code=verified-google-code';
+ assert.equal((await linkingCall(callback,'GET',undefined,undefined,'__Host-dp-login=wrong')).status,401);
+ const connected=await linkingCall(callback,'GET',undefined,undefined,flow.cookie);assert.equal(connected.status,302);
+ const code=new URL(connected.headers.get('Location')).searchParams.get('code');
+ assert.equal((await linkingCall('auth/claim','POST',{code,verifier:'x'.repeat(43)})).status,401);
+ const claimed=await(await linkingCall('auth/claim','POST',{code,verifier})).json();
+ assert.equal(claimed.user.id,g.user.id);assert.equal(claimed.user.provider,'google');assert.equal(claimed.user.name,'Keep my profile');assert.equal(claimed.user.username,'keep_my_profile');assert.equal(claimed.user.bio,'My bio');assert.deepEqual(claimed.user.collections,collections);
+ assert.equal((await call('me','GET',undefined,g.token)).status,200,'existing guest session still refers to the same upgraded account');
+ assert.equal((await linkingCall(callback,'GET',undefined,undefined,flow.cookie)).status,401,'link callback rejects replay');
+ const second=await(await call('auth/guest','POST',{noticeVersion:'2026-10-30'})).json();
+ flow=await startLink(second);
+ assert.equal((await linkingCall('auth/callback?state='+flow.state+'&code=conflict','GET',undefined,undefined,flow.cookie)).status,409);
+ assert.equal(sql.prepare('SELECT provider FROM app_accounts WHERE id=?').get(second.user.id).provider,'guest','Google account collision preserves Guest');
+ flow=await startLink(second);linkSubject='blocked-link-subject';
+ sql.prepare('UPDATE app_accounts SET blocked=1 WHERE id=?').run(second.user.id);
+ assert.equal((await linkingCall('auth/callback?state='+flow.state+'&code=blocked','GET',undefined,undefined,flow.cookie)).status,409);
+ assert.equal(sql.prepare('SELECT provider FROM app_accounts WHERE id=?').get(second.user.id).provider,'guest','blocked Guest cannot upgrade to escape block');
+ const blockedStart=await linkingCall('auth/link/google','POST',{challenge},second.token);assert.equal(blockedStart.status,403);
+ assert.equal((await linkingCall('auth/callback?state=link_missing&code=bad','GET',undefined,undefined,flow.cookie)).status,401);
+} finally {globalThis.fetch=originalFetch}
+console.log('PASS Guest-Google linking: authenticated one-use intent, browser binding, PKCE, same account and profile, collisions, blocked access and replay rejection');

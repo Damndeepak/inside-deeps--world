@@ -26,6 +26,7 @@ async function schema(db) {
    'CREATE TABLE IF NOT EXISTS app_sessions(hash TEXT PRIMARY KEY,user_id TEXT NOT NULL,expires INTEGER NOT NULL)',
    'CREATE INDEX IF NOT EXISTS app_sessions_user ON app_sessions(user_id)',
    'CREATE TABLE IF NOT EXISTS app_oauth(state_hash TEXT PRIMARY KEY,browser_hash TEXT NOT NULL,nonce TEXT NOT NULL,challenge TEXT,expires INTEGER NOT NULL)',
+   'CREATE TABLE IF NOT EXISTS app_account_links(hash TEXT PRIMARY KEY,user_id TEXT NOT NULL,challenge TEXT NOT NULL,expires INTEGER NOT NULL)',
    'CREATE TABLE IF NOT EXISTS app_handoffs(hash TEXT PRIMARY KEY,user_id TEXT NOT NULL,challenge TEXT NOT NULL,expires INTEGER NOT NULL)',
    'CREATE TABLE IF NOT EXISTS app_admin_audit(id TEXT PRIMARY KEY,actor TEXT NOT NULL,target TEXT NOT NULL,action TEXT NOT NULL,at INTEGER NOT NULL)',
    'CREATE TABLE IF NOT EXISTS app_rates(key TEXT PRIMARY KEY,n INTEGER NOT NULL,expires INTEGER NOT NULL)'
@@ -96,14 +97,35 @@ export async function handleAppAccounts(request,env,helpers={}) {
    const id=crypto.randomUUID(),username='listener_'+random().slice(0,12),name='Listener '+username.slice(-6);
    const geo=location(request),now=Date.now();
    await db.prepare('INSERT INTO app_accounts(id,provider,username,name,created_at,last_active,city,country,notice_version,opens) VALUES(?,?,?,?,?,?,?,?,?,1)').bind(id,'guest',username,name,now,now,geo.city,geo.country,POLICY).run();
-   await db.batch(['DELETE FROM app_oauth WHERE expires<?','DELETE FROM app_handoffs WHERE expires<?','DELETE FROM app_sessions WHERE expires<?','DELETE FROM app_rates WHERE expires<?'].map(s=>db.prepare(s).bind(now)));
+   await db.batch(['DELETE FROM app_account_links WHERE expires<?','DELETE FROM app_oauth WHERE expires<?','DELETE FROM app_handoffs WHERE expires<?','DELETE FROM app_sessions WHERE expires<?','DELETE FROM app_rates WHERE expires<?'].map(s=>db.prepare(s).bind(now)));
    return reply({token:await session(db,id),user:privateProfile(await db.prepare('SELECT * FROM app_accounts WHERE id=?').bind(id).first())},201);
+  }
+  if(path==='/api/app/auth/link/google'&&request.method==='POST') {
+   if(!configured)throw error('Google sign-in is not configured yet. Your guest profile is safe.',503);
+   const user=await userFor(request,db);if(!user)throw error('Sign in as Guest first',401);
+   if(user.blocked)throw error('This account is blocked',403);
+   if(user.provider!=='guest')throw error('Google is already connected',409);
+   const data=await body(request);if(!/^[A-Za-z0-9_-]{43}$/.test(data.challenge||''))throw error('Invalid sign-in request');
+   await rate(db,'link:'+user.id,5);
+   const intent=random();
+   await db.prepare('INSERT INTO app_account_links(hash,user_id,challenge,expires) VALUES(?,?,?,?)').bind('intent:'+await digest(intent),user.id,data.challenge,Date.now()+120000).run();
+   return reply({url:url.origin+'/api/app/auth/google?link='+intent});
   }
   if(path==='/api/app/auth/google'&&request.method==='GET') {
    if(!configured)return reply({error:'Google sign-in is not configured yet. Continue as Guest for now.'},503);
-   const challenge=url.searchParams.get('challenge');if(challenge&&!/^[A-Za-z0-9_-]{43}$/.test(challenge))throw error('Invalid sign-in request');
+   let challenge=url.searchParams.get('challenge');if(challenge&&!/^[A-Za-z0-9_-]{43}$/.test(challenge))throw error('Invalid sign-in request');
    await rate(db,'oauth:'+await digest(request.headers.get('CF-Connecting-IP')||'unknown'),15);
-   const state=random(),browser=random(),nonce=random();
+   const intent=url.searchParams.get('link');let linked=null;
+   if(intent) {
+    if(!/^[a-f0-9]{64}$/.test(intent))throw error('Invalid connection request');
+    linked=await db.prepare('DELETE FROM app_account_links WHERE hash=? AND expires>? RETURNING user_id,challenge').bind('intent:'+await digest(intent),Date.now()).first();
+    if(!linked)throw error('Connection expired. Please try again.',401);
+    const guest=await db.prepare('SELECT provider,blocked FROM app_accounts WHERE id=?').bind(linked.user_id).first();
+    if(!guest||guest.blocked||guest.provider!=='guest')throw error('Guest account is unavailable',409);
+    challenge=linked.challenge;
+   }
+   const state=(linked?'link_':'')+random(),browser=random(),nonce=random();
+   if(linked)await db.prepare('INSERT INTO app_account_links(hash,user_id,challenge,expires) VALUES(?,?,?,?)').bind('state:'+await digest(state),linked.user_id,challenge,Date.now()+600000).run();
    await db.prepare('INSERT INTO app_oauth(state_hash,browser_hash,nonce,challenge,expires) VALUES(?,?,?,?,?)').bind(await digest(state),await digest(browser),nonce,challenge,Date.now()+600000).run();
    const redirect=new URL('https://accounts.google.com/o/oauth2/v2/auth');
    for(const [k,v] of Object.entries({client_id:env.DEEPLIST_GOOGLE_CLIENT_ID,redirect_uri:url.origin+'/api/app/auth/callback',response_type:'code',scope:'openid email profile',state,nonce,prompt:'select_account'}))redirect.searchParams.set(k,v);
@@ -120,8 +142,18 @@ export async function handleAppAccounts(request,env,helpers={}) {
    const now=Date.now(),id=crypto.randomUUID(),username='listener_'+random().slice(0,12),geo=location(request);
    const email=clean(claims.email,254).toLowerCase();
    const avatar=typeof claims.picture==='string'&&/^https:\/\/lh[0-9]+\.googleusercontent\.com\//.test(claims.picture)?claims.picture.slice(0,1000):'';
+   let u;
+   if(state.startsWith('link_')) {
+    const linked=await db.prepare('DELETE FROM app_account_links WHERE hash=? AND expires>? RETURNING user_id').bind('state:'+await digest(state),now).first();
+    if(!linked)throw error('Connection expired. Please try again.',401);
+    const existing=await db.prepare('SELECT id FROM app_accounts WHERE google_sub=?').bind(claims.sub).first();
+    if(existing&&existing.id!==linked.user_id)throw error('This Google account already has a profile. Sign in separately; your guest profile was kept.',409);
+    u=await db.prepare(`UPDATE app_accounts SET provider='google',google_sub=?,google_email=?,email_verified=1 WHERE id=? AND provider='guest' AND blocked=0 RETURNING *`).bind(claims.sub,email,linked.user_id).first();
+    if(!u)throw error('Guest account is unavailable',409);
+   } else {
    await db.prepare(`INSERT INTO app_accounts(id,provider,google_sub,google_email,email_verified,username,name,avatar,created_at,last_active,city,country,notice_version,opens) VALUES(?,'google',?,?,1,?,?,?,?,?,?,?,?,1) ON CONFLICT(google_sub) DO UPDATE SET google_email=excluded.google_email,email_verified=1`).bind(id,claims.sub,email,username,clean(claims.name,60)||'Listener',avatar,now,now,geo.city,geo.country,POLICY).run();
-   const u=await db.prepare('SELECT * FROM app_accounts WHERE google_sub=?').bind(claims.sub).first();
+   u=await db.prepare('SELECT * FROM app_accounts WHERE google_sub=?').bind(claims.sub).first();
+   }
    if(flow.challenge) {
     const handoff=random();await db.prepare('INSERT INTO app_handoffs(hash,user_id,challenge,expires) VALUES(?,?,?,?)').bind(await digest(handoff),u.id,flow.challenge,now+120000).run();
     // Only a one-use, PKCE-bound code goes through the Android URL handler.
