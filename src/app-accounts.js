@@ -1,3 +1,5 @@
+import {handleAppCloud,deleteCloud} from './app-cloud.js';
+import {handleAppListen} from './app-listen.js';
 const OWNER = 'gandhideepak6376@gmail.com';
 const POLICY = '2026-10-30';
 const DAY = 86400000;
@@ -82,7 +84,7 @@ export async function verifyGoogle(token,clientId,nonce,fetcher=fetch) {
 }
 export async function handleAppAccounts(request,env,helpers={}) {
  const url=new URL(request.url),path=url.pathname;
- if(!path.startsWith('/api/app/'))return null;
+ if(!path.startsWith('/api/app/')&&path!=='/api/deeplist/listen-request')return null;
  try {
   if(!['GET','HEAD'].includes(request.method)) {
    const origin=request.headers.get('Origin');
@@ -92,6 +94,8 @@ export async function handleAppAccounts(request,env,helpers={}) {
   const configured=!!(clientId&&clientSecret);
   if(path==='/api/app/config'&&request.method==='GET')return reply({googleConfigured:configured,noticeVersion:POLICY});
   await schema(env.DB);const db=env.DB;
+  const cloud=await handleAppCloud(request,env,{userFor,readLimited,rate,error});if(cloud)return cloud;
+  const listening=await handleAppListen(request,env,{userFor,digest,body,rate,error});if(listening)return listening;
   if(path==='/api/app/auth/guest'&&request.method==='POST') {
    const data=await body(request);if(data.noticeVersion!==POLICY)throw error('Please read the current data notice');
    const ip=request.headers.get('CF-Connecting-IP')||'unknown';await rate(db,'guest:'+await digest(ip+Math.floor(Date.now()/DAY)),20,3600000);
@@ -223,6 +227,11 @@ export async function handleAppAccounts(request,env,helpers={}) {
   }
   if(path==='/api/app/me'&&request.method==='DELETE') {
    if(admin(user))throw error('Admin account deletion requires manual transfer of ownership',409);
+   await deleteCloud(env,user.id);
+   for(const table of ['app_listener_links','app_listen_requests','app_listen_mutes']) {
+    const exists=await db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name=?").bind(table).first();
+    if(exists)await db.prepare('DELETE FROM '+table+' WHERE '+(table==='app_listener_links'?'user_id':'recipient')+'=?').bind(user.id).run();
+   }
    if(user.avatar.startsWith(url.origin+'/api/app/avatars/'+user.id+'/'))await env.CHAT_IMAGES.delete('app-avatars/'+user.id+'/'+user.avatar.split('/').at(-1));
    await db.batch([db.prepare('DELETE FROM app_sessions WHERE user_id=?').bind(user.id),db.prepare('DELETE FROM app_handoffs WHERE user_id=?').bind(user.id),db.prepare('DELETE FROM app_accounts WHERE id=?').bind(user.id)]);return reply({ok:true});
   }

@@ -24,8 +24,8 @@ async function check(privateSession){
   {time:4000,text:'Full second line'},
   {time:8000,text:'Third line stays visible'}
  ]},connected=true;
- const document={getElementById:id=>nodes[id]??=new Element(),createElement:tag=>{const node=new Element(tag);if(tag==='img')images.push(node);return node;},addEventListener:(type,fn)=>events[type]=fn,hidden:false,head:new Element()};
- const context={document,location:{search:'?user='+channel,origin:'https://example.com',href:'https://example.com/deeplist.html?user='+channel},history:{replaceState(){}},URL,URLSearchParams,AbortController,AbortSignal,performance:{now:()=>now},setTimeout:(fn,ms)=>{timeouts.push({fn,ms});return timeouts.length;},clearTimeout(){},requestAnimationFrame:fn=>{frames.push(fn);return frames.length;},cancelAnimationFrame(){},window:{addEventListener(){}},sessionStorage:{getItem(){return null}},prompt:()=>'',navigator:{clipboard:{writeText:async()=>{}}},console,
+ const document={getElementById:id=>nodes[id]??=new Element(),createElement:tag=>{const node=new Element(tag);if(tag==='img')images.push(node);return node;},addEventListener:(type,fn)=>events[type]=fn,dispatchEvent:event=>events[event.type]?.(event),hidden:false,head:new Element()};
+ const context={document,Event,location:{search:'?user='+channel,origin:'https://example.com',href:'https://example.com/deeplist.html?user='+channel},history:{replaceState(){}},URL,URLSearchParams,AbortController,AbortSignal,performance:{now:()=>now},setTimeout:(fn,ms)=>{timeouts.push({fn,ms});return timeouts.length;},clearTimeout(){},requestAnimationFrame:fn=>{frames.push(fn);return frames.length;},cancelAnimationFrame(){},window:{addEventListener(){}},sessionStorage:{getItem(){return null}},prompt:()=>'',navigator:{clipboard:{writeText:async()=>{}}},console,
  fetch:async(path,options={})=>{
   requests.push({path,options});let data;
   if(path.startsWith('/api/deeplist/control-access'))data={canControl:privateSession};
