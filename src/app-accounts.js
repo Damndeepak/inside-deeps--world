@@ -88,7 +88,8 @@ export async function handleAppAccounts(request,env,helpers={}) {
    const origin=request.headers.get('Origin');
    if((origin&&origin!==url.origin)||request.headers.get('Sec-Fetch-Site')==='cross-site')throw error('Forbidden origin',403);
   }
-  const configured=!!(env.DEEPLIST_GOOGLE_CLIENT_ID&&env.DEEPLIST_GOOGLE_CLIENT_SECRET);
+  const clientId=String(env.DEEPLIST_GOOGLE_CLIENT_ID||'').trim(),clientSecret=String(env.DEEPLIST_GOOGLE_CLIENT_SECRET||'').trim();
+  const configured=!!(clientId&&clientSecret);
   if(path==='/api/app/config'&&request.method==='GET')return reply({googleConfigured:configured,noticeVersion:POLICY});
   await schema(env.DB);const db=env.DB;
   if(path==='/api/app/auth/guest'&&request.method==='POST') {
@@ -128,7 +129,7 @@ export async function handleAppAccounts(request,env,helpers={}) {
    if(linked)await db.prepare('INSERT INTO app_account_links(hash,user_id,challenge,expires) VALUES(?,?,?,?)').bind('state:'+await digest(state),linked.user_id,challenge,Date.now()+600000).run();
    await db.prepare('INSERT INTO app_oauth(state_hash,browser_hash,nonce,challenge,expires) VALUES(?,?,?,?,?)').bind(await digest(state),await digest(browser),nonce,challenge,Date.now()+600000).run();
    const redirect=new URL('https://accounts.google.com/o/oauth2/v2/auth');
-   for(const [k,v] of Object.entries({client_id:env.DEEPLIST_GOOGLE_CLIENT_ID,redirect_uri:url.origin+'/api/app/auth/callback',response_type:'code',scope:'openid email profile',state,nonce,prompt:'select_account'}))redirect.searchParams.set(k,v);
+   for(const [k,v] of Object.entries({client_id:clientId,redirect_uri:url.origin+'/api/app/auth/callback',response_type:'code',scope:'openid email profile',state,nonce,prompt:'select_account'}))redirect.searchParams.set(k,v);
    return new Response(null,{status:302,headers:{...headers,Location:redirect.href,'Set-Cookie':cookieHeader('__Host-dp-login',browser,600)}});
   }
   if(path==='/api/app/auth/callback'&&request.method==='GET') {
@@ -136,9 +137,18 @@ export async function handleAppAccounts(request,env,helpers={}) {
    if(!configured||!state||!code||!browser)throw error('Sign-in expired. Please try again.',401);
    const flow=await db.prepare('DELETE FROM app_oauth WHERE state_hash=? AND browser_hash=? AND expires>? RETURNING *').bind(await digest(state),await digest(browser),Date.now()).first();
    if(!flow)throw error('Sign-in expired. Please try again.',401);
-   const r=await fetch('https://oauth2.googleapis.com/token',{method:'POST',body:new URLSearchParams({code,client_id:env.DEEPLIST_GOOGLE_CLIENT_ID,client_secret:env.DEEPLIST_GOOGLE_CLIENT_SECRET,redirect_uri:url.origin+'/api/app/auth/callback',grant_type:'authorization_code'})});
-   if(!r.ok)throw error('Google sign-in failed',401);
-   const tokens=await r.json(),claims=await verifyGoogle(tokens.id_token,env.DEEPLIST_GOOGLE_CLIENT_ID,flow.nonce);
+   const r=await fetch('https://oauth2.googleapis.com/token',{method:'POST',body:new URLSearchParams({code,client_id:clientId,client_secret:clientSecret,redirect_uri:url.origin+'/api/app/auth/callback',grant_type:'authorization_code'})});
+   if(!r.ok) {
+    const failure=await r.json().catch(()=>({}));
+    const messages={
+     invalid_client:'Google rejected the Client ID/Secret pair (invalid_client). Copy both values directly from the same Google OAuth Web client into Cloudflare and deploy.',
+     invalid_grant:'Google rejected the sign-in code (invalid_grant). Start a new sign-in from Deeplist. If it repeats, check the exact authorized redirect URI.',
+     redirect_uri_mismatch:'Google redirect URI does not match (redirect_uri_mismatch). Set the authorized redirect URI to '+url.origin+'/api/app/auth/callback',
+     unauthorized_client:'Google has not authorized this OAuth client (unauthorized_client). Check that this is an enabled Web application client.',
+    };
+    throw error(Object.hasOwn(messages,failure?.error)?messages[failure.error]:'Google token exchange failed. Please start a new sign-in and try again.',502);
+   }
+   const tokens=await r.json(),claims=await verifyGoogle(tokens.id_token,clientId,flow.nonce);
    const now=Date.now(),id=crypto.randomUUID(),username='listener_'+random().slice(0,12),geo=location(request);
    const email=clean(claims.email,254).toLowerCase();
    const avatar=typeof claims.picture==='string'&&/^https:\/\/lh[0-9]+\.googleusercontent\.com\//.test(claims.picture)?claims.picture.slice(0,1000):'';

@@ -162,3 +162,23 @@ try {
  assert.equal((await linkingCall('auth/callback?state=link_missing&code=bad','GET',undefined,undefined,flow.cookie)).status,401);
 } finally {globalThis.fetch=originalFetch}
 console.log('PASS Guest-Google linking: authenticated one-use intent, browser binding, PKCE, same account and profile, collisions, blocked access and replay rejection');
+
+// Expose only static, actionable OAuth error labels; provider text can contain secrets.
+try {
+ const spaced={...configured,DEEPLIST_GOOGLE_CLIENT_ID:' client\n',DEEPLIST_GOOGLE_CLIENT_SECRET:' test-client-secret '};
+ for(const [index,reason] of ['invalid_client','invalid_grant','redirect_uri_mismatch','unauthorized_client','private-provider-error',null].entries()) {
+  const state='diagnostic-'+index,browser='diagnostic-browser';
+  await DB.prepare('INSERT INTO app_oauth(state_hash,browser_hash,nonce,challenge,expires) VALUES(?,?,?,?,?)').bind(await digest(state),await digest(browser),'nonce',challenge,Date.now()+60000).run();
+  globalThis.fetch=async (url,options)=>{
+   assert.equal(String(url),'https://oauth2.googleapis.com/token');
+   assert.equal(options.body.get('client_id'),'client');assert.equal(options.body.get('client_secret'),'test-client-secret');
+   return Response.json({error:reason,error_description:'private-secret-and-authorization-code'},{status:400});
+  };
+  const response=await handleAppAccounts(new Request('https://example.com/api/app/auth/callback?state='+state+'&code=private-code',{headers:{Cookie:'__Host-dp-login='+browser}}),spaced);
+  assert.equal(response.status,502);const text=await response.text();
+  assert.equal(text.includes('private'),false,'provider-supplied text and secrets stay private');
+  if(index<4)assert.ok(text.includes(reason));else assert.ok(text.includes('token exchange failed'));
+ }
+ assert.equal((await(await handleAppAccounts(new Request('https://example.com/api/app/config'),{...env,DEEPLIST_GOOGLE_CLIENT_ID:' ',DEEPLIST_GOOGLE_CLIENT_SECRET:' '})).json()).googleConfigured,false);
+} finally {globalThis.fetch=originalFetch}
+console.log('PASS OAuth diagnostics: trimmed configuration, known error guidance and no upstream secret disclosure');
