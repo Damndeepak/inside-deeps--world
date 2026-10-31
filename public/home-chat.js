@@ -191,7 +191,7 @@ function applyFeed(srv,hasMore,first){
 }
 
 async function loadFeed(sig){
-  const r=await fetch("/api/chat?limit=100",{cache:"no-store",signal:AbortSignal.timeout(10000)});const d=await r.json();
+  const r=await fetch("/api/chat?limit="+(S.ready?100:30),{cache:"no-store",signal:AbortSignal.timeout(10000)});const d=await r.json();
   if(!d.success)throw new Error("feed");
   const first=!S.ready;
   if(d.me){S.me=d.me;paintMyIdentity()}
@@ -206,7 +206,7 @@ async function poll(){
 
 async function boot(){
   E.empty.hidden=false;E.empty.innerHTML='<span class="skeleton skeleton-line" role="status" aria-label="Loading conversation"></span>';
-  try{const sig=await getState();await loadFeed(sig)}
+  try{await loadFeed(null)}
   catch(e){E.empty.hidden=false;E.empty.textContent="Could not load the chat. Tap here to try again.";E.empty.style.cursor="pointer";E.empty.onclick=()=>{E.empty.onclick=null;E.empty.style.cursor="";boot()}}
 }
 

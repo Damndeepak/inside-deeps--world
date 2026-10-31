@@ -1,12 +1,13 @@
 import {identityColor,identityLabel} from './chat-identity.js';
 (()=>{
 const box=document.getElementById('deeplistListeners');if(!box)return;let timer,loading=false,expiryTimers=[],failures=0;
-const cards=new Map();
+const cards=new Map();let hasLive=false;
 function clearExpiries(){expiryTimers.forEach(clearTimeout);expiryTimers=[];}
 async function load(){
  clearTimeout(timer);if(document.hidden||loading)return;loading=true;const pollStarted=performance.now();
  try{
   const started=performance.now(),r=await fetch('/api/deeplist/listeners',{cache:'no-store',signal:AbortSignal.timeout(4000)});if(!r.ok)throw Error();const d=await r.json();
+  hasLive=(d.listeners||[]).some(visitor=>visitor.live);
   const count=document.getElementById('deeplistConnectionCount');if(count)count.textContent=Number.isInteger(d.totalConnected)?d.totalConnected+' music connections recorded':'';
   clearExpiries();
   const wanted=new Set((d.listeners||[]).map(v=>v.channel));
@@ -41,10 +42,11 @@ async function load(){
    index++;
   }
  failures=0;
- }catch{failures++;clearExpiries();cards.clear();const message='Connected listeners are unavailable right now.';if(box.textContent!==message)box.textContent=message;}
+ }catch{failures++;if(!cards.size){const message='Connected listeners are unavailable right now.';if(box.textContent!==message)box.textContent=message;}}
  finally{loading=false;}
- timer=setTimeout(()=>{if((window.worldIsVisible||(()=>!document.hidden))(box.closest('section')))load();else timer=setTimeout(load,15000);},failures?Math.min(10000,1000*2**(failures-1)):Math.max(0,750-(performance.now()-pollStarted)));
+ timer=setTimeout(()=>{if((window.worldIsVisible||(()=>!document.hidden))(box.closest('section')))load();else timer=setTimeout(()=>{if((window.worldIsVisible||(()=>!document.hidden))(box.closest('section')))load()},15000);},failures?Math.min(10000,1000*2**(failures-1)):Math.max(250,(window.worldPollDelay?.(hasLive?1500:10000,5000)??(hasLive?1500:10000))-(performance.now()-pollStarted)));
 }
+box.closest('section').addEventListener?.('world-visible',load);
 document.addEventListener('visibilitychange',()=>{if(document.hidden){clearTimeout(timer);box.querySelectorAll('.deeplist-live-indicator').forEach(node=>node.classList.remove('deeplist-live-indicator'));}else load();});document.addEventListener('deeplist-identity-updated',load);
   load();
 })();

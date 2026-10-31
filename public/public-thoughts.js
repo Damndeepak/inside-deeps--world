@@ -47,6 +47,6 @@
   cancel.onclick=reset;
   el('ptAdmin').onclick=()=>{if(!admin)el('cxAdmin').click();else input.focus()};
   window.addEventListener('world-admin-change',syncAdmin);
-  document.addEventListener('visibilitychange',()=>{if(!document.hidden){syncAdmin();load().catch(e=>note(e.message))}});
-  load().catch(e=>{list.replaceChildren();note(e.message)});syncAdmin();
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden&&el('ptDialog').open){syncAdmin();load().catch(e=>note(e.message))}});
+  el('ptOpen').addEventListener('click',()=>{load().catch(e=>{list.replaceChildren();note(e.message)});syncAdmin();});
 })();

@@ -36,7 +36,7 @@ async function check(privateSession){
  vm.createContext(context);vm.runInContext(source,context);await flush();
  const run=code=>vm.runInContext(code,context);
  assert.equal(nodes.remoteControls.hidden,!privateSession);
- assert.ok(timeouts.some(t=>t.ms===500),'live player refreshes within 500ms');
+ assert.ok(timeouts.some(t=>t.ms===1000),'live player refreshes once per second');
  assert.ok(requests.find(r=>r.path.startsWith('/api/deeplist/state')).options.signal);
  const rows=nodes.currentLine.children;
  assert.equal(rows.length,3);assert.equal(rows[0].attributes['aria-label'],'hello world');
@@ -86,7 +86,7 @@ async function check(privateSession){
  assert.equal(nodes.trackTitle.textContent,'Newest song');
  // A timeout racing with a response still schedules recovery instead of stopping the poller.
  context.fetch=async()=>{timeouts.filter(t=>t.ms===1500).at(-1).fn();return {ok:true,json:async()=>({connected:true,serverNow:now,receivedAt:now,state})};};
- const timerCount=timeouts.length;await run('poll()');assert.ok(timeouts.slice(timerCount).some(t=>t.ms===500));
+ const timerCount=timeouts.length;await run('poll()');assert.ok(timeouts.slice(timerCount).some(t=>t.ms===1000));
  assert.equal(nodes.liveStatus.textContent,'Connection unavailable. Retrying…');context.fetch=normalFetch;await run('poll()');
 
  // Repeated words and enhanced syllables retain their own timestamps.

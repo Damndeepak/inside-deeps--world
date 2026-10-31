@@ -14,6 +14,7 @@ import {identityColor,identityLabel} from './chat-identity.js';
   async function load() {
     clearTimeout(timer);
     if (document.hidden) return;
+    if (typeof window!=='undefined'&&window.worldIsVisible&&!window.worldIsVisible(box)){timer=setTimeout(load,30000);return;}
     controller?.abort();
     const active = new AbortController(); controller = active;
     const deadline = setTimeout(() => active.abort(), 15000);
@@ -45,12 +46,13 @@ import {identityColor,identityLabel} from './chat-identity.js';
       if (controller === active) { list.replaceChildren(); note.textContent = 'Listening stats are unavailable. Retrying shortly.'; }
     } finally {
       clearTimeout(deadline);
-      if (controller === active && !document.hidden) timer = setTimeout(load, 10000);
+      if (controller === active && !document.hidden) timer = setTimeout(load, 30000);
     }
   }
   period.onchange = () => { month.disabled = period.value === 'all'; load(); };
   month.onchange = load;
   document.addEventListener('visibilitychange', () => { if (document.hidden) { clearTimeout(timer); controller?.abort(); } else load(); });
   document.addEventListener('deeplist-identity-updated',load);
-  load();
+  if(typeof window!=='undefined'&&window.worldWhenNear)window.worldWhenNear(box,load);else load();
+  box.addEventListener?.('world-visible',load);
 })();

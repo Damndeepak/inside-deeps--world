@@ -27,6 +27,6 @@ const flush=async()=>{for(let i=0;i<8;i++)await new Promise(setImmediate);};
  events['deeplist-identity-updated']();await flush();
  assert.equal(box.children[0],firstCard);assert.equal(box.children[1],secondCard);assert.equal(box.scrollLeft,150);
  timers.find(t=>t.ms===14500).fn();assert.equal(info(0)[0].className,'');assert.ok(info(0)[2].textContent.startsWith('Last shared'));
- fail=true;timers.find(t=>t.ms===750).fn();await flush();assert.equal(box.textContent,'Connected listeners are unavailable right now.');assert.equal(box.children.length,0);
+ fail=true;timers.find(t=>t.ms===1500).fn();await flush();assert.equal(box.children[0],firstCard,'temporary errors retain the loaded cards');assert.equal(box.children.length,4);assert.equal(info(0)[0].className,'','expired cards do not regain a live marker');
  console.log('PASS: tiny live markers only for fresh playing listeners; paused, offline, stale and network failure never blink');
 })().catch(e=>{console.error(e);process.exitCode=1});

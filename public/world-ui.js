@@ -5,7 +5,7 @@ const el=(tag,cls,txt)=>{const e=document.createElement(tag);if(cls)e.className=
 const safeURL=u=>{try{const a=new URL(u);return a.protocol==='https:'?a.href:''}catch{return''}};
 const stamp=iso=>new Date(iso).toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'});
 function status(node,msg,error=false){if(!node)return;node.textContent=msg;node.classList.toggle('error',error)}
-async function api(path,options={}){const r=await fetch(path,{cache:'no-store',signal:AbortSignal.timeout(12000),...options});const d=await r.json();if(!r.ok||d.success===false)throw new Error(d.error||'Please try again');return d}
+async function api(path,options={}){if(!Object.keys(options).length&&window.worldPublicJSON&&['/api/deeplist/history','/api/deeplist/on-repeat'].includes(path))return window.worldPublicJSON(path);const r=await fetch(path,{cache:'no-store',signal:AbortSignal.timeout(12000),...options});const d=await r.json();if(!r.ok||d.success===false)throw new Error(d.error||'Please try again');return d}
 function art(track){const box=el('div','world-art','♪'),src=safeURL(track.image);if(src&&!src.includes('2a96cbd8b46e442fc41c2b86b821562f')){const img=el('img');img.src=src;img.alt='';img.loading='lazy';img.referrerPolicy='no-referrer';img.onerror=()=>box.replaceChildren(document.createTextNode('♪'));box.textContent='';box.append(img)}return box}
 function trackLink(t,cls){const href=safeURL(t.url),a=el(href?'a':'div',cls);if(href){a.href=href;a.target='_blank';a.rel='noopener noreferrer'}return a}
 async function history(){

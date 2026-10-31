@@ -60,13 +60,13 @@ export async function handleVisitorDeeplist(request, env, {hash,validateState,pu
  }
  if(path==='/api/deeplist/listeners'&&method==='GET') {
   const now=Date.now();
-  const rows=await env.DB.prepare(`SELECT v.channel_id,COALESCE(a.display_name,u.username,n.display_name) AS display_name,p.symbol,p.color,
+  const [rows,total,owner]=await Promise.all([env.DB.prepare(`SELECT v.channel_id,COALESCE(a.display_name,u.username,n.display_name) AS display_name,p.symbol,p.color,
     json_extract(v.payload,'$.id') AS track_id,json_extract(v.payload,'$.title') AS title,json_extract(v.payload,'$.artist') AS artist,json_extract(v.payload,'$.playing') AS playing,v.updated_at
     FROM deeplist_visitors v LEFT JOIN deeplist_player_names a ON a.channel_id=v.channel_id LEFT JOIN deeplist_visitor_names n ON n.channel_id=v.channel_id
     LEFT JOIN deeplist_identity_links l ON l.channel_id=v.channel_id LEFT JOIN users u ON u.id=l.user_id LEFT JOIN chat_identity p ON p.user_id=l.user_id
-    WHERE v.token_hash IS NOT NULL AND v.payload IS NOT NULL ORDER BY v.updated_at DESC,v.channel_id LIMIT 50`).all();
-  const total=await env.DB.prepare('SELECT COUNT(*) AS total FROM deeplist_connection_totals').first();
-  const owner=await env.DB.prepare("SELECT display_name FROM deeplist_player_names WHERE channel_id='owner'").first();
+    WHERE v.token_hash IS NOT NULL AND v.payload IS NOT NULL ORDER BY v.updated_at DESC,v.channel_id LIMIT 50`).all(),
+    env.DB.prepare('SELECT COUNT(*) AS total FROM deeplist_connection_totals').first(),
+    env.DB.prepare("SELECT display_name FROM deeplist_player_names WHERE channel_id='owner'").first()]);
   return reply({owner:{channel:'owner',label:owner?.display_name||'damndeepak'},serverNow:now,totalConnected:total.total,listeners:rows.results.map(r=>({channel:r.channel_id,label:label(r.channel_id,r.display_name),symbol:r.symbol||'',color:r.color||null,id:r.track_id,title:r.title,artist:r.artist,live:now-r.updated_at<=15000,playing:now-r.updated_at<=15000&&!!r.playing,lastPlayedAt:r.updated_at,player:`/deeplist.html?user=${r.channel_id}`}))});
  }
  if(path==='/api/deeplist/pair'&&visitorScope&&['POST','DELETE'].includes(method)) {
