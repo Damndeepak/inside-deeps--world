@@ -114,6 +114,7 @@ async function check(privateSession){
  const pendingControl=run('checkControl()');run('channelEpoch++');context.fetch=originalFetch;
  await run('checkControl()');failOldControl(Error('old network failure'));await pendingControl;
  assert.equal(nodes.remoteControls.hidden,!privateSession);
- await nodes.createPair.onclick();assert.ok(nodes.openApp.href.startsWith('deeplist://connect?'));assert.ok(!nodes.openApp.href.includes('a'.repeat(64)));assert.equal(nodes.pairResult.hidden,true);
+ await nodes.pairToggle.onclick();assert.equal(nodes.pairPanel.hidden,false);assert.equal(requests.some(r=>r.path.includes('/pair')||r.path.includes('/name')),false,'opening connect does not rotate tokens or require a name');
+ await nodes.createPair.onclick();assert.equal(requests.some(r=>r.path.includes('/name')),false,'nameless connection skips name save');assert.ok(nodes.openApp.href.startsWith('deeplist://connect?'));assert.ok(!nodes.openApp.href.includes('a'.repeat(64)));assert.equal(nodes.pairResult.hidden,true);
 }
 (async()=>{await check(false);await check(true);console.log('PASS: full-line Apple lyrics, word timing/fill, pause, seek, offset, track change, offline, look controls and private pairing');})().catch(e=>{console.error(e);process.exitCode=1});
