@@ -81,3 +81,6 @@
  #cxChat.cx-keyboard .cx-ai-status{margin:2px 0;font-size:11px}
  #cxChat .cx-send{padding:0 10px}
 }
+
+/* Remove repeated decorative copy around the live card. */
+.chalk-live-wrap:before{content:none}
