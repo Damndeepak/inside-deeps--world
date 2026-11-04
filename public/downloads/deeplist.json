@@ -1,18 +1,20 @@
 {
   "packageId": "com.deepu.wordstorm",
-  "versionName": "13.7.7",
-  "versionCode": 160,
-  "sizeBytes": 25409637,
-  "sha256": "021d62393fceaddccb694c74856f0564aabaf0e361f068953f3cb4f95adb78ce",
+  "versionName": "13.7.8",
+  "versionCode": 161,
+  "sizeBytes": 25417001,
+  "sha256": "c038a6b306e0cfc4c75fc42c0746a6561eb251b7c866d2bf0b2e09a5a543f77d",
   "signingCertificateSha256": "1c73c95916d7e14bac0533d0a4a20a3c01be78f066fcc0c1102254712c4bcd5d",
-  "publishedAt": "2026-10-31T14:23:04.422174+00:00",
+  "publishedAt": "2026-11-04T16:40:10.644668+00:00",
   "downloadUrl": "https://world.damndeepak.workers.dev/downloads/deeplist.apk",
-  "assetUrl": "https://github.com/Damndeepak/Metrolist/releases/download/deeplist-160/Deeplist.apk",
-  "sourceCommit": "b1d0913400780129d262a113185b1842bfc35860",
+  "assetUrl": "https://github.com/Damndeepak/Metrolist/releases/download/deeplist-161/Deeplist.apk",
+  "sourceCommit": "ef6438d5adce16665fdbe74d74f2596660fba342",
   "changelog": [
-    "Fixes the startup crash caused by reading the database before its composition provider exists.",
-    "Google profile menu, JSON playlist import and integrations.",
-    "Sound Capsule and Listen Together requests with accept, reject and five-minute mute.",
-    "Private Google account sync and saved Apple lyrics appearance."
+    "Save lyric and instrumental moments with Beat, Voice, Lyrics or Mood tags and an optional note.",
+    "Filter saved moments, revisit exact timestamps and start related mixes from the saved song.",
+    "Share monthly Sound Capsule as a portrait PNG with top artists, top songs and listening minutes.",
+    "Softer Apple lyrics word lift while retaining word size, spacing and background customization.",
+    "Reduce animated artwork playback work and stop it when the app is in the background.",
+    "Fix stale lyric callbacks, track-change offsets and incomplete monthly share data."
   ]
 }
