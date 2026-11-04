@@ -8,7 +8,7 @@ async function load(){
  try{
   const started=performance.now(),r=await fetch('/api/deeplist/listeners',{cache:'no-store',signal:AbortSignal.timeout(4000)});if(!r.ok)throw Error();const d=await r.json();
   hasLive=(d.listeners||[]).some(visitor=>visitor.live);
-  const owner=document.getElementById('lfm')?.closest?.('.chalk-live-wrap');if(owner){owner.style.order=document.getElementById('lfm').classList.contains?.('is-playing')?'-1':'1';}
+  const owner=document.getElementById('lfm')?.closest?.('.chalk-live-wrap');if(owner){owner.style.order='-1';}
   const count=document.getElementById('deeplistConnectionCount');if(count)count.textContent=Number.isInteger(d.totalConnected)?d.totalConnected+' music connections recorded':'';
   clearExpiries();
   const wanted=new Set((d.listeners||[]).map(v=>v.channel));
