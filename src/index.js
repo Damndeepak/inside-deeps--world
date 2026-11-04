@@ -1,4 +1,3 @@
-import {handleInteractionLab} from './interaction-lab.js';
 import {purgeDeletedCloud} from './app-cloud.js';
 import {handleAppAccounts} from './app-accounts.js';
 import {handleActivity, auditStatement, recordAudit, ensureActivity, purgeDeletedArchive} from './activity.js';
@@ -46,8 +45,6 @@ export default {
     if (request.method === 'DELETE' && /^\/api\/messages\/[A-Za-z0-9_-]{1,64}$/.test(url.pathname)) {
       url.pathname = url.pathname.replace('/api/messages/', '/api/chat/message/');
     }
-    const interactionResponse=await handleInteractionLab(request,env,{getUser,getUserId,chatIsAdmin});
-    if(interactionResponse)return interactionResponse;
     const activityResponse=await handleActivity(request,env,{getUser,getUserId,chatIsAdmin});
     if(activityResponse)return activityResponse;
     const deeplistResponse = await handleDeeplist(request, env, chatIsAdmin);
