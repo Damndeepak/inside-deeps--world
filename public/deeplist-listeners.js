@@ -8,6 +8,7 @@ async function load(){
  try{
   const started=performance.now(),r=await fetch('/api/deeplist/listeners',{cache:'no-store',signal:AbortSignal.timeout(4000)});if(!r.ok)throw Error();const d=await r.json();
   hasLive=(d.listeners||[]).some(visitor=>visitor.live);
+  const owner=document.getElementById('lfm')?.closest?.('.chalk-live-wrap');if(owner){owner.style.order=document.getElementById('lfm').classList.contains?.('is-playing')?'-1':'1';}
   const count=document.getElementById('deeplistConnectionCount');if(count)count.textContent=Number.isInteger(d.totalConnected)?d.totalConnected+' music connections recorded':'';
   clearExpiries();
   const wanted=new Set((d.listeners||[]).map(v=>v.channel));
@@ -15,13 +16,13 @@ async function load(){
   if(!cards.size&&d.listeners?.length)box.replaceChildren();
   if(!d.listeners?.length){const message='No other listeners are sharing right now. Connect your Deeplist to join.';if(box.textContent!==message){const empty=document.createElement('p');empty.className='world-note';empty.textContent=message;box.replaceChildren(empty);}}
   let index=0;
-  for(const visitor of d.listeners||[]){
+  for(const visitor of [...(d.listeners||[])].sort((a,b)=>Number(b.live===true&&b.playing===true&&((d.serverNow??Date.now())-b.lastPlayedAt<15000))-Number(a.live===true&&a.playing===true&&((d.serverNow??Date.now())-a.lastPlayedAt<15000))) ){
    let card=cards.get(visitor.channel);
    if(!card){
    card=document.createElement('a');card.className='world-track deeplist-listener-card';card.href='/deeplist.html?user='+encodeURIComponent(visitor.channel);
    const cover=document.createElement('div');cover.className='deeplist-listener-cover';cover.textContent='d.';
    const info=document.createElement('div');info.className='deeplist-listener-info';const name=document.createElement('strong'),song=document.createElement('span'),status=document.createElement('small');
-   info.append(name,song,status);card.append(cover,info);card._parts={cover,name,song,status};cards.set(visitor.channel,card);
+   const graph=document.createElement('div');graph.className='frequency-bars';graph.setAttribute?.('aria-hidden','true');for(let i=0;i<12;i++){const bar=document.createElement('i');bar.style.cssText='--n:'+i;graph.append(bar)}info.append(name,song,status,graph);card.append(cover,info);card._parts={cover,name,song,status};cards.set(visitor.channel,card);
    }
    const {cover,name,song,status}=card._parts;
    if(card._coverId!==visitor.id){
@@ -35,9 +36,10 @@ async function load(){
    const lastShared='Last shared · '+new Date(visitor.lastPlayedAt).toLocaleDateString();
    const remaining=15000-Math.max(0,(d.serverNow??Date.now())-visitor.lastPlayedAt)-(performance.now()-started);
    const live=visitor.live===true&&remaining>0;
+   card.className='world-track deeplist-listener-card'+(live&&visitor.playing===true?' is-playing':'');
    name.className=live&&visitor.playing===true?'deeplist-live-indicator':'';
    status.textContent=live?(visitor.playing?'Live · open synced lyrics':'Paused · open synced lyrics'):lastShared;
-   if(live)expiryTimers.push(setTimeout(()=>{name.className='';status.textContent=lastShared;},remaining));
+   if(live)expiryTimers.push(setTimeout(()=>{name.className='';card.className='world-track deeplist-listener-card';status.textContent=lastShared;},remaining));
    if(box.children[index]!==card)box.insertBefore(card,box.children[index]||null);
    index++;
   }
@@ -47,6 +49,6 @@ async function load(){
  timer=setTimeout(()=>{if((window.worldIsVisible||(()=>!document.hidden))(box.closest('section')))load();else timer=setTimeout(()=>{if((window.worldIsVisible||(()=>!document.hidden))(box.closest('section')))load()},15000);},failures?Math.min(10000,1000*2**(failures-1)):Math.max(250,(window.worldPollDelay?.(hasLive?1500:10000,5000)??(hasLive?1500:10000))-(performance.now()-pollStarted)));
 }
 box.closest('section').addEventListener?.('world-visible',load);
-document.addEventListener('visibilitychange',()=>{if(document.hidden){clearTimeout(timer);box.querySelectorAll('.deeplist-live-indicator').forEach(node=>node.classList.remove('deeplist-live-indicator'));}else load();});document.addEventListener('deeplist-identity-updated',load);
+document.addEventListener('visibilitychange',()=>{if(document.hidden){for(const card of cards.values())card.className='world-track deeplist-listener-card';clearTimeout(timer);box.querySelectorAll('.deeplist-live-indicator').forEach(node=>node.classList.remove('deeplist-live-indicator'));}else load();});document.addEventListener('deeplist-identity-updated',load);
   load();
 })();
