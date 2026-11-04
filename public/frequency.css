@@ -9,3 +9,5 @@ html.page-hidden .frequency-bars i{animation-play-state:paused}
 .listener-panel{display:flex;flex-direction:column}.listener-panel>.world-heading{order:-3}.listener-panel>#deeplistConnectionCount{order:-2}.listener-panel>.chalk-live-wrap{margin:0 0 16px;order:-1}#lfm{width:100%;box-sizing:border-box;max-width:760px}
 
 #lfm .frequency-name{display:block;font-size:clamp(25px,3vw,34px);font-weight:700;color:#f5f2fa;margin-bottom:10px}#lfm .lfm-title{font-size:clamp(18px,2vw,23px);font-weight:500;color:#bbb3c9}
+/* One fixed ocean layer covers every homepage section. Cards stay opaque and readable. */
+body{isolation:isolate}.ocean-background{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;background:#071019}.ocean-background .ocean-poster,.ocean-background .ocean-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}.ocean-background .ocean-video{z-index:1}.ocean-background:after{content:'';position:absolute;inset:0;z-index:2;background:linear-gradient(180deg,#04070bc4,#04070bd9)}body>.wrap{position:relative;z-index:1}.deep-hero{background:transparent!important}.deep-hero:after{content:none}
