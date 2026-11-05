@@ -1,20 +1,17 @@
 {
   "packageId": "com.deepu.wordstorm",
-  "versionName": "13.7.8",
-  "versionCode": 161,
-  "sizeBytes": 25417001,
-  "sha256": "c038a6b306e0cfc4c75fc42c0746a6561eb251b7c866d2bf0b2e09a5a543f77d",
+  "versionName": "13.8.0",
+  "versionCode": 162,
+  "sizeBytes": 27911736,
+  "sha256": "10037e946c57d1486fb58c28273706735402023f64554a5caeb812fd0c1f645f",
   "signingCertificateSha256": "1c73c95916d7e14bac0533d0a4a20a3c01be78f066fcc0c1102254712c4bcd5d",
-  "publishedAt": "2026-11-04T16:40:10.644668+00:00",
+  "publishedAt": "2026-11-05T09:32:54.887257+00:00",
   "downloadUrl": "https://world.damndeepak.workers.dev/downloads/deeplist.apk",
-  "assetUrl": "https://github.com/Damndeepak/Metrolist/releases/download/deeplist-161/Deeplist.apk",
-  "sourceCommit": "ef6438d5adce16665fdbe74d74f2596660fba342",
+  "assetUrl": "https://github.com/Damndeepak/Metrolist/releases/download/deeplist-162/Deeplist.apk",
+  "sourceCommit": "9e21a94cfd0026aca7e64a2be1afa0373f3fb497",
   "changelog": [
-    "Save lyric and instrumental moments with Beat, Voice, Lyrics or Mood tags and an optional note.",
-    "Filter saved moments, revisit exact timestamps and start related mixes from the saved song.",
-    "Share monthly Sound Capsule as a portrait PNG with top artists, top songs and listening minutes.",
-    "Softer Apple lyrics word lift while retaining word size, spacing and background customization.",
-    "Reduce animated artwork playback work and stop it when the app is in the background.",
-    "Fix stale lyric callbacks, track-change offsets and incomplete monthly share data."
+    "Mochy player styles, video lyrics, profile, Gacha roll and animated import interface.",
+    "Adds Deeplist website pairing and library migration.",
+    "Offline downloads need to be downloaded again."
   ]
 }
