@@ -1,16 +1,17 @@
 {
   "packageId": "com.deepu.wordstorm",
-  "versionName": "13.8.3",
-  "versionCode": 165,
-  "sizeBytes": 25435113,
-  "sha256": "8950cf3a70f0d97de2e5ed1a22d271f6c4954c5f810675389ead24ef8188031e",
+  "versionName": "13.8.4",
+  "versionCode": 166,
+  "sizeBytes": 25436029,
+  "sha256": "fbada3d7361b63d4de59f73769cf4e840e7c221b5f4af4b2962fd62f7c3a17eb",
   "signingCertificateSha256": "1c73c95916d7e14bac0533d0a4a20a3c01be78f066fcc0c1102254712c4bcd5d",
-  "publishedAt": "2026-11-05T11:25:02Z",
+  "publishedAt": "2026-11-05T11:47:33Z",
   "downloadUrl": "https://world.damndeepak.workers.dev/downloads/deeplist.apk",
-  "assetUrl": "https://github.com/Damndeepak/Metrolist/releases/download/deeplist-165/Deeplist.apk",
-  "sourceCommit": "c1538f049aa1dc39a8daf728abdcf56666ab883e",
+  "assetUrl": "https://github.com/Damndeepak/Metrolist/releases/download/deeplist-166/Deeplist.apk",
+  "sourceCommit": "e665b09f46df42afc5f15ebac9e7e60f07aa684b",
   "changelog": [
-    "Gacha Here on Home spins album covers and plays a random song from Quick Picks.",
-    "The mini-player responds to touch with a subtle press animation."
+    "Mochy-inspired Home filter buttons, profile card and Now Playing controls.",
+    "Gacha appears on unfiltered Home and uses Home recommendations as well as Quick Picks.",
+    "More visible press animation in both mini-player layouts."
   ]
 }
