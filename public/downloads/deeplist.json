@@ -1,15 +1,16 @@
 {
   "packageId": "com.deepu.wordstorm",
-  "versionName": "13.8.2",
-  "versionCode": 164,
-  "sizeBytes": 25417001,
-  "sha256": "3f08b2f8205e1d171b567fd9f6f263c8912bac68c6adb0ea88b70bc3995d2817",
+  "versionName": "13.8.3",
+  "versionCode": 165,
+  "sizeBytes": 25435113,
+  "sha256": "8950cf3a70f0d97de2e5ed1a22d271f6c4954c5f810675389ead24ef8188031e",
   "signingCertificateSha256": "1c73c95916d7e14bac0533d0a4a20a3c01be78f066fcc0c1102254712c4bcd5d",
-  "publishedAt": "2026-11-05T10:55:36Z",
+  "publishedAt": "2026-11-05T11:25:02Z",
   "downloadUrl": "https://world.damndeepak.workers.dev/downloads/deeplist.apk",
-  "assetUrl": "https://github.com/Damndeepak/Metrolist/releases/download/deeplist-164/Deeplist.apk",
-  "sourceCommit": "69eb027beaf7c6d3be18775171095ddff600f645",
+  "assetUrl": "https://github.com/Damndeepak/Metrolist/releases/download/deeplist-165/Deeplist.apk",
+  "sourceCommit": "c1538f049aa1dc39a8daf728abdcf56666ab883e",
   "changelog": [
-    "Restores the original Deeplist player and library after cancelling the Mochy upgrade."
+    "Gacha Here on Home spins album covers and plays a random song from Quick Picks.",
+    "The mini-player responds to touch with a subtle press animation."
   ]
 }
