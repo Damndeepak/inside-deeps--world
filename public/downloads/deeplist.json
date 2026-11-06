@@ -1,17 +1,19 @@
 {
   "packageId": "com.deepu.wordstorm",
-  "versionName": "13.8.5",
-  "versionCode": 167,
-  "sizeBytes": 25494285,
-  "sha256": "3f67b52b54213fe88840fd2c7854d9177d749ddb1339f7a26cdd6ba5dc4df21c",
+  "versionName": "13.8.6",
+  "versionCode": 168,
+  "sizeBytes": 25511074,
+  "sha256": "9d903893a9d8b9e884dd5325805f788c13ac95c045ee393468aea94973f72b7a",
   "signingCertificateSha256": "1c73c95916d7e14bac0533d0a4a20a3c01be78f066fcc0c1102254712c4bcd5d",
-  "publishedAt": "2026-11-05T13:50:16Z",
+  "publishedAt": "2026-11-06T16:29:45Z",
   "downloadUrl": "https://world.damndeepak.workers.dev/downloads/deeplist.apk",
-  "assetUrl": "https://github.com/Damndeepak/Metrolist/releases/download/deeplist-167/Deeplist.apk",
-  "sourceCommit": "c71d4e8e086794da44e763e77461e1b89270b269",
+  "assetUrl": "https://github.com/Damndeepak/Metrolist/releases/download/deeplist-168/Deeplist.apk",
+  "sourceCommit": "26d334a9596117977201a94bcc981d41e5a63255",
   "changelog": [
-    "Gacha plays Mochy’s original tick and win sounds.",
-    "Animated artwork can use Monochrome/TIDAL video covers.",
-    "Profile adds a listening-time card. Synced lyrics hold the scroll anchor during overlapping lines."
+    "Roll automatically plays the selected song when the reel lands; scratch/reveal has been removed.",
+    "Removed Spotify playlist import and its login flow. YouTube Music, Deeplist-link and CSV/song-list imports remain available.",
+    "Refreshed Library cards show real counts and artwork, with Recently Added and Liked cards.",
+    "Optional Artwork lyrics mode adds an oversized curved cover and glass controls while preserving saved Apple lyrics preferences.",
+    "Profile adds real listening collections and avatar interactions; Google login and account sync are preserved."
   ]
 }
