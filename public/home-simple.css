@@ -38,6 +38,8 @@
 #cxChat .deep-chat-intro strong{color:#d4b8f2;font-weight:600}
 #cxChat .cx-ai-badge{display:inline-block;margin-left:7px;padding:2px 5px;border:1px solid #c2a1ed50;border-radius:5px;font:600 9px/1.2 var(--body);letter-spacing:.04em;color:#d4b8f2;vertical-align:middle}
 #cxChat .cx-row.ai .cx-bubble{border-color:#c2a1ed30;background:#1c1724}
+#cxChat .cx-row.ai .cx-text{font-size:1.125rem;line-height:1.55;user-select:text}
+#cxChat .cx-ai-copy{min-width:44px;min-height:44px;padding:0 6px;border:0;background:transparent;color:#d4b8f2;font:600 12px var(--body);cursor:pointer}
 #cxChat .cx-ai-status{color:#c9b2e2;font-size:12px;margin:6px 0 12px;line-height:1.6}
 #cxChat .cx-ai-note{display:block;font-size:10px;color:#aaa0b2;max-width:62ch;margin-top:4px}
 @media(max-width:520px){#cxChat .cx-bottom .public-note{max-width:none;flex:1}}

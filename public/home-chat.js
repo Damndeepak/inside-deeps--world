@@ -91,7 +91,22 @@ function buildRow(m){
   if(m.audio){const audio=h("audio","cx-voice-audio");audio.controls=true;audio.preload="none";audio.src="/api/chat/audio/"+encodeURIComponent(m.id);audio.setAttribute("aria-label","Voice note from "+m.username);bub.append(audio)}
   const text=h("div","cx-text");if(m.message)fill(text,m.message);else text.hidden=true;bub.append(text);
   const meta=h("div","cx-meta");const time=h("span","cx-time",t2(m.created_at));time.title=new Date(m.created_at).toLocaleString();
-  const st=h("span","cx-st");const acts=h("span","cx-acts");meta.append(time,st,acts);bub.append(meta);bub.append(h("div","cx-reactions"));
+  const st=h("span","cx-st");const acts=h("span","cx-acts");meta.append(time,st,acts);
+  if(m.ai===true&&m.message){
+    const copy=h("button","cx-ai-copy","Copy");
+    copy.type="button";copy.setAttribute("aria-label","Copy AI reply");
+    copy.addEventListener("click",async e=>{
+      e.stopPropagation();
+      try{
+        await navigator.clipboard.writeText(m.message);
+        toast("AI reply copied");
+      }catch{
+        toast("Couldn't copy. You can select the reply text.");
+      }
+    });
+    meta.append(copy);
+  }
+  bub.append(meta);bub.append(h("div","cx-reactions"));
   row.append(av,bub);
   row._av=av;row._name=name;row._quote=quote;row._time=time;row._st=st;row._acts=acts;
   return row;
