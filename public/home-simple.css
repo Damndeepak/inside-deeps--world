@@ -1,0 +1,88 @@
+/* Quiet boundaries and one inviting shared room. No extra animation work. */
+.wrap>.activity-grid,.wrap>.deeplist-stats,.wrap>.public-moments,.wrap>.public-media-feature,.wrap>.thoughts-entry{border-bottom:1px solid #e5deec26;padding-bottom:36px}
+#cxChat{margin:52px 0 48px;padding:clamp(18px,3.5vw,38px);border:1px solid #c2a1ed38;border-radius:26px;background:radial-gradient(ellipse at top left,#c2a1ed0d,transparent 65%),#0e0d10;box-shadow:0 16px 48px #0003;scroll-margin-top:24px}
+#cxChat .deep-chat-intro:after{content:none}
+#cxChat .deep-kicker{font-size:10px;letter-spacing:.16em;margin:0 0 14px;color:#c2a1ed}
+#cxChat h2{font-size:clamp(34px,5vw,58px);line-height:1.1;margin:0;letter-spacing:-.05em}
+#cxChat h2 span{color:#c2a1ed}
+#cxChat .deep-chat-intro>p:last-child{max-width:44ch;font-size:14px;line-height:1.7;margin:14px 0 26px;color:#b7b0bd}
+#cxChat .cx-head{padding-top:18px;margin-bottom:16px;gap:12px}
+#cxChat .cx-label{letter-spacing:.07em;font-size:11px;color:#c6bdcf}
+#cxChat .cx-dot{background:#a6cfb7}
+#cxChat .cx-count{color:#aaa2b2}
+#cxChat .cx-id{gap:8px;margin-bottom:8px}
+#cxChat .identity-pill{background:transparent;border:0;padding:8px 0}
+#cxChat .cx-nickname summary{background:transparent;border:0;text-decoration:underline;text-underline-offset:4px;padding:10px 12px;color:#b8a3d3}
+#cxChat .cx-thread{height:clamp(280px,45svh,440px);min-height:260px;padding:16px 2px 22px;scrollbar-color:#44394f transparent}
+#cxChat .cx-bubble{background:#19161e;border:1px solid #ffffff08;border-radius:18px;padding:11px 14px}
+#cxChat .cx-row.mine .cx-bubble{background:#292032;border-color:#c2a1ed20}
+#cxChat .cx-text{font-size:15px;line-height:1.65}
+#cxChat .cx-name{font-size:11px}
+#cxChat .cx-avatar{width:32px;height:32px}
+#cxChat .cx-empty{padding:60px 16px;color:#b7afbf;line-height:1.8}
+#cxChat .cx-form{background:#151218;border-color:#c2a1ed42;border-radius:18px;box-shadow:0 5px 20px #0002}
+#cxChat .cx-form:focus-within{border-color:#c2a1ed}
+#cxChat .cx-form textarea{font-family:var(--body);font-size:16px}
+#cxChat .cx-form textarea::placeholder{color:#a59aaa}
+#cxChat .cx-send{background:#c9a5f1;color:#201228;padding:0 18px}
+#cxChat .cx-bottom{display:flex;align-items:start;justify-content:space-between;gap:12px}
+#cxChat .public-note{text-align:left;font-size:11px;line-height:1.7;margin:8px 0;color:#a69cab}
+#cxChat .cx-options{flex:none;max-width:55%;font-size:11px;color:#b3a8bd}
+#cxChat .cx-options summary{cursor:pointer;padding:12px 0;min-height:44px;box-sizing:border-box}
+#cxChat .cx-options .cx-tools{margin:4px 0;gap:6px}
+#cxChat .cx-options .cx-admin{padding:8px 0;min-height:44px}
+#cxChat :is(button,summary,a):focus-visible{outline:2px solid #c2a1ed;outline-offset:3px}
+@media(max-width:520px){#cxChat{margin:40px 0;border-radius:20px;padding:18px 14px}#cxChat .cx-text{font-size:14px}#cxChat .cx-form{flex-wrap:wrap;gap:0;padding:5px}#cxChat .cx-attach,#cxChat .cx-mic{width:36px;min-width:36px;height:44px}#cxChat .cx-send{padding:0 12px}#cxChat .cx-form textarea{padding:10px 4px}#cxChat .cx-bottom{gap:8px}#cxChat .public-note{max-width:24ch}}
+
+/* DeepAI is an explicitly labelled participant, never a human impersonation. */
+#cxChat .deep-chat-intro strong{color:#d4b8f2;font-weight:600}
+#cxChat .cx-ai-badge{display:inline-block;margin-left:7px;padding:2px 5px;border:1px solid #c2a1ed50;border-radius:5px;font:600 9px/1.2 var(--body);letter-spacing:.04em;color:#d4b8f2;vertical-align:middle}
+#cxChat .cx-row.ai .cx-bubble{border-color:#c2a1ed30;background:#1c1724}
+#cxChat .cx-row.ai .cx-text{font-size:1.125rem;line-height:1.55;user-select:text}
+#cxChat .cx-ai-copy{min-width:44px;min-height:44px;padding:0 6px;border:0;background:transparent;color:#d4b8f2;font:600 12px var(--body);cursor:pointer}
+#cxChat .cx-ai-status{color:#c9b2e2;font-size:12px;margin:6px 0 12px;line-height:1.6}
+#cxChat .cx-ai-note{display:block;font-size:10px;color:#aaa0b2;max-width:62ch;margin-top:4px}
+@media(max-width:520px){#cxChat .cx-bottom .public-note{max-width:none;flex:1}}
+
+#cxChat .cx-composer{position:relative}
+#cxChat .cx-mentions{position:absolute;inset:auto 0 calc(100% + 8px);z-index:8;padding:6px;background:#19141f;border:1px solid #c2a1ed55;border-radius:16px;box-shadow:0 10px 30px #0006}
+#cxChat .cx-mention-option{display:flex;align-items:center;gap:12px;width:100%;min-height:60px;padding:10px 12px;text-align:left;border:0;border-radius:11px;background:#c2a1ed10;color:#f2f0ec;cursor:pointer;font-family:var(--body);touch-action:manipulation}
+#cxChat .cx-mention-option:hover{background:#c2a1ed20}
+#cxChat .cx-mention-avatar{display:grid;place-items:center;flex:none;width:36px;height:36px;border-radius:12px;background:#c2a1ed20;color:#d4b8f2;font-size:20px}
+#cxChat .cx-mention-option strong{display:block;font-size:14px;font-weight:600}
+#cxChat .cx-mention-option strong small{font-size:9px;margin-left:5px;color:#d4b8f2}
+#cxChat .cx-mention-option strong+span{display:block;font-size:11px;line-height:1.5;margin-top:4px;color:#b8adc3}
+
+/* Give shared listeners real space instead of repeating promotional blocks. */
+.wrap>.activity-grid{grid-template-columns:1fr;gap:28px}
+#deeplistListeners .deeplist-listener-card{flex:0 0 min(440px,92%);width:min(440px,92%);min-height:154px;padding:22px!important;gap:20px;border-radius:20px}
+#deeplistListeners .deeplist-listener-cover{width:94px;height:106px;flex:none;border-radius:14px}
+#deeplistListeners .deeplist-listener-info{min-width:0;gap:9px}
+#deeplistListeners .deeplist-listener-info strong{font-size:18px;line-height:1.35}
+#deeplistListeners .deeplist-listener-info span{font-size:15px;line-height:1.5;-webkit-line-clamp:3}
+#deeplistListeners .deeplist-listener-info small{font-size:12px;line-height:1.5}
+#cxChat .cx-admin-online{margin:12px 0;padding:16px;border:1px solid #c2a1ed35;border-radius:14px;background:#17121d}
+#cxChat .cx-admin-online h3{font-size:14px;margin:0 0 6px}
+#cxChat .cx-admin-online p{font-size:11px;color:#aaa0b2;margin:0 0 10px}
+#cxChat .cx-admin-online ul{display:flex;flex-wrap:wrap;gap:8px;list-style:none;padding:0;margin:0}
+#cxChat .cx-admin-online li{font-size:12px;padding:7px 10px;border-radius:9px;background:#c2a1ed14;overflow-wrap:anywhere;max-width:100%}
+@media(max-width:520px){#deeplistListeners .deeplist-listener-card{padding:18px!important;gap:14px;min-height:144px}#deeplistListeners .deeplist-listener-cover{width:78px;height:92px}#deeplistListeners .deeplist-listener-info strong{font-size:17px}#deeplistListeners .deeplist-listener-info span{font-size:14px}}
+
+/* Keep the composer in one row, with one focus boundary. */
+#cxChat .cx-form{display:flex;flex-wrap:nowrap;min-width:0}
+#cxChat .cx-form textarea{flex:1 1 0;width:0;box-sizing:border-box;outline:none;border-radius:8px;box-shadow:none}
+#cxChat .cx-form textarea:focus-visible{outline:none;box-shadow:none}
+#cxChat .cx-form:focus-within{box-shadow:0 0 0 1px #c2a1ed}
+#cxChat .cx-reply{min-height:0;padding:6px 10px;margin-top:6px;line-height:1.4}
+#cxChat .cx-reply-text{flex:1;font:400 12px/1.4 var(--body)}
+#cxChat .cx-x{flex:none;min-width:36px;min-height:36px}
+@media(max-width:650px){
+ #cxChat.cx-keyboard{padding:10px 12px}
+ #cxChat.cx-keyboard .deep-chat-intro,#cxChat.cx-keyboard .cx-head,#cxChat.cx-keyboard .cx-id,#cxChat.cx-keyboard .cx-bottom,#cxChat.cx-keyboard .cx-foot,#cxChat.cx-keyboard .cx-admin-online{display:none}
+ #cxChat.cx-keyboard .cx-thread{padding:8px 2px;min-height:160px}
+ #cxChat.cx-keyboard .cx-ai-status{margin:2px 0;font-size:11px}
+ #cxChat .cx-send{padding:0 10px}
+}
+
+/* Remove repeated decorative copy around the live card. */
+.chalk-live-wrap:before{content:none}
