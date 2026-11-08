@@ -1,0 +1,161 @@
+/* Focused glass surfaces; geometry, spacing, type, content, and behavior stay with the site. */
+:root {
+  --deep-glass-edge: rgba(238, 227, 255, .25);
+  --deep-glass-highlight: rgba(255, 255, 255, .18);
+  --deep-glass-surface: linear-gradient(135deg,
+    rgba(255, 255, 255, .105),
+    rgba(157, 119, 207, .085) 42%,
+    rgba(12, 11, 17, .48));
+  --deep-glass-control: linear-gradient(135deg,
+    rgba(255, 255, 255, .11),
+    rgba(157, 119, 207, .09));
+}
+
+.deep-nav,
+.cx-card,
+.lfm,
+.corner-card,
+.media-entry-card,
+.pt-dialog,
+.lab-dialog,
+.song-player.public-playlist,
+.public-video-player {
+  border-color: var(--deep-glass-edge);
+  background: var(--deep-glass-surface);
+  box-shadow:
+    inset 0 1px var(--deep-glass-highlight),
+    inset 0 0 0 1px rgba(255, 255, 255, .025),
+    0 18px 48px rgba(0, 0, 0, .32);
+  -webkit-backdrop-filter: blur(18px) saturate(135%);
+  backdrop-filter: blur(18px) saturate(135%);
+}
+
+/* The navigation keeps its existing dimensions and link layout. */
+.deep-nav {
+  position: relative;
+  isolation: isolate;
+  border-bottom-color: var(--deep-glass-edge);
+  outline: 1px solid var(--deep-glass-edge);
+  border-radius: 20px;
+  background: linear-gradient(112deg,
+    rgba(255, 255, 255, .12),
+    rgba(150, 112, 202, .10) 46%,
+    rgba(15, 14, 20, .55));
+}
+
+.deep-nav > * { position: relative; z-index: 1; }
+
+/* Keep the music card's existing play-state outline visible through the glass. */
+#lfm {
+  position: relative;
+  isolation: isolate;
+  border: 1px solid var(--deep-glass-edge) !important;
+  border-radius: 24px !important;
+  background: var(--deep-glass-surface) !important;
+  box-shadow:
+    inset 0 1px var(--deep-glass-highlight),
+    inset 0 0 0 1px rgba(255, 255, 255, .025),
+    0 22px 60px rgba(0, 0, 0, .36) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  backdrop-filter: blur(20px) saturate(140%);
+}
+
+#lfm.is-playing {
+  border-color: rgba(195, 154, 233, .56) !important;
+  box-shadow:
+    inset 0 1px var(--deep-glass-highlight),
+    inset 0 0 0 1px rgba(195, 154, 233, .13),
+    0 22px 60px rgba(0, 0, 0, .36) !important;
+}
+
+.cx-card .cx-bubble {
+  border-color: rgba(238, 227, 255, .19);
+  background: linear-gradient(135deg, rgba(255,255,255,.085), rgba(157,119,207,.07));
+  box-shadow: inset 0 1px rgba(255,255,255,.13);
+}
+
+.cx-card .cx-row.mine .cx-bubble {
+  border-color: rgba(194, 161, 237, .34);
+  background: linear-gradient(135deg, rgba(174,135,224,.30), rgba(71,52,94,.42));
+}
+
+.cx-card .cx-id,
+.cx-card .cx-reply,
+.cx-card .cx-prev,
+.cx-card .cx-mention-option,
+.cx-card .identity-pill,
+.cx-card .cx-tool,
+.cx-card .cx-attach,
+.cx-card .cx-mic,
+.cx-card .cx-pill,
+.rail-controls button,
+.close,
+.lab-close {
+  border-color: rgba(238, 227, 255, .23);
+  background: var(--deep-glass-control);
+  box-shadow: inset 0 1px rgba(255,255,255,.14);
+}
+
+.memory-film-stage,
+.public-memory {
+  border-color: var(--deep-glass-edge);
+  box-shadow: inset 0 1px var(--deep-glass-highlight), 0 12px 32px rgba(0,0,0,.22);
+}
+
+html[data-world-theme="light"] {
+  --deep-glass-edge: rgba(73, 60, 103, .18);
+  --deep-glass-highlight: rgba(255, 255, 255, .78);
+  --deep-glass-surface: linear-gradient(135deg,
+    rgba(255, 255, 255, .84),
+    rgba(238, 230, 249, .76) 48%,
+    rgba(255, 255, 255, .62));
+  --deep-glass-control: linear-gradient(135deg, rgba(255,255,255,.9), rgba(237,230,248,.76));
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .deep-nav,
+  .cx-card,
+  .lfm,
+  .corner-card,
+  .media-entry-card,
+  .pt-dialog,
+  .lab-dialog,
+  .song-player.public-playlist,
+  .public-video-player {
+    background: rgba(25, 22, 31, .94);
+  }
+  #lfm { background: rgba(25, 22, 31, .94) !important; }
+}
+
+@media (max-width: 650px) {
+  .deep-nav,
+  .cx-card,
+  .lfm,
+  .corner-card,
+  .media-entry-card,
+  .pt-dialog,
+  .lab-dialog,
+  .song-player.public-playlist,
+  .public-video-player {
+    -webkit-backdrop-filter: blur(12px) saturate(125%);
+    backdrop-filter: blur(12px) saturate(125%);
+  }
+  #lfm { -webkit-backdrop-filter: blur(12px) saturate(125%); backdrop-filter: blur(12px) saturate(125%); }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .deep-nav,
+  .cx-card,
+  .lfm,
+  .corner-card,
+  .media-entry-card,
+  .pt-dialog,
+  .lab-dialog,
+  .song-player.public-playlist,
+  .public-video-player {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: rgba(25, 22, 31, .96);
+  }
+  #lfm { -webkit-backdrop-filter: none; backdrop-filter: none; background: rgba(25, 22, 31, .96) !important; }
+}
