@@ -6,14 +6,24 @@
   Cache-Control: public, max-age=86400
 /*.png
   Cache-Control: public, max-age=86400
-/media/*
-  Cache-Control: public, max-age=3600
 /media/
-  ! Cache-Control
   Cache-Control: public, max-age=0, must-revalidate
 /media/*.html
-  ! Cache-Control
   Cache-Control: public, max-age=0, must-revalidate
+/media/*.css
+  Cache-Control: public, max-age=3600
+/media/*.js
+  Cache-Control: public, max-age=3600
+/media/*.mp3
+  Cache-Control: public, max-age=3600
+/media/*.mp4
+  Cache-Control: public, max-age=3600
+/media/*.jpg
+  Cache-Control: public, max-age=3600
+/media/*.json
+  Cache-Control: public, max-age=3600
+/media/*.txt
+  Cache-Control: public, max-age=3600
 /*.html
   Cache-Control: no-cache
 /
