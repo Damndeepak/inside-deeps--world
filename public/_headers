@@ -8,6 +8,12 @@
   Cache-Control: public, max-age=86400
 /media/*
   Cache-Control: public, max-age=3600
+/media/
+  ! Cache-Control
+  Cache-Control: public, max-age=0, must-revalidate
+/media/*.html
+  ! Cache-Control
+  Cache-Control: public, max-age=0, must-revalidate
 /*.html
   Cache-Control: no-cache
 /
