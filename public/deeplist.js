@@ -1,5 +1,5 @@
 const $ = id => document.getElementById(id);
-const crown=badge=>badge==='king'?' · ♛ King':badge==='queen'?' · ♛ Queen':'';
+const crown=badge=>badge==='king'?' · ♚':badge==='queen'?' · ♛':'';
 const E = Object.fromEntries(['openApp','remoteControls','remotePlay','remoteSeek','remoteStatus','displayName','saveName','liveStatus','trackTitle','trackArtist','liveStage','lyricsWindow','lyricsMessage','currentLine','liveAppleSize','liveAppleSpacing','liveAppleBlur','liveAppleMotion','progressFill','positionLabel','durationLabel','listen','audioStatus','videoWrap','pairToggle','pairPanel','createPair','revokePair','pairResult','pairUrl','pairToken','copyPair','pairStatus','channelSelect','channelLabel','myPlayer','pairPlayerLink','createOwnerPair','revokeOwnerPair'].map(id=>[id,$(id)]));
 let snapshot = null, received = 0, trackId = '', lineIndex = -2, timer, frame = 0, listening = false, player, playerReady = false, playerVideo = '', apiPromise;
 let freshnessTimer, pollController, ownerName='damndeepak';
