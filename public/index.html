@@ -300,7 +300,7 @@ function draw(now){
   const flight=ease(clamp((phase-.15)/.65));
   const landing=Math.sin(Math.PI*ease(clamp((phase-.80)/.20)));
   const arc=Math.sin(Math.PI*flight);
-  if(!paused && readySheets===sheets.length){
+  if(!paused && sheets.length===4 && readySheets===sheets.length){
     const scale=width<600?1.02:1.48;
     const direction=Math.sign(end.x-start.x) || 1;
     const previousDirection=segment>0 ? Math.sign(start.x-stops[segment-1].x) || direction : direction;
