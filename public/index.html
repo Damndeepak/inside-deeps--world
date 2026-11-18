@@ -113,6 +113,23 @@ body .wrap#mainContent { width:min(100% - 48px,1120px); max-width:none; margin:a
  .editorial-chat-link,.editorial-live { transition:border-color .18s,transform .18s; }
  .editorial-chat-link:hover,.editorial-live:hover { transform:translateY(-2px); }
 }
+
+#mainContent .deep-nav a,#mainContent .editorial-tile,#mainContent .editorial-live { font-family:Inter,system-ui,sans-serif; }
+#mainContent .editorial-tile .editorial-arrow,#mainContent .editorial-live .editorial-arrow,
+#mainContent .editorial-corners span,#mainContent .editorial-inline span {
+  display:inline-block; flex:none; width:15px; height:15px; font-size:0; line-height:0; color:var(--accent);
+  background:linear-gradient(135deg,transparent 46%,currentColor 47% 53%,transparent 54%) center/100% 100% no-repeat;
+}
+#mainContent .editorial-tile .editorial-arrow::after,#mainContent .editorial-live .editorial-arrow::after,
+#mainContent .editorial-corners span::after,#mainContent .editorial-inline span::after {
+  content:""; display:block; width:7px; height:7px; margin:2px 2px 0 auto; border-top:1.5px solid currentColor; border-right:1.5px solid currentColor;
+}
+#mainContent .memory-film-stage { padding:0; background:transparent !important; box-shadow:none !important; }
+#mainContent #labOpen,#mainContent #labSpin,#mainContent .public-moments .world-link {
+  min-height:44px; color:var(--accent) !important; background:var(--tint) !important; border-color:#dac4f4 !important;
+}
+#mainContent #labOpen:disabled,#mainContent #labSpin:disabled { opacity:.6; }
+@media(min-width:900px){ #mainContent .editorial-hero h1 { font-size:clamp(72px,7.8vw,100px); } }
 </style>
 
 </head>
@@ -494,19 +511,19 @@ function draw(now){
   let segment=0;
   while(segment<stops.length-2 && stops[segment+1].mark<scroll) segment++;
   const start=stops[segment], end=stops[segment+1];
-  const local=start.index===end.index;
+  
   const phase=clamp((scroll-start.mark)/Math.max(1,end.mark-start.mark));
   const flight=ease(clamp((phase-.15)/.65));
   const landing=Math.sin(Math.PI*ease(clamp((phase-.80)/.20)));
   const arc=Math.sin(Math.PI*flight);
   let attached=false;
-  if(sheets.length===4 && readySheets===sheets.length){
-    const scale=width<600?1.08:width>=1800?1.66:1.48;
+  if(phase>.04 && sheets.length===4 && readySheets===sheets.length){
+    const scale=width<600?.84:width>=1800?1.55:1.29;
     const direction=Math.sign(end.x-start.x) || 1;
     const previousDirection=segment>0 ? Math.sign(start.x-stops[segment-1].x) || direction : direction;
-    const swing=local?0:Math.min(width*.10,80);
+    const swing=Math.min(width*.06,54);
     const x=Math.max(44,Math.min(width-44,lerp(start.x,end.x,flight)+direction*arc*swing));
-    const y=lerp(start.y,end.y,flight)-scroll+53*scale+(arc*(local?-43:33)+landing*11)*(1-rest);
+    const y=lerp(start.y,end.y,flight)-scroll+53*scale+(arc*33+landing*11)*(1-rest);
     const extension=1-Math.pow(1-clamp((phase-.095)/.125),3);
     const anchor=end;
     if(y>-165 && y<height+165){
