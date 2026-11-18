@@ -22,11 +22,9 @@
 :where(code, pre, kbd, samp) {
   font-family: "Optimistic Mono", ui-monospace, monospace;
 }
-#cxChat .cx-threadwrap.has-chat-flash .cx-thread { padding-inline:clamp(27px,6vw,46px); }
 .chat-flash { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:2; }
 .chat-flash[hidden] { display:none; }
 @media (prefers-reduced-motion: reduce) {
-  #cxChat .cx-threadwrap.has-chat-flash .cx-thread { padding-inline:2px; }
   .chat-flash { display:none; }
 }
 </style>
@@ -149,7 +147,7 @@ body { background:#070809 url("/black-geometric.svg") center top / max(100vw, 90
 <script type="module" src="/deeplist-listeners.js?v=owner-top-2"></script>
 <script type="module" src="/deeplist-stats.js?v=fast-1"></script>
 <script type="module" src="/home-chat.js?v=ai-2"></script>
-<script type="module" src="/chat-flash.js?v=1"></script>
+<script type="module" src="/chat-flash.js?v=2"></script>
 <dialog aria-labelledby="ptTitle" class="pt-dialog" id="ptDialog"><div class="pt-dialog-close"><button aria-label="Close dialog" class="close" id="ptClose" type="button">×</button></div><section aria-labelledby="ptTitle" class="world-card pt-section" id="publicThoughts">
 <div class="world-heading"><div><h2 id="ptTitle">Inside Deep’s Mind</h2></div><button class="world-delete" id="ptAdmin" type="button">Admin</button></div>
 
