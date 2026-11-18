@@ -26,7 +26,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>Inside Deep's World</title>
-<meta content="#0b1627" name="theme-color"/>
+<meta content="#FAF9F6" name="theme-color"/>
 <link href="/favicon-32.png" rel="icon" sizes="32x32" type="image/png"/>
 <link href="/icon-192.png" rel="icon" sizes="192x192" type="image/png"/>
 <link href="/apple-touch-icon.png" rel="apple-touch-icon"/>
@@ -40,27 +40,79 @@
 <link rel="stylesheet" href="/home-motion.css?v=3"/>
 <script defer src="/home-motion.js?v=3"></script>
 <link rel="stylesheet" href="/chalk-world.css?v=2"/><link rel="stylesheet" href="/lyrics-lab.css?v=4"/><script defer src="/lyrics-lab.js?v=5"></script><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'"/>
-<script defer src="/scroll-sound.js?v=1"></script><link rel="stylesheet" href="/home-simple.css?v=ai-4"/><script defer src="/activity-tracker.js?v=1"></script><link rel="stylesheet" href="/frequency.css?v=full-background-3"><script defer src="/ocean-hero.js?v=black-geometric-5"></script><link rel="stylesheet" href="/glass-ui.css?v=approved-2">
+<script defer src="/scroll-sound.js?v=1"></script><link rel="stylesheet" href="/home-simple.css?v=ai-4"/><script defer src="/activity-tracker.js?v=1"></script><link rel="stylesheet" href="/frequency.css?v=full-background-3"><link rel="stylesheet" href="/glass-ui.css?v=approved-2">
 <style>
-:root { color-scheme:dark; --world-ink:#eef5ff; --world-ice:#8de9ff; --world-red:#ff6e66; --world-edge:#314965; }
-body { color:var(--world-ink); background:radial-gradient(ellipse at 78% 0%,#233f5b 0,transparent 44rem),radial-gradient(ellipse at 0% 30%,#302037 0,transparent 32rem),#0b1627 !important; }
-.deep-nav { background:#14243a !important; border:1px solid var(--world-edge) !important; border-radius:999px; }
-.cx-card,.world-card,.corner-card,.media-entry-card,.deeplist-stats,.lyrics-lab,.public-moments,.activity-panel {
-  background:linear-gradient(145deg,#182c43,#101d2f 82%) !important;
-  border:1px solid var(--world-edge) !important;
-  box-shadow:0 10px 28px #040a1638 !important;
-  border-radius:22px !important;
+:root { color-scheme: light; --paper:#faf9f6; --ink:#141218; --muted:#5f5a65; --line:#dfdbe3; --accent:#6523cd; --violet:#a45aff; --tint:#f1e9fc; }
+html { scroll-padding-top:24px; background:var(--paper); }
+html body { margin:0; color:var(--ink); background:var(--paper) !important; font-family:Inter,system-ui,sans-serif; }
+body::before,body::after,.chalk-section-art { display:none !important; }
+body .wrap#mainContent { width:min(100% - 48px,1120px); max-width:none; margin:auto; padding:0; }
+#mainContent a { text-underline-offset:4px; }
+#mainContent :focus-visible { outline:2px solid var(--accent); outline-offset:4px; }
+#mainContent h1,#mainContent h2,#mainContent h3 { font-family:Syne,Inter,sans-serif; }
+#mainContent .deep-nav { position:relative; inset:auto; width:100%; max-width:none; margin:0; padding:14px 0; min-height:70px; display:flex; align-items:center; justify-content:space-between; gap:12px; color:var(--ink); background:none !important; border:0 !important; border-bottom:1px solid var(--line) !important; border-radius:0; box-shadow:none; backdrop-filter:none; }
+#mainContent .deep-nav>div { display:flex; align-items:center; gap:clamp(14px,3.4vw,36px); }
+#mainContent .deep-nav a { display:inline-flex; align-items:center; min-height:44px; color:var(--ink); font-size:.9rem; text-decoration:none; }
+#mainContent .deep-brand { font:800 1.5rem Syne,Inter,sans-serif !important; letter-spacing:-.06em; color:var(--ink); }
+.deep-brand span,.editorial-hero h1 span,.editorial-arrow { color:var(--accent); }
+.editorial-hero { padding:clamp(50px,8vw,104px) 0 33px; }
+#mainContent .editorial-hero h1 { margin:0; max-width:11em; color:var(--ink); font-weight:800; font-size:clamp(46px,8.7vw,112px); line-height:.90; letter-spacing:-.075em; text-wrap:balance; }
+.editorial-hero p { margin:23px 0 0; max-width:41ch; color:var(--muted); line-height:1.55; font-size:clamp(.95rem,2vw,1.12rem); }
+#mainContent .editorial-live { position:relative; isolation:isolate; overflow:hidden; display:grid; grid-template-columns:44px minmax(0,1fr) 28px; align-items:center; gap:13px; width:min(100%,510px); min-height:70px; padding:10px 15px; border:1px solid #ded1ec; border-radius:17px; color:var(--ink); background:#f6effa; text-decoration:none; }
+.editorial-live-wash { position:absolute; inset:0; z-index:-1; opacity:.24; overflow:hidden; }
+.editorial-live-wash img { display:block; width:100%; height:100%; object-fit:cover; filter:blur(19px); transform:scale(1.15); }
+.editorial-live-art { display:grid; align-items:center; justify-items:center; width:44px; height:44px; border-radius:9px; background:#e9d9fa; color:var(--accent); overflow:hidden; }
+.editorial-live-art img { width:100%; height:100%; object-fit:cover; }
+.editorial-live-copy { display:grid; min-width:0; gap:2px; }
+.editorial-live-copy>* { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+#editorialLiveLabel { color:var(--accent); font-size:.71rem; font-weight:750; }
+#editorialArtist { color:var(--muted); font-size:.76rem; }
+#editorialArtist:empty { display:none; }
+.editorial-live.is-playing #editorialLiveLabel::before { content:""; display:inline-block; margin-right:6px; width:6px; height:6px; border-radius:50%; background:var(--accent); }
+.editorial-bento { display:grid; grid-template-columns:minmax(0,1.6fr) minmax(0,1fr); grid-template-rows:auto 1fr; gap:16px; margin:clamp(30px,4vw,54px) 0 clamp(60px,8vw,112px); }
+.editorial-tile { display:block; position:relative; min-width:0; padding:clamp(22px,3.8vw,38px); border:1px solid var(--line); border-radius:24px; background:#fff; color:var(--ink); text-decoration:none; }
+#mainContent .editorial-tile h2 { margin:0; color:var(--ink); font-size:clamp(24px,3vw,38px); line-height:1; letter-spacing:-.05em; }
+.editorial-tile p { margin:10px 0 0; color:var(--muted); line-height:1.55; }
+.editorial-deeplist { grid-row:span 2; min-height:400px; background:#f3ecfc; display:grid; align-content:end; overflow:hidden; isolation:isolate; }
+#mainContent .editorial-deeplist h2 { font-size:clamp(36px,5.8vw,66px); }
+.editorial-art { position:absolute; top:-68px; right:-58px; width:clamp(240px,31vw,390px); aspect-ratio:1; border:1px solid #ceb2ef; border-radius:50%; display:grid; place-items:center; background:repeating-radial-gradient(circle,#ebdcfa 0 15px,#dcc4f5 16px 17px); transform:rotate(-13deg); z-index:-1; }
+.editorial-art img { width:34%; height:auto; border-radius:24%; }
+#mainContent .editorial-deeplist .hero-actions { display:flex; margin:20px 0 8px; }
+#mainContent .editorial-deeplist .button.primary { display:inline-flex; align-items:center; gap:9px; min-height:46px; padding:10px 16px; border-radius:12px; background:var(--accent); border:0; color:#fff; font-weight:700; text-decoration:none; box-shadow:none; }
+#mainContent .editorial-deeplist .version-badge { color:inherit; background:#ffffff24; }
+.editorial-inline { display:inline-flex; min-height:44px; align-items:center; gap:7px; color:var(--accent); font-size:.89rem; font-weight:700; }
+.editorial-chat-link .editorial-arrow { position:absolute; top:19px; right:23px; font-size:1.2rem; }
+.editorial-chat-link:hover { border-color:#ab76e9; }
+.editorial-corners h2 { margin-bottom:12px !important; }
+.editorial-corners a,.editorial-corners button { width:100%; display:flex; justify-content:space-between; align-items:center; gap:10px; min-height:44px; padding:6px 0; border:0; border-top:1px solid var(--line); border-radius:0; background:none; font:600 .93rem Inter,system-ui,sans-serif; text-align:left; color:var(--ink); text-decoration:none; cursor:pointer; }
+.editorial-corners a:hover,.editorial-corners button:hover,.editorial-corners span { color:var(--accent); }
+#mainContent #cxChat,#mainContent .world-card,#mainContent .lyrics-lab,#mainContent .public-moments { color:var(--ink); background:#fff !important; border:1px solid var(--line) !important; box-shadow:none !important; backdrop-filter:none !important; border-radius:24px; min-width:0; }
+#mainContent #cxChat h2,#mainContent #cxChat .deep-chat-intro p,#mainContent #cxChat .cx-label,#mainContent .world-heading h2,#mainContent .world-note,#mainContent .deeplist-stats-note,#mainContent .lab-heading h2 { color:var(--ink) !important; }
+#mainContent #cxChat .cx-count,#mainContent #cxChat .cx-options,#mainContent #cxChat .public-note,#mainContent .lab-hint,#mainContent .rail-hint { color:var(--muted) !important; }
+#mainContent #cxChat .cx-bubble,#mainContent #cxChat .cx-form,#mainContent #cxInput { background:#f5f1f8 !important; color:var(--ink) !important; border-color:var(--line) !important; box-shadow:none !important; }
+#mainContent #cxChat .cx-bubble p,#mainContent #cxChat .cx-message,#mainContent #cxChat .cx-text { color:var(--ink) !important; }
+#mainContent #cxChat .cx-bubble a,#mainContent #cxChat .cx-nickname summary,#mainContent .world-link { color:var(--accent) !important; }
+#mainContent #cxChat .cx-send,#mainContent .world-button.primary { background:var(--accent) !important; color:white !important; }
+#mainContent #cxChat .cx-send,#mainContent #cxInput,#mainContent .world-button { min-height:44px; }
+#mainContent .deep-footer { color:var(--muted); border-color:var(--line); }
+#mainContent .deep-footer a { color:var(--ink); }
+#scrollProgress { background:var(--accent) !important; }
+@media(max-width:660px){
+  body .wrap#mainContent { width:calc(100% - 32px); }
+  #mainContent .deep-nav { min-height:58px; padding:6px 0; }
+  #mainContent .deep-nav>div { gap:12px; }
+  #mainContent .deep-nav a { font-size:.8rem; }
+  .editorial-hero { padding:44px 0 26px; }
+  #mainContent .editorial-hero h1 { font-size:clamp(39px,10.7vw,62px); }
+  .editorial-bento { grid-template-columns:minmax(0,1fr); grid-template-rows:auto; gap:12px; margin-bottom:58px; }
+  .editorial-deeplist { grid-row:auto; min-height:282px; }
+  .editorial-art { width:225px; top:-58px; right:-65px; }
+  #mainContent #cxChat { padding-inline:14px; }
 }
-.deep-nav,.cx-card,.world-card,.corner-card,.media-entry-card,.lyrics-lab,.public-moments,#cxInput,.cx-form textarea,.cx-form input {
-  backdrop-filter:none !important;
-  -webkit-backdrop-filter:none !important;
+@media(prefers-reduced-motion:no-preference){
+ .editorial-chat-link,.editorial-live { transition:border-color .18s,transform .18s; }
+ .editorial-chat-link:hover,.editorial-live:hover { transform:translateY(-2px); }
 }
-#cxInput,.cx-form textarea,.cx-form input { background:#0e1a2c !important; border:1px solid var(--world-edge) !important; border-radius:16px; }
-.deep-brand span,.deep-chat-intro h2 span { color:var(--world-red) !important; }
-.deep-hero h1 em,.deep-hero h1 span,.deep-nav a:hover { color:var(--world-ice) !important; }
-#scrollProgress { background:linear-gradient(90deg,var(--world-red),var(--world-ice)) !important; }
-.cx-send,.world-button.primary { background:var(--world-ice) !important; color:#102032 !important; }
-:focus-visible { outline-color:var(--world-ice); }
 </style>
 
 </head>
@@ -68,7 +120,37 @@ body { color:var(--world-ink); background:radial-gradient(ellipse at 78% 0%,#233
 <div aria-hidden="true" class="scroll-progress"><span id="scrollProgress"></span></div>
 <main class="wrap" id="mainContent">
 <nav aria-label="Main navigation" class="deep-nav"><a aria-label="Inside Deep’s World home" class="deep-brand" href="/">deep<span>.</span></a><div><a href="#download">Deeplist</a><a href="#cxChat">Chat</a><a href="#deepExplore">Explore</a></div></nav>
-<header class="deep-hero" style="grid-template-columns:minmax(0,1fr)"><span class="chalk-art chalk-headphones" aria-hidden="true"><svg><use href="/chalk-doodles.svg#headphones"/></svg></span><span class="chalk-art chalk-planet" aria-hidden="true"><svg><use href="/chalk-doodles.svg#planet"/></svg></span><span class="chalk-art chalk-stars" aria-hidden="true"><svg><use href="/chalk-doodles.svg#stars"/></svg></span><span class="chalk-art chalk-tape" aria-hidden="true"><svg><use href="/chalk-doodles.svg#cassette"/></svg></span><span class="chalk-art chalk-ghost" aria-hidden="true"><svg><use href="/chalk-doodles.svg#ghost"/></svg></span><span class="chalk-hero-heart" aria-hidden="true">♡</span><div class="hero-copy"><p class="deep-kicker"><span class="status-dot"></span> DEEPLIST BY DEEPAK</p><h1>Life sounds<br/>better with<br/><span class="chalk-lyric-word">lyrics.</span></h1><p class="hero-description">Your music, with synced lyrics.</p><noscript><p>JavaScript is needed for live listening and chat. You can still download Deeplist and explore the pages below.</p></noscript><div class="hero-actions" id="download"><a class="button primary" download="Deeplist-13.8.6.apk" href="/downloads/deeplist.apk">Download APK <span class="version-badge">v13.8.6</span><span aria-hidden="true">↓</span></a></div><p class="release-note">FOR ANDROID · RELEASED <time datetime="2026-11-06">06 NOV 2026</time></p></div></header><section aria-labelledby="chatTitle" class="cx-card" id="cxChat">
+<header class="editorial-hero">
+  <h1>Inside Deep’s<br>World<span>.</span></h1>
+  <p>What I’m listening to, what I’m building, and little things from my life.</p>
+</header>
+<a class="editorial-live" href="/deeplist.html" aria-label="Open the listening room">
+  <span class="editorial-live-wash" aria-hidden="true"></span>
+  <span class="editorial-live-art" aria-hidden="true">♫</span>
+  <span class="editorial-live-copy"><span id="editorialLiveLabel">Listening room</span><strong id="editorialTrack">See what I’m listening to</strong><span id="editorialArtist"></span></span>
+  <span class="editorial-arrow" aria-hidden="true">↗</span>
+</a>
+<section class="editorial-bento" id="deepExplore" aria-label="Explore Inside Deep’s World">
+  <article class="editorial-tile editorial-deeplist" id="editorialDeeplist">
+    <div class="editorial-art" aria-hidden="true"><img src="/icon-192.png" width="192" height="192" alt=""></div>
+    <div class="editorial-tile-copy">
+      <h2>Deeplist</h2><p>My Android music app with synced lyrics.</p>
+      <div class="hero-actions" id="download"><a class="button primary" download="Deeplist-13.8.6.apk" href="/downloads/deeplist.apk">Download APK <span class="version-badge">v13.8.6</span><span aria-hidden="true">↓</span></a></div>
+      <a class="editorial-inline" href="#lyricsLab">Try the lyrics demo <span aria-hidden="true">↗</span></a>
+    </div>
+  </article>
+  <a class="editorial-tile editorial-chat-link" href="#cxChat">
+    <span class="editorial-arrow" aria-hidden="true">↗</span>
+    <h2>Guestbook</h2><p>Say hi, drop a song, or join the chat.</p>
+  </a>
+  <article class="editorial-tile editorial-corners">
+    <h2>Corners</h2>
+    <a href="/memories">Memory Wall <span aria-hidden="true">↗</span></a>
+    <button type="button" id="ptOpen" aria-controls="ptDialog" aria-haspopup="dialog">Inside Deep’s Mind <span aria-hidden="true">↗</span></button>
+    <a href="/media/">Music &amp; Media <span aria-hidden="true">↗</span></a>
+  </article>
+</section>
+<section aria-labelledby="chatTitle" class="cx-card" id="cxChat">
 <div class="deep-chat-intro"><h2 id="chatTitle">The common room<span aria-hidden="true">.</span></h2><p>Share a song or say hi. Ask <strong>@deepAi</strong> or <strong>@S.Ai</strong>.</p></div><div class="cx-head"><div class="cx-label"><span class="cx-dot"></span>Public chat</div><div class="cx-count" id="cxCount"></div></div>
 <div class="cx-id"><span class="identity-pill"><span class="status-dot"></span><b id="cxMe">Guest</b></span><details class="cx-nickname"><summary>Change name</summary>
 <form autocomplete="off" id="cxNicknameForm"><label for="cxNickname">Your listener name</label><div class="cx-nickname-fields"><input aria-describedby="cxNicknameHint" id="cxNickname" maxlength="24" name="nickname" placeholder="Your nickname"/><button class="cx-tool" id="cxNicknameDice" type="button" aria-label="Suggest a random nickname" title="Roll a name">🎲</button></div>
@@ -121,12 +203,7 @@ body { color:var(--world-ink); background:radial-gradient(ellipse at 78% 0%,#233
 </div>
 
 
-<div class="deep-section-intro" id="deepExplore"><span class="chalk-section-art" aria-hidden="true"><svg><use href="/chalk-doodles.svg#planet"/></svg></span><h2>Little pieces of my world.</h2></div><div class="corner-grid" data-rail-shell><div class="collection-rail" id="collectionRail" data-scroll-rail tabindex="0" role="group" aria-label="Public collections"><section aria-label="Memory Wall" class="media-entry memory-entry"><a class="corner-card" href="/memories"><div aria-hidden="true" class="corner-image memory-entry-image"><span class="corner-object"></span></div><div class="corner-top"><span>COLLECTION / 01</span><span>↗</span></div><div class="corner-copy"><h3>Memory Wall</h3><p>Photos &amp; memories</p></div></a></section><section aria-label="Music and Media" class="media-entry music-entry"><a class="corner-card" href="./media/"><div aria-hidden="true" class="corner-image music-entry-image"><span class="corner-object"></span></div><div class="corner-top"><span>COLLECTION / 02</span><span>↗</span></div><div class="corner-copy"><h3>Music &amp; Media</h3><p>Playlists &amp; lyrics demos</p></div></a></section></div></div><section aria-labelledby="momentsTitle" class="public-moments" id="memoryFilm" data-rail-shell><span class="chalk-section-art" aria-hidden="true"><svg><use href="/chalk-doodles.svg#stars"/></svg></span><div class="memory-film-stage"><div class="world-heading"><div><h2 id="momentsTitle">Memory Wall</h2></div><a class="world-link" href="/memories">View all memories ↗</a></div><div aria-live="polite" class="public-memory-grid" id="homeMemories" data-scroll-rail tabindex="0" role="group" aria-label="Memory photo strip"><div aria-label="Loading public photos" class="gallery-loading" role="status"><span class="skeleton skeleton-cover"></span></div></div><div class="rail-footer"><p class="rail-hint">Swipe or use the arrows to explore</p><div class="rail-controls" aria-label="Memory strip controls"><button type="button" data-rail-prev="homeMemories" aria-label="Previous memories" disabled>←</button><button type="button" data-rail-next="homeMemories" aria-label="Next memories" disabled>→</button></div></div></div></section><section aria-label="Inside Deep’s Mind" class="media-entry thoughts-entry"><span class="chalk-section-art" aria-hidden="true"><svg><use href="/chalk-doodles.svg#moon"/></svg></span>
-
-<button aria-controls="ptDialog" aria-haspopup="dialog" class="media-entry-card" id="ptOpen" type="button">
-<div aria-hidden="true" class="media-mark">✎</div><div class="media-text"><div class="media-name">Inside Deep’s Mind</div></div><div aria-hidden="true" class="arrow">↗</div>
-</button></section>
-<div class="cx-lightbox" hidden="" id="cxLightbox"><img alt="" id="cxLightImg"/></div>
+<section aria-labelledby="momentsTitle" class="public-moments" id="memoryFilm" data-rail-shell><span class="chalk-section-art" aria-hidden="true"><svg><use href="/chalk-doodles.svg#stars"/></svg></span><div class="memory-film-stage"><div class="world-heading"><div><h2 id="momentsTitle">Memory Wall</h2></div><a class="world-link" href="/memories">View all memories ↗</a></div><div aria-live="polite" class="public-memory-grid" id="homeMemories" data-scroll-rail tabindex="0" role="group" aria-label="Memory photo strip"><div aria-label="Loading public photos" class="gallery-loading" role="status"><span class="skeleton skeleton-cover"></span></div></div><div class="rail-footer"><p class="rail-hint">Swipe or use the arrows to explore</p><div class="rail-controls" aria-label="Memory strip controls"><button type="button" data-rail-prev="homeMemories" aria-label="Previous memories" disabled>←</button><button type="button" data-rail-next="homeMemories" aria-label="Next memories" disabled>→</button></div></div></div></section><div class="cx-lightbox" hidden="" id="cxLightbox"><img alt="" id="cxLightImg"/></div>
 <footer class="deep-footer"><a class="deep-brand" href="#mainContent">deep<span>.</span></a><p>built by deepak — surat • 2026</p><a href="#mainContent">Back to top ↑</a></footer></main>
 
 
@@ -150,7 +227,42 @@ body { color:var(--world-ink); background:radial-gradient(ellipse at 78% 0%,#233
  <p id="labPlaybackStatus" class="lab-playback-status" role="status">Press play to hear the synced sample.</p>
 </dialog>
 
-<script>(function(){var loc=location.href.replace(/#.*$/,"");var ATTR_NAMES=["data-product-id","data-productid","data-product_id","product-id","productid","product_id","data-source-entity-id","source-entity-id","source_entity_id","data-product","data-metadata","data-meta"];var DATASET_KEYS=["productId","productid","product_id","sourceEntityId","sourceentityid","source_entity_id","product","metadata","meta"];function readProductId(value){if(typeof value!=="string"||value.length===0)return null;if(/^[0-9]{6,}$/.test(value))return value;var match=value.match(/(?:product(?:_|-)?id|source(?:_|-)?entity(?:_|-)?id)["'=:\s]+([0-9]{6,})/i);return match?match[1]:null}function extractProductId(start){for(var node=start;node&&node!==document.body;node=node.parentElement){for(var i=0;i<ATTR_NAMES.length;i++){var attrValue=node.getAttribute&&node.getAttribute(ATTR_NAMES[i]);var attrProductId=readProductId(attrValue);if(attrProductId)return attrProductId}var dataset=node.dataset||null;if(dataset){for(var j=0;j<DATASET_KEYS.length;j++){var dataValue=dataset[DATASET_KEYS[j]];var dataProductId=readProductId(dataValue);if(dataProductId)return dataProductId}}}return null}function isInlineMediaSlotElement(node){return !!(node&&node.getAttribute&&node.getAttribute("data-clippy-inline-media-slot")!==null)}function findInlineMediaSlot(start){for(var node=start;node&&node!==document.body;node=node.parentElement){if(isInlineMediaSlotElement(node))return node}return null}function readInlineMediaUrl(node){if(!node)return null;return node.getAttribute&&((node.getAttribute("data-clippy-inline-media-url")||node.getAttribute("data-url")||node.getAttribute("data_url")))||node.href||null}function stripHash(url){return String(url).replace(/#.*$/,"")}function urlsMatch(a,b){if(!a||!b)return false;try{return stripHash(new URL(a,loc).href)===stripHash(new URL(b,loc).href)}catch(_){return stripHash(a)===stripHash(b)}}function isFirstPartyReelUrl(value){try{var url=new URL(value,loc);if(url.protocol!=="https:")return false;var host=url.hostname.toLowerCase();var supported=host==="instagram.com"||host.endsWith(".instagram.com")||host==="facebook.com"||host.endsWith(".facebook.com");return supported&&/\/reels?\//i.test(url.pathname)}catch(_){return false}}function isInlineMediaUrlClick(node,href){var slot=findInlineMediaSlot(node);if(!slot)return false;var slotUrl=readInlineMediaUrl(slot);if(slotUrl)return urlsMatch(href,slotUrl);return isFirstPartyReelUrl(href)}function findDataHref(start){for(var node=start;node&&node!==document.body;node=node.parentElement){if(node.getAttribute){var href=node.getAttribute("data-href")||node.getAttribute("data-url");if(href)return{href:href,node:node}}}return null}var nativeOpen=window.open;window.open=function(url){if(parent!==window&&typeof url==="string"&&/^https?:\/\//.test(url)){parent.postMessage({type:"ecto:usercontent-link-click",href:url},"*");return null}return nativeOpen?nativeOpen.apply(window,arguments):null};document.addEventListener("click",function(e){var target=e.target instanceof Element?e.target:null;if(!target)return;if(parent===window)return;var a=target.closest?target.closest("a[href]"):null;if(a&&a.href&&/^https?:\/\//.test(a.href)&&a.href.replace(/#.*$/,"")!==loc){if(isInlineMediaUrlClick(a,a.href))return;var productId=extractProductId(target)||extractProductId(a);if(productId){e.preventDefault();parent.postMessage({type:"ecto-artifact-link-click",productId:productId},"*");return}e.preventDefault();parent.postMessage({type:"ecto:usercontent-link-click",href:a.href},"*");return}var dataHref=findDataHref(target);if(dataHref&&/^https?:\/\//.test(dataHref.href)&&dataHref.href.replace(/#.*$/,"")!==loc){if(isInlineMediaUrlClick(dataHref.node,dataHref.href))return;e.preventDefault();parent.postMessage({type:"ecto:usercontent-link-click",href:dataHref.href},"*")}},true)})();</script><script>(function(){var FOCUS_TYPE="ecto:artifact-focus-request";var CLOSE_TYPE="ecto:artifact-close-request";function focusArtifactDocument(){var body=document.body;if(!body)return;try{window.focus();}catch(e){}if(!body.hasAttribute("tabindex"))body.setAttribute("tabindex","-1");try{body.focus({preventScroll:true});}catch(e){try{body.focus();}catch(e2){}}}window.addEventListener("message",function(event){if(event.source!==window.parent)return;var data=event.data;if(!data||typeof data!=="object"||data.type!==FOCUS_TYPE)return;if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",focusArtifactDocument,{once:true});return;}focusArtifactDocument();});window.addEventListener("keydown",function(event){if(event.key!=="Escape")return;window.setTimeout(function(){if(event.defaultPrevented)return;window.parent.postMessage({type:CLOSE_TYPE},"*");},0);});})();</script><!-- Spider-Man scroll animation. Frames rendered from Swing to Land by Molon Modeler. -->
+<script>(function(){var loc=location.href.replace(/#.*$/,"");var ATTR_NAMES=["data-product-id","data-productid","data-product_id","product-id","productid","product_id","data-source-entity-id","source-entity-id","source_entity_id","data-product","data-metadata","data-meta"];var DATASET_KEYS=["productId","productid","product_id","sourceEntityId","sourceentityid","source_entity_id","product","metadata","meta"];function readProductId(value){if(typeof value!=="string"||value.length===0)return null;if(/^[0-9]{6,}$/.test(value))return value;var match=value.match(/(?:product(?:_|-)?id|source(?:_|-)?entity(?:_|-)?id)["'=:\s]+([0-9]{6,})/i);return match?match[1]:null}function extractProductId(start){for(var node=start;node&&node!==document.body;node=node.parentElement){for(var i=0;i<ATTR_NAMES.length;i++){var attrValue=node.getAttribute&&node.getAttribute(ATTR_NAMES[i]);var attrProductId=readProductId(attrValue);if(attrProductId)return attrProductId}var dataset=node.dataset||null;if(dataset){for(var j=0;j<DATASET_KEYS.length;j++){var dataValue=dataset[DATASET_KEYS[j]];var dataProductId=readProductId(dataValue);if(dataProductId)return dataProductId}}}return null}function isInlineMediaSlotElement(node){return !!(node&&node.getAttribute&&node.getAttribute("data-clippy-inline-media-slot")!==null)}function findInlineMediaSlot(start){for(var node=start;node&&node!==document.body;node=node.parentElement){if(isInlineMediaSlotElement(node))return node}return null}function readInlineMediaUrl(node){if(!node)return null;return node.getAttribute&&((node.getAttribute("data-clippy-inline-media-url")||node.getAttribute("data-url")||node.getAttribute("data_url")))||node.href||null}function stripHash(url){return String(url).replace(/#.*$/,"")}function urlsMatch(a,b){if(!a||!b)return false;try{return stripHash(new URL(a,loc).href)===stripHash(new URL(b,loc).href)}catch(_){return stripHash(a)===stripHash(b)}}function isFirstPartyReelUrl(value){try{var url=new URL(value,loc);if(url.protocol!=="https:")return false;var host=url.hostname.toLowerCase();var supported=host==="instagram.com"||host.endsWith(".instagram.com")||host==="facebook.com"||host.endsWith(".facebook.com");return supported&&/\/reels?\//i.test(url.pathname)}catch(_){return false}}function isInlineMediaUrlClick(node,href){var slot=findInlineMediaSlot(node);if(!slot)return false;var slotUrl=readInlineMediaUrl(slot);if(slotUrl)return urlsMatch(href,slotUrl);return isFirstPartyReelUrl(href)}function findDataHref(start){for(var node=start;node&&node!==document.body;node=node.parentElement){if(node.getAttribute){var href=node.getAttribute("data-href")||node.getAttribute("data-url");if(href)return{href:href,node:node}}}return null}var nativeOpen=window.open;window.open=function(url){if(parent!==window&&typeof url==="string"&&/^https?:\/\//.test(url)){parent.postMessage({type:"ecto:usercontent-link-click",href:url},"*");return null}return nativeOpen?nativeOpen.apply(window,arguments):null};document.addEventListener("click",function(e){var target=e.target instanceof Element?e.target:null;if(!target)return;if(parent===window)return;var a=target.closest?target.closest("a[href]"):null;if(a&&a.href&&/^https?:\/\//.test(a.href)&&a.href.replace(/#.*$/,"")!==loc){if(isInlineMediaUrlClick(a,a.href))return;var productId=extractProductId(target)||extractProductId(a);if(productId){e.preventDefault();parent.postMessage({type:"ecto-artifact-link-click",productId:productId},"*");return}e.preventDefault();parent.postMessage({type:"ecto:usercontent-link-click",href:a.href},"*");return}var dataHref=findDataHref(target);if(dataHref&&/^https?:\/\//.test(dataHref.href)&&dataHref.href.replace(/#.*$/,"")!==loc){if(isInlineMediaUrlClick(dataHref.node,dataHref.href))return;e.preventDefault();parent.postMessage({type:"ecto:usercontent-link-click",href:dataHref.href},"*")}},true)})();</script><script>(function(){var FOCUS_TYPE="ecto:artifact-focus-request";var CLOSE_TYPE="ecto:artifact-close-request";function focusArtifactDocument(){var body=document.body;if(!body)return;try{window.focus();}catch(e){}if(!body.hasAttribute("tabindex"))body.setAttribute("tabindex","-1");try{body.focus({preventScroll:true});}catch(e){try{body.focus();}catch(e2){}}}window.addEventListener("message",function(event){if(event.source!==window.parent)return;var data=event.data;if(!data||typeof data!=="object"||data.type!==FOCUS_TYPE)return;if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",focusArtifactDocument,{once:true});return;}focusArtifactDocument();});window.addEventListener("keydown",function(event){if(event.key!=="Escape")return;window.setTimeout(function(){if(event.defaultPrevented)return;window.parent.postMessage({type:CLOSE_TYPE},"*");},0);});})();</script><script>
+(()=>{
+  const feed=document.getElementById('lfm');
+  const strip=document.querySelector('.editorial-live');
+  if(!feed || !strip) return;
+  const title=document.getElementById('editorialTrack');
+  const artist=document.getElementById('editorialArtist');
+  const label=document.getElementById('editorialLiveLabel');
+  const art=strip.querySelector('.editorial-live-art');
+  const wash=strip.querySelector('.editorial-live-wash');
+  function sync(){
+    const track=feed.querySelector('a.lfm-card .lfm-title');
+    const playing=feed.classList.contains('is-playing');
+    title.textContent=track?.textContent || 'See what I’m listening to';
+    artist.textContent=track ? (feed.querySelector('.lfm-artist')?.textContent || '') : '';
+    label.textContent=playing?'Now playing':track?'Last played':'Listening room';
+    strip.classList.toggle('is-playing',playing);
+    const cover=feed.querySelector('.lfm-cover img');
+    const source=cover?.currentSrc || cover?.src;
+    const current=art.querySelector('img');
+    if(source && current?.src!==source){
+      const image=new Image(44,44);
+      image.alt='';image.referrerPolicy='no-referrer';image.src=source;
+      art.replaceChildren(image);
+      const blur=image.cloneNode();
+      wash.replaceChildren(blur);
+    }else if(!source && current){
+      art.textContent='♫';wash.replaceChildren();
+    }
+  }
+  new MutationObserver(sync).observe(feed.querySelector('#lfmBody'),{childList:true,subtree:true,attributes:true,attributeFilter:['src']});
+  new MutationObserver(sync).observe(feed,{attributes:true,attributeFilter:['class']});
+  sync();
+})();
+</script>
+<!-- Spider-Man scroll animation. Frames rendered from Swing to Land by Molon Modeler. -->
 <canvas id="deep-spider-swing" aria-hidden="true" style="position:fixed;inset:0;pointer-events:none;z-index:6"></canvas>
 <script>
 (()=>{
@@ -159,19 +271,11 @@ const canvas = document.getElementById('deep-spider-swing');
 const pen = canvas?.getContext('2d');
 if(!canvas || !pen) return;
 const cards = [...document.querySelectorAll(
-  '#cxChat, #lfm, #deeplistStats, #lyricsLab, .media-entry, #memoryFilm, #publicThoughts'
+  '.editorial-hero, #editorialDeeplist'
 )];
 if(cards.length<2) return;
 const demonstration = cards.filter(card=>!card.hidden);
 // Keep each throw's contact point stable while scrubbing that swing.
-const routes = demonstration.map(() => {
-  const count = 2;
-  const rightFirst = Math.random() < .5;
-  return Array.from({length:count+1}, (_, hop) => ({
-    x: ((hop%2===0)===rightFirst ? .60 : .15) + Math.random()*.24,
-    y: .10 + Math.random()*.34
-  }));
-});
 let stops=[];
 let previousBounds=null;
 let bounds=null;
@@ -187,18 +291,14 @@ function measure(){
     .filter(({box})=>box.width>0 && box.height>0)
     .sort((a,b)=>a.box.top-b.box.top);
   const rows=boxes.filter(({box},i)=>i===0 || box.top-boxes[i-1].box.top>32);
-  if(!rows.length) { stops=[];return; }
-  const lead=Math.min(height*.48,320);
-  const first=rows[0].box.top+top-lead;
-  stops=[{x:width*.81,y:first,mark:first-trigger,index:-1}];
-  rows.forEach(({box,index},row)=>{
-    const available=rows[row+1] ? rows[row+1].box.top-box.top : box.height+height*.4;
-    const spacing=Math.min(210,available*.37);
-    routes[index].forEach((point,hop)=>{
-      stops.push({x:box.left+box.width*point.x,y:box.top+top+box.height*point.y,
-        mark:box.top+top-trigger+spacing*hop,index});
-    });
-  });
+  if(rows.length<2) { stops=[];return; }
+  const landing=rows.at(-1).box;
+  const end=landing.top+top;
+  const start=Math.max(0,end-Math.min(height*.82,720));
+  stops=[
+    {x:width*.90,y:start+height*.18,mark:start,index:-1},
+    {x:landing.right-Math.min(96,landing.width*.18),y:end+30,mark:Math.max(start+180,end-trigger*.54),index:0}
+  ];
   requestDraw();
 }
 function scheduleMeasure(){
@@ -407,8 +507,8 @@ function draw(now){
     const swing=local?0:Math.min(width*.10,80);
     const x=Math.max(44,Math.min(width-44,lerp(start.x,end.x,flight)+direction*arc*swing));
     const y=lerp(start.y,end.y,flight)-scroll+53*scale+(arc*(local?-43:33)+landing*11)*(1-rest);
-    const extension=local?1-Math.pow(1-clamp((phase-.095)/.125),3):1;
-    const anchor=local?end:start;
+    const extension=1-Math.pow(1-clamp((phase-.095)/.125),3);
+    const anchor=end;
     if(y>-165 && y<height+165){
       include(x,y,142*scale);
       // A compressed contact shadow gives the crouch weight against the surface.
@@ -426,7 +526,7 @@ function draw(now){
         const tension=ease(clamp((phase-.17)/.23))*(1-.60*ease(clamp((phase-.60)/.20)));
         const points=castWeb(wrist,anchor.x,anchorY,extension,tension,segment,now);
         silk(points,.95);
-        if(local && rope.latched) impact(anchor.x,anchorY,.95);
+        if(rope.latched) impact(anchor.x,anchorY,.95);
       }
     }
   }
