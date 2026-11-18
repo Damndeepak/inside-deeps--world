@@ -84,6 +84,42 @@ body { color:var(--world-ink); background:radial-gradient(ellipse at 78% 0%,#233
   object-fit:contain; justify-self:center; transform:rotate(-13deg);
   filter:brightness(1.2) saturate(1.35) drop-shadow(0 0 16px #73baff75);
 }
+.cx-royal-badge {
+  display:inline-block; margin-inline-start:.45rem; padding:.12em .5em;
+  border:1px solid #efc97a80; border-radius:999px;
+  background:#30241c; color:#ffe2a1; font:650 .69rem/1.35 system-ui,sans-serif;
+}
+.cx-royal-badge[hidden] { display:none; }
+#cxChat .cx-admin-author .cx-bubble {
+  border:1px solid #e8bb66; background:linear-gradient(135deg,#47341e,#242237 78%);
+  box-shadow:0 0 14px #ffc96f45;
+}
+#cxChat .cx-queen-author .cx-bubble {
+  border:1px solid #ee92ce; background:linear-gradient(135deg,#512747,#2d2140 78%);
+  box-shadow:0 0 14px #ff83cb50;
+}
+#cxChat .cx-admin-author .cx-bubble,#cxChat .cx-queen-author .cx-bubble {
+  animation:royal-shine 4s ease-in-out infinite alternate;
+}
+@keyframes royal-shine { to { box-shadow:0 0 17px 2px #eec3ff70; } }
+.holiday-snow {
+  position:fixed; inset:0; z-index:8; pointer-events:none; overflow:hidden;
+}
+.holiday-snow::before,.holiday-snow::after {
+  content:""; position:absolute; inset:-144px -144px 0;
+  background-image:radial-gradient(circle at 21px 36px,#e9f5ff 1.4px,transparent 2px),
+    radial-gradient(circle at 99px 117px,#fff 1px,transparent 1.7px),
+    radial-gradient(circle at 58px 79px,#cde4ff 1.1px,transparent 1.8px);
+  background-size:144px 144px; opacity:.48;
+  animation:holiday-fall 13s linear infinite;
+}
+.holiday-snow::after { background-position:26px -52px; opacity:.29; animation:holiday-fall-back 22s linear infinite; }
+@keyframes holiday-fall { to { transform:translate(144px,144px); } }
+@keyframes holiday-fall-back { to { transform:translate(-144px,144px); } }
+@media (prefers-reduced-motion:reduce) {
+  .holiday-snow { display:none; }
+  #cxChat .cx-admin-author .cx-bubble,#cxChat .cx-queen-author .cx-bubble { animation:none; }
+}
 /* Use the existing static artwork without a separate viewport-sized element. */
 body { background:#070809 url("/black-geometric.svg") center top / max(100vw, 900px) auto no-repeat !important; }
 #lfm,.cx-card,.world-card,.corner-card,.lyrics-lab,.public-moments,.deep-nav {
@@ -93,7 +129,7 @@ body { background:#070809 url("/black-geometric.svg") center top / max(100vw, 90
 </style>
 
 </head>
-<body data-world-motion="premium"><noscript><style>.player-skeleton{display:none}.lfm{min-height:180px}</style></noscript><a class="skip-link" href="#mainContent">Skip to content</a>
+<body data-world-motion="premium"><div class="holiday-snow" aria-hidden="true"></div><noscript><style>.player-skeleton{display:none}.lfm{min-height:180px}</style></noscript><a class="skip-link" href="#mainContent">Skip to content</a>
 <div aria-hidden="true" class="scroll-progress"><span id="scrollProgress"></span></div>
 <main class="wrap" id="mainContent">
 <nav aria-label="Main navigation" class="deep-nav"><a aria-label="Inside Deep’s World home" class="deep-brand" href="/">deep<span>.</span></a><div><a href="#download">Deeplist</a><a href="#cxChat">Chat</a><a href="#deepExplore">Explore</a></div></nav>
@@ -135,11 +171,11 @@ body { background:#070809 url("/black-geometric.svg") center top / max(100vw, 90
 </div>
 <div class="cx-voice-panel" hidden="" id="cxVoicePanel"><div class="cx-voice-status" id="cxVoiceStatus" role="status"></div><audio controls="" hidden="" id="cxVoicePreview" preload="metadata"></audio><div class="world-actions"><button class="world-button primary" disabled="" id="cxVoiceSend" type="button">Send voice note</button><button class="world-button" id="cxVoiceCancel" type="button">Discard</button><small>Public chat · up to 60 seconds</small></div></div>
 <input accept="image/jpeg,image/png,image/webp,image/gif" hidden="" id="cxFile" type="file"/>
-<div class="cx-foot"><span id="cxCounter"></span></div><div class="cx-bottom"><div style="flex:1;min-width:0"><p style="font-size:11px;color:#a69cab;margin:8px 0">Public chat · Deleted text retained by admin for 30 days.</p><details style="font-size:11px;color:#a69cab"><summary>Privacy &amp; AI</summary><p class="public-note">Public room · Everyone can read and join. Visits and action metadata are logged for site administration. Deleted message text and captions are retained for admin-only moderation for 30 days; media files are not archived. <span class="cx-ai-note">@deepAi uses Llama on Cloudflare · S.Ai uses GPT-OSS on Groq. Your mention and reply thread go to the selected provider. Affectionate messages to an AI may trigger one playful reaction from the other, sharing this reply thread with both providers. Two independent AI assistants. deepAi may use Groq as a fallback.</span></p></details></div><details class="cx-options"><summary>Chat options</summary><div class="cx-tools"><button class="cx-tool" hidden="" id="cxInstall" type="button">📲 Install app</button><button class="cx-tool" hidden="" id="cxNotify" type="button">🔔 Notifications: off</button></div><button class="cx-admin" id="cxAdmin" type="button">admin</button><a id="cxAuditLink" href="/admin-activity.html" hidden>Activity dashboard ↗</a></details></div>
+<div class="cx-foot"><span id="cxCounter"></span></div><div class="cx-bottom"><div style="flex:1;min-width:0"><p style="font-size:11px;color:#a69cab;margin:8px 0">Public chat · Deleted text retained by admin for 30 days.</p><details style="font-size:11px;color:#a69cab"><summary>Privacy &amp; AI</summary><p class="public-note">Public room · Everyone can read and join. Visits and action metadata are logged for site administration. Deleted message text and captions are retained for admin-only moderation for 30 days; media files are not archived. <span class="cx-ai-note">@deepAi uses Llama on Cloudflare · S.Ai uses GPT-OSS on Groq. Your mention and reply thread go to the selected provider. Affectionate messages to an AI may trigger one playful reaction from the other, sharing this reply thread with both providers. Two independent AI assistants. deepAi may use Groq as a fallback.</span></p></details></div><details class="cx-options"><summary>Chat options</summary><div class="cx-tools"><button class="cx-tool" hidden="" id="cxInstall" type="button">📲 Install app</button><button class="cx-tool" hidden="" id="cxNotify" type="button">🔔 Notifications: off</button></div><button class="cx-admin" id="cxAdmin" type="button">admin</button><a id="cxAuditLink" href="/admin-activity.html" hidden>Activity dashboard ↗</a><a id="cxBadgeAdminLink" href="/deeplist.html#admin" hidden>Manage badges ↗</a></details></div>
 <div class="cx-toast" hidden="" id="cxToast"></div>
 </section>
 <div class="world-actions"><a class="world-button primary" href="/deeplist.html?connect=1">Connect your Deeplist ↗</a><span class="world-note">Name optional · add it later</span></div>
-<div class="activity-grid"><section aria-label="Recent listening" class="world-card activity-panel" data-activity="" hidden=""><div class="world-heading"><h2>Recent listening</h2><a class="world-link" href="/on-repeat.html">This week ↗</a></div><div class="world-history" id="worldHistory"><div aria-label="Loading listening activity" class="loading-row" role="status"><span class="skeleton skeleton-thumb"></span><span class="skeleton skeleton-line"></span></div></div></section><section aria-label="Other Deeplist listeners" class="world-card activity-panel listener-panel" data-activity="" data-rail-shell hidden=""><div class="world-heading"><h2>Listening now</h2><a class="world-link" href="/deeplist.html?connect=1">Connect your Deeplist ↗</a></div><p class="world-note" id="deeplistConnectionCount" role="status"></p><div class="chalk-live-wrap"><section aria-label="Deeplist Now Playing" class="lfm" id="lfm"><div aria-hidden="true" class="player-wash"></div><div class="player-top"><span class="player-brand">DEEPAK’S FREQUENCY</span><span class="lfm-label" id="lfmLabel">THE LISTENING ROOM</span></div><div aria-live="polite" id="lfmBody"><div aria-label="Loading current track" class="player-skeleton" role="status"><div class="skeleton skeleton-cover"></div><div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line short"></div></div></div><p class="live-lyric" id="deeplistHomeLyrics"></p><div class="player-progress" hidden="" id="homeProgress"><div class="progress-track"><span id="homeProgressFill"></span></div><div class="progress-times"><span id="homeElapsed">0:00</span><span id="homeDuration">0:00</span></div></div><a class="player-open" href="/deeplist.html"><span>Open the listening room</span><span aria-hidden="true" class="round-arrow">↗</span></a></section></div><div class="world-history" id="deeplistListeners" data-scroll-rail tabindex="0" role="group" aria-label="Connected listener cards"><div aria-label="Loading listening activity" class="loading-row" role="status"><span class="skeleton skeleton-thumb"></span><span class="skeleton skeleton-line"></span></div></div><div class="rail-footer"><div class="rail-controls" aria-label="Listener card controls"><button type="button" data-rail-prev="deeplistListeners" aria-label="Previous listeners" disabled>←</button><button type="button" data-rail-next="deeplistListeners" aria-label="Next listeners" disabled>→</button></div></div></section></div>
+<div class="activity-grid"><section aria-label="Recent listening" class="world-card activity-panel" data-activity="" hidden=""><div class="world-heading"><h2>Recent listening</h2><a class="world-link" href="/on-repeat.html">This week ↗</a></div><div class="world-history" id="worldHistory"><div aria-label="Loading listening activity" class="loading-row" role="status"><span class="skeleton skeleton-thumb"></span><span class="skeleton skeleton-line"></span></div></div></section><section aria-label="Other Deeplist listeners" class="world-card activity-panel listener-panel" data-activity="" data-rail-shell hidden=""><div class="world-heading"><h2>Listening now</h2><a class="world-link" href="/deeplist.html?connect=1">Connect your Deeplist ↗</a></div><p class="world-note" id="deeplistConnectionCount" role="status"></p><div class="chalk-live-wrap"><section aria-label="Deeplist Now Playing" class="lfm" id="lfm"><div aria-hidden="true" class="player-wash"></div><div class="player-top"><span class="player-brand">DEEPAK’S FREQUENCY</span><span class="lfm-label" id="lfmLabel">THE LISTENING ROOM</span><span id="deeplistOwnerBadge" class="cx-royal-badge" hidden></span></div><div aria-live="polite" id="lfmBody"><div aria-label="Loading current track" class="player-skeleton" role="status"><div class="skeleton skeleton-cover"></div><div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line short"></div></div></div><p class="live-lyric" id="deeplistHomeLyrics"></p><div class="player-progress" hidden="" id="homeProgress"><div class="progress-track"><span id="homeProgressFill"></span></div><div class="progress-times"><span id="homeElapsed">0:00</span><span id="homeDuration">0:00</span></div></div><a class="player-open" href="/deeplist.html"><span>Open the listening room</span><span aria-hidden="true" class="round-arrow">↗</span></a></section></div><div class="world-history" id="deeplistListeners" data-scroll-rail tabindex="0" role="group" aria-label="Connected listener cards"><div aria-label="Loading listening activity" class="loading-row" role="status"><span class="skeleton skeleton-thumb"></span><span class="skeleton skeleton-line"></span></div></div><div class="rail-footer"><div class="rail-controls" aria-label="Listener card controls"><button type="button" data-rail-prev="deeplistListeners" aria-label="Previous listeners" disabled>←</button><button type="button" data-rail-next="deeplistListeners" aria-label="Next listeners" disabled>→</button></div></div></section></div>
 <section class="deeplist-stats world-card" id="deeplistStats" aria-labelledby="deeplistStatsTitle">
 <div class="world-heading"><div><h2 id="deeplistStatsTitle">Listening leaderboard</h2></div><div class="deeplist-stats-controls"><label>Ranking<select id="deeplistStatsPeriod"><option value="month">This month</option><option value="all">Recorded total</option></select></label><label>Month<input id="deeplistStatsMonth" type="month" aria-label="Listening month"/></label></div></div>
 <ol id="deeplistLeaderboard" aria-label="Listening minutes leaderboard"></ol><p class="deeplist-stats-note" id="deeplistStatsNote" role="status">Listening time starts with shared playback. Earlier listening was not recorded.</p>
@@ -166,9 +202,9 @@ body { background:#070809 url("/black-geometric.svg") center top / max(100vw, 90
 
 
 <script defer="" src="/deeplist-home.js?v=owner-top-2"></script>
-<script type="module" src="/deeplist-listeners.js?v=owner-top-2"></script>
+<script type="module" src="/deeplist-listeners.js?v=royal-1"></script>
 <script type="module" src="/deeplist-stats.js?v=fast-1"></script>
-<script type="module" src="/home-chat.js?v=ai-2"></script>
+<script type="module" src="/home-chat.js?v=royal-1"></script>
 <dialog aria-labelledby="ptTitle" class="pt-dialog" id="ptDialog"><div class="pt-dialog-close"><button aria-label="Close dialog" class="close" id="ptClose" type="button">×</button></div><section aria-labelledby="ptTitle" class="world-card pt-section" id="publicThoughts">
 <div class="world-heading"><div><h2 id="ptTitle">Inside Deep’s Mind</h2></div><button class="world-delete" id="ptAdmin" type="button">Admin</button></div>
 

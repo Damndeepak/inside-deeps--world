@@ -1,3 +1,4 @@
+import {ensureRoyalBadges} from './royal-badges.js';
 import {linkChatIdentity} from './chat-identity.js';
 import { listeningWrites, publicListeningStats, monthKey } from './deeplist-stats.js';
 const ready = new WeakMap();
@@ -59,6 +60,8 @@ export async function handleVisitorDeeplist(request, env, {hash,validateState,pu
   return reply({channel:visitor.channel_id,displayName:visitor.display_name||'',label:label(visitor.channel_id,visitor.display_name),paired:!!visitor.token_hash,player:`/deeplist.html?user=${visitor.channel_id}`},200,extra);
  }
  if(path==='/api/deeplist/listeners'&&method==='GET') {
+  await ensureRoyalBadges(env.DB);
+  const badges=new Map((await env.DB.prepare('SELECT channel_id,badge FROM deeplist_badges').all()).results.map(row=>[row.channel_id,row.badge]));
   const now=Date.now();
   const [rows,total,owner]=await Promise.all([env.DB.prepare(`SELECT v.channel_id,COALESCE(a.display_name,u.username,n.display_name) AS display_name,p.symbol,p.color,
     json_extract(v.payload,'$.id') AS track_id,json_extract(v.payload,'$.title') AS title,json_extract(v.payload,'$.artist') AS artist,json_extract(v.payload,'$.playing') AS playing,v.updated_at
@@ -67,7 +70,7 @@ export async function handleVisitorDeeplist(request, env, {hash,validateState,pu
     WHERE v.token_hash IS NOT NULL AND v.payload IS NOT NULL ORDER BY v.updated_at DESC,v.channel_id LIMIT 50`).all(),
     env.DB.prepare('SELECT COUNT(*) AS total FROM deeplist_connection_totals').first(),
     env.DB.prepare("SELECT display_name FROM deeplist_player_names WHERE channel_id='owner'").first()]);
-  return reply({owner:{channel:'owner',label:owner?.display_name||'damndeepak'},serverNow:now,totalConnected:total.total,listeners:rows.results.map(r=>({channel:r.channel_id,label:label(r.channel_id,r.display_name),symbol:r.symbol||'',color:r.color||null,id:r.track_id,title:r.title,artist:r.artist,live:now-r.updated_at<=15000,playing:now-r.updated_at<=15000&&!!r.playing,lastPlayedAt:r.updated_at,player:`/deeplist.html?user=${r.channel_id}`}))});
+  return reply({owner:{channel:'owner',label:owner?.display_name||'damndeepak',badge:badges.get('owner')||''},serverNow:now,totalConnected:total.total,listeners:rows.results.map(r=>({channel:r.channel_id,label:label(r.channel_id,r.display_name),badge:badges.get(r.channel_id)||'',symbol:r.symbol||'',color:r.color||null,id:r.track_id,title:r.title,artist:r.artist,live:now-r.updated_at<=15000,playing:now-r.updated_at<=15000&&!!r.playing,lastPlayedAt:r.updated_at,player:`/deeplist.html?user=${r.channel_id}`}))});
  }
  if(path==='/api/deeplist/pair'&&visitorScope&&['POST','DELETE'].includes(method)) {
   if(!browserRequest(request,'pair'))return reply({error:'same_site_session_required'},403);
@@ -92,10 +95,12 @@ export async function handleVisitorDeeplist(request, env, {hash,validateState,pu
   const channel=url.searchParams.get('user');if(!uuid(channel))return reply({error:'invalid_channel'},400);
   if(path!=='/api/deeplist/state')return reply({error:'visitor_history_not_enabled'},404);
   const row=await env.DB.prepare('SELECT v.payload,v.updated_at,COALESCE(a.display_name,u.username,n.display_name) AS display_name FROM deeplist_visitors v LEFT JOIN deeplist_player_names a ON a.channel_id=v.channel_id LEFT JOIN deeplist_visitor_names n ON n.channel_id=v.channel_id LEFT JOIN deeplist_identity_links l ON l.channel_id=v.channel_id LEFT JOIN users u ON u.id=l.user_id WHERE v.channel_id=? AND v.token_hash IS NOT NULL').bind(channel).first();
-  const now=Date.now();if(!row?.payload||now-row.updated_at>15000)return reply({connected:false,channel,label:label(channel,row?.display_name),serverNow:now});
+  await ensureRoyalBadges(env.DB);
+  const badge=(await env.DB.prepare('SELECT badge FROM deeplist_badges WHERE channel_id=?').bind(channel).first())?.badge||'';
+  const now=Date.now();if(!row?.payload||now-row.updated_at>15000)return reply({connected:false,channel,badge,label:label(channel,row?.display_name),serverNow:now});
   let state;try{state=JSON.parse(row.payload);}catch{return reply({connected:false,serverNow:now});}
   if(url.searchParams.get('lyricsVersion')===state.lyricsVersion)delete state.lines;
-  return reply({connected:true,channel,label:label(channel,row?.display_name),state:publicState(state),receivedAt:row.updated_at,serverNow:now});
+  return reply({connected:true,channel,badge,label:label(channel,row?.display_name),state:publicState(state),receivedAt:row.updated_at,serverNow:now});
  }
  return reply({error:'method_not_allowed'},405);
 }

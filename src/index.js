@@ -2,6 +2,7 @@ import {purgeDeletedCloud} from './app-cloud.js';
 import {handleAppAccounts} from './app-accounts.js';
 import {handleActivity, auditStatement, recordAudit, ensureActivity, purgeDeletedArchive} from './activity.js';
 import { DEEP_AI_ID, isChatAI, chatAIName, deepAIStatus, queueDeepAI } from './deep-ai.js';
+import { ensureRoyalBadges } from './royal-badges.js';
 import { ensureIdentitySchema, identityFor, validIdentity, linkChatIdentity } from './chat-identity.js';
 import { handleDeeplist } from "./deeplist.js";
 import { ensureFeatures, handleFeatures } from "./features.js";
@@ -1351,12 +1352,15 @@ export default {
       try {
         await ensureChatSchema();
         await ensureNicknameSchema();
+        await ensureRoyalBadges(env.DB);
+        const badges = await env.DB.prepare("SELECT GROUP_CONCAT(channel_id || '=' || badge) AS version FROM (SELECT channel_id,badge FROM deeplist_badges ORDER BY channel_id)").first();
+        const admins = await env.DB.prepare("SELECT COUNT(*) AS count FROM chat_admin_authors").first();
         const row = await env.DB
           .prepare("SELECT COUNT(*) AS n, MAX(created_at) AS latest FROM messages")
           .first();
         const names = await env.DB.prepare("SELECT COALESCE(SUM(revision), 0) AS version FROM chat_nicknames").first();
         return Response.json(
-          { success: true, count: Number(row?.n || 0), latest: row?.latest || null, names_version: Number(names?.version || 0) },
+          { success: true, count: Number(row?.n || 0), latest: row?.latest || null, names_version: Number(names?.version || 0), badges_version: badges?.version || "", admins_version: admins?.count || 0 },
           { headers: chatHeaders }
         );
       } catch {
@@ -1372,6 +1376,7 @@ export default {
         const userId = getUserId(request);
         const me = userId ? await getUser(userId) : null;
         await ensureIdentitySchema(env.DB);
+        await ensureRoyalBadges(env.DB);
 
         const limit = Math.min(Math.max(parseInt(url.searchParams.get("limit") || "100", 10) || 100, 1), 200);
         const before = url.searchParams.get("before");
@@ -1385,6 +1390,9 @@ export default {
               m.parent_id,
               m.created_at,
               m.sender_id,
+              (aa.user_id IS NOT NULL OR owner.user_id=m.sender_id) AS admin_author,
+              (SELECT b.badge FROM deeplist_identity_links l JOIN deeplist_badges b ON b.channel_id=l.channel_id
+               WHERE l.user_id=m.sender_id AND b.badge<>'' ORDER BY (l.channel_id='owner') DESC,l.channel_id LIMIT 1) AS royal_badge,
               COALESCE(u.username, 'Unknown') AS username, ci.symbol AS identity_symbol,ci.color AS identity_color,
               (mi.message_id IS NOT NULL) AS has_image,
               (ma.message_id IS NOT NULL) AS has_audio,
@@ -1396,6 +1404,8 @@ export default {
             FROM messages m
             LEFT JOIN users u ON u.id = m.sender_id
             LEFT JOIN chat_identity ci ON ci.user_id=m.sender_id
+            LEFT JOIN chat_admin_authors aa ON aa.user_id=m.sender_id
+            LEFT JOIN deeplist_identity_links owner ON owner.channel_id='owner'
             LEFT JOIN message_images mi ON mi.message_id = m.id
             LEFT JOIN message_audio ma ON ma.message_id = m.id
             LEFT JOIN messages pm ON pm.id = m.parent_id
@@ -1418,6 +1428,8 @@ export default {
           created_at: r.created_at,
           username: isChatAI(r.sender_id) ? chatAIName(r.sender_id) : r.username,symbol:r.identity_symbol||"",color:r.identity_color||null,
           ai: isChatAI(r.sender_id),
+          adminAuthor: Boolean(r.admin_author),
+          badge: r.royal_badge || null,
           mine: Boolean(me) && r.sender_id === me.id,
           image: Boolean(r.has_image),
           audio: Boolean(r.has_audio),
@@ -1623,7 +1635,13 @@ export default {
 
     // Is this browser an admin? (page shows delete buttons on every message)
     if (url.pathname === "/api/chat/admin/check" && request.method === "GET") {
-      return Response.json({ admin: await chatIsAdmin(request) }, { headers: chatHeaders });
+      const admin = await chatIsAdmin(request);
+      const userId = admin ? getUserId(request) : null;
+      if (userId && await getUser(userId)) {
+        await ensureRoyalBadges(env.DB);
+        await env.DB.prepare('INSERT OR IGNORE INTO chat_admin_authors(user_id) VALUES(?)').bind(userId).run();
+      }
+      return Response.json({ admin }, { headers: chatHeaders });
     }
 
     // Delete a message (+ its image). Owner or admin only.

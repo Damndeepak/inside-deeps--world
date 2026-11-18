@@ -13,9 +13,15 @@ function render(players){
   const row=document.createElement('form');row.className='player-admin-row';
   const label=document.createElement('label');label.textContent=player.owner?'Main player':(player.paired?'Connected player':'Unused connection');
   const input=document.createElement('input');input.value=player.label;input.maxLength=32;input.required=true;input.setAttribute('aria-label','Name for '+player.label);label.append(input);
+  const badgeLabel=document.createElement('label');badgeLabel.textContent='Badge';
+  const badge=document.createElement('select');
+  for(const [value,title] of [['','None'],['king','♛ King'],['queen','♛ Queen']]){
+   const option=document.createElement('option');option.value=value;option.textContent=title;badge.append(option);
+  }
+  badge.value=player.badge||'';badgeLabel.append(badge);
   const note=document.createElement('p');note.className='note';note.textContent=player.owner?'Your main music player':player.lastPlayedAt?'Last shared: '+new Date(player.lastPlayedAt).toLocaleString():'No music shared yet';
-  const save=document.createElement('button');save.type='submit';save.textContent='Save name';row.append(label,note,save);
-  row.onsubmit=async event=>{event.preventDefault();if(busy)return;busy=true;save.disabled=true;try{await api('PATCH',player.channel,{name:input.value});status.textContent='Player name saved.';changed();await load();}catch(e){status.textContent=e.message;}finally{busy=false;save.disabled=false;}};
+  const save=document.createElement('button');save.type='submit';save.textContent='Save changes';row.append(label,badgeLabel,note,save);
+  row.onsubmit=async event=>{event.preventDefault();if(busy)return;busy=true;save.disabled=true;try{await api('PATCH',player.channel,{name:input.value,badge:badge.value});status.textContent='Player changes saved.';changed();await load();}catch(e){status.textContent=e.message;}finally{busy=false;save.disabled=false;}};
   if(!player.owner){const remove=document.createElement('button');remove.type='button';remove.className='player-admin-delete';remove.textContent='Delete player';remove.onclick=async()=>{if(busy||!confirm('Delete '+player.label+'? Its app will be disconnected and it will disappear from the public player list.'))return;busy=true;remove.disabled=true;try{await api('DELETE',player.channel);status.textContent='Player deleted and app disconnected.';changed(player.channel);await load();}catch(e){status.textContent=e.message;}finally{busy=false;remove.disabled=false;}};row.append(remove);}
   list.append(row);
  }

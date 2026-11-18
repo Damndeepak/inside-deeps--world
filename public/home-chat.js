@@ -73,7 +73,7 @@ function watchAI(messageId,ai){
 }
 
 /* ---------- rendering ---------- */
-function sigOf(m,w){return[m.username,m.ai?1:0,m.symbol||"",m.color||"",m.parent?(m.parent.deleted?"d":[m.parent.id,m.parent.username,m.parent.snippet,m.parent.image].join("~")):"",S.admin?1:0,m.pending||"",m.mine?1:0,m.created_at].join("|")}
+function sigOf(m,w){return[m.username,m.ai?1:0,m.symbol||"",m.color||"",m.badge||"",m.adminAuthor?1:0,m.parent?(m.parent.deleted?"d":[m.parent.id,m.parent.username,m.parent.snippet,m.parent.image].join("~")):"",S.admin?1:0,m.pending||"",m.mine?1:0,m.created_at].join("|")}
 
 function buildRow(m){
   const row=h("div","cx-row"+(m.mine?" mine":""));row.dataset.id=m.id;row.tabIndex=0;
@@ -115,12 +115,16 @@ function buildRow(m){
 function paint(row,w){
   const m=w.m,showName=w.first&&!m.mine;
   row.classList.toggle("ai",m.ai===true);
+  row.classList.toggle("cx-admin-author",m.adminAuthor===true);
+  row.classList.toggle("cx-queen-author",m.badge==="queen");
   row.classList.toggle("first",w.first);row.classList.toggle("last",w.last);
   row.classList.toggle("pending",m.pending==="sending");row.classList.toggle("failed",m.pending==="failed");
   row._name.style.display=showName?"":"none";row._av.style.visibility=showName?"visible":"hidden";
   const sig=sigOf(m,w);if(row._sig===sig)return;row._sig=sig;
   row._name.textContent=identityLabel(m.username,m.symbol,"@");
   if(m.ai){const badge=h("span","cx-ai-badge","AI");badge.title="AI assistant · fictional character";row._name.append(badge)}
+  if(m.adminAuthor)row._name.append(h("span","cx-royal-badge","Admin"));
+  if(m.badge==="king"||m.badge==="queen")row._name.append(h("span","cx-royal-badge","♛ "+(m.badge==="king"?"King":"Queen")));
   row._name.style.color=m.color?identityColor(m.color):"";row._av.textContent=m.ai?"✦":tag(m.username);
   row._av.style.cssText="background:hsl("+hue(m.username)+" 32% 20%);color:hsl("+hue(m.username)+" 55% 78%)";
   if(m.color){row._av.style.background=identityColor(m.color)+"25";row._av.style.color=identityColor(m.color);}
@@ -185,7 +189,7 @@ E.thread.addEventListener("scroll",()=>{if(nearBottom()){S.unseen=0;E.pill.hidde
 E.pill.addEventListener("click",()=>toBottom(true));
 
 /* ---------- data ---------- */
-async function getState(){try{const r=await fetch("/api/chat/state",{cache:"no-store",signal:AbortSignal.timeout(10000)});const d=await r.json();if(d.success){E.count.textContent=d.count+(d.count===1?" message":" messages");return d.count+"|"+d.latest+"|"+(d.names_version||0)}}catch(e){}return null}
+async function getState(){try{const r=await fetch("/api/chat/state",{cache:"no-store",signal:AbortSignal.timeout(10000)});const d=await r.json();if(d.success){E.count.textContent=d.count+(d.count===1?" message":" messages");return d.count+"|"+d.latest+"|"+(d.names_version||0)+"|"+(d.badges_version||"")+"|"+(d.admins_version||0)}}catch(e){}return null}
 
 const messageOrder=(a,b)=>a.created_at<b.created_at?-1:a.created_at>b.created_at?1:a.id<b.id?-1:a.id>b.id?1:0;
 function applyFeed(srv,hasMore,first){
@@ -468,7 +472,7 @@ E.box.addEventListener("click",()=>{E.box.hidden=true;E.boxImg.removeAttribute("
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!E.box.hidden){E.box.hidden=true;E.boxImg.removeAttribute("src")}});
 
 /* ---------- admin ---------- */
-function paintAdmin(){if($('cxAuditLink'))$('cxAuditLink').hidden=!S.admin;E.admin.textContent=S.admin?"admin mode · exit":"admin";E.admin.classList.toggle("on",S.admin);reconcile(false);refreshSeenAdmin();refreshAdminOnline()}
+function paintAdmin(){if($('cxAuditLink'))$('cxAuditLink').hidden=!S.admin;if($('cxBadgeAdminLink'))$('cxBadgeAdminLink').hidden=!S.admin;E.admin.textContent=S.admin?"admin mode · exit":"admin";E.admin.classList.toggle("on",S.admin);reconcile(false);refreshSeenAdmin();refreshAdminOnline()}
 let adminOnlineBusy=false;
 async function refreshAdminOnline(){
   const panel=$('cxAdminOnline'),list=$('cxAdminOnlineList');if(!panel||!list)return;

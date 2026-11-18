@@ -9,6 +9,8 @@ async function load(){
   const started=performance.now(),r=await fetch('/api/deeplist/listeners',{cache:'no-store',signal:AbortSignal.timeout(4000)});if(!r.ok)throw Error();const d=await r.json();
   hasLive=(d.listeners||[]).some(visitor=>visitor.live);
   const owner=document.getElementById('lfm')?.closest?.('.chalk-live-wrap');if(owner){owner.style.order='-1';}
+  const mainBadge=document.getElementById('deeplistOwnerBadge');
+  if(mainBadge){const badge=d.owner?.badge;mainBadge.textContent=badge==='king'?'♛ King':badge==='queen'?'♛ Queen':'';mainBadge.hidden=!mainBadge.textContent;}
   const count=document.getElementById('deeplistConnectionCount');if(count)count.textContent=Number.isInteger(d.totalConnected)?d.totalConnected+' music connections recorded':'';
   clearExpiries();
   const wanted=new Set((d.listeners||[]).map(v=>v.channel));
@@ -30,7 +32,8 @@ async function load(){
     if(/^[A-Za-z0-9_-]{11}$/.test(visitor.id||'')){const img=document.createElement('img');img.src='https://i.ytimg.com/vi/'+visitor.id+'/hqdefault.jpg';img.alt='';img.loading='lazy';img.referrerPolicy='no-referrer';img.onerror=()=>{cover.textContent='d.'};cover.replaceChildren(img)}
    }
    const label=identityLabel(visitor.label,visitor.symbol),track=visitor.title+' · '+visitor.artist;
-   if(name.textContent!==label)name.textContent=label;
+   const badge=visitor.badge==='queen'?' ♛ Queen':visitor.badge==='king'?' ♛ King':'';
+   if(name.textContent!==label+badge)name.textContent=label+badge;
    name.style.color=visitor.color?identityColor(visitor.color):'';
    if(song.textContent!==track)song.textContent=track;
    const lastShared='Last shared · '+new Date(visitor.lastPlayedAt).toLocaleDateString();

@@ -246,6 +246,15 @@ await adminCall('/api/deeplist/state','POST',track,visitorBearer);
 const mainPair=await(await adminCall('/api/deeplist/pair','POST',undefined,adminHeaders)).json();
 await adminCall('/api/deeplist/state','POST',track,{Authorization:'Bearer '+mainPair.token});
 const target=manage+'?channel='+visitorInfo.channel;
+assert.equal(management.players[0].badge,'king');
+assert.equal((await adminCall(target,'PATCH',{name:'Listener',badge:'admin'},adminHeaders)).status,400);
+assert.equal((await adminCall(target,'PATCH',{name:'Listener',badge:'queen'},{'X-Deeplist-Action':'admin'})).status,403);
+assert.equal((await adminCall(target,'PATCH',{name:'Listener',badge:'queen'},adminHeaders)).status,200);
+assert.equal((await(await adminCall('/api/deeplist/listeners')).json()).listeners[0].badge,'queen');
+assert.equal((await(await adminCall('/api/deeplist/state?user='+visitorInfo.channel)).json()).badge,'queen');
+assert.equal((await adminCall(target,'PATCH',{name:'Listener',badge:''},adminHeaders)).status,200);
+assert.equal((await(await adminCall('/api/deeplist/listeners')).json()).listeners[0].badge,'');
+
 for(const name of ['', ' '.repeat(4),'x'.repeat(33),42])assert.equal((await adminCall(target,'PATCH',{name},adminHeaders)).status,400);
 assert.equal((await adminCall(manage+'?channel=bad','DELETE',undefined,adminHeaders)).status,400);
 assert.equal((await adminCall(target,'PATCH',{name:'not allowed'},{'X-Deeplist-Action':'admin'})).status,403);
