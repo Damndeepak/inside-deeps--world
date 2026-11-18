@@ -164,4 +164,208 @@ html { scroll-behavior: smooth; }
  <p id="labPlaybackStatus" class="lab-playback-status" role="status">Press play to hear the synced sample.</p>
 </dialog>
 
-<script>(function(){var loc=location.href.replace(/#.*$/,"");var ATTR_NAMES=["data-product-id","data-productid","data-product_id","product-id","productid","product_id","data-source-entity-id","source-entity-id","source_entity_id","data-product","data-metadata","data-meta"];var DATASET_KEYS=["productId","productid","product_id","sourceEntityId","sourceentityid","source_entity_id","product","metadata","meta"];function readProductId(value){if(typeof value!=="string"||value.length===0)return null;if(/^[0-9]{6,}$/.test(value))return value;var match=value.match(/(?:product(?:_|-)?id|source(?:_|-)?entity(?:_|-)?id)["'=:\s]+([0-9]{6,})/i);return match?match[1]:null}function extractProductId(start){for(var node=start;node&&node!==document.body;node=node.parentElement){for(var i=0;i<ATTR_NAMES.length;i++){var attrValue=node.getAttribute&&node.getAttribute(ATTR_NAMES[i]);var attrProductId=readProductId(attrValue);if(attrProductId)return attrProductId}var dataset=node.dataset||null;if(dataset){for(var j=0;j<DATASET_KEYS.length;j++){var dataValue=dataset[DATASET_KEYS[j]];var dataProductId=readProductId(dataValue);if(dataProductId)return dataProductId}}}return null}function isInlineMediaSlotElement(node){return !!(node&&node.getAttribute&&node.getAttribute("data-clippy-inline-media-slot")!==null)}function findInlineMediaSlot(start){for(var node=start;node&&node!==document.body;node=node.parentElement){if(isInlineMediaSlotElement(node))return node}return null}function readInlineMediaUrl(node){if(!node)return null;return node.getAttribute&&((node.getAttribute("data-clippy-inline-media-url")||node.getAttribute("data-url")||node.getAttribute("data_url")))||node.href||null}function stripHash(url){return String(url).replace(/#.*$/,"")}function urlsMatch(a,b){if(!a||!b)return false;try{return stripHash(new URL(a,loc).href)===stripHash(new URL(b,loc).href)}catch(_){return stripHash(a)===stripHash(b)}}function isFirstPartyReelUrl(value){try{var url=new URL(value,loc);if(url.protocol!=="https:")return false;var host=url.hostname.toLowerCase();var supported=host==="instagram.com"||host.endsWith(".instagram.com")||host==="facebook.com"||host.endsWith(".facebook.com");return supported&&/\/reels?\//i.test(url.pathname)}catch(_){return false}}function isInlineMediaUrlClick(node,href){var slot=findInlineMediaSlot(node);if(!slot)return false;var slotUrl=readInlineMediaUrl(slot);if(slotUrl)return urlsMatch(href,slotUrl);return isFirstPartyReelUrl(href)}function findDataHref(start){for(var node=start;node&&node!==document.body;node=node.parentElement){if(node.getAttribute){var href=node.getAttribute("data-href")||node.getAttribute("data-url");if(href)return{href:href,node:node}}}return null}var nativeOpen=window.open;window.open=function(url){if(parent!==window&&typeof url==="string"&&/^https?:\/\//.test(url)){parent.postMessage({type:"ecto:usercontent-link-click",href:url},"*");return null}return nativeOpen?nativeOpen.apply(window,arguments):null};document.addEventListener("click",function(e){var target=e.target instanceof Element?e.target:null;if(!target)return;if(parent===window)return;var a=target.closest?target.closest("a[href]"):null;if(a&&a.href&&/^https?:\/\//.test(a.href)&&a.href.replace(/#.*$/,"")!==loc){if(isInlineMediaUrlClick(a,a.href))return;var productId=extractProductId(target)||extractProductId(a);if(productId){e.preventDefault();parent.postMessage({type:"ecto-artifact-link-click",productId:productId},"*");return}e.preventDefault();parent.postMessage({type:"ecto:usercontent-link-click",href:a.href},"*");return}var dataHref=findDataHref(target);if(dataHref&&/^https?:\/\//.test(dataHref.href)&&dataHref.href.replace(/#.*$/,"")!==loc){if(isInlineMediaUrlClick(dataHref.node,dataHref.href))return;e.preventDefault();parent.postMessage({type:"ecto:usercontent-link-click",href:dataHref.href},"*")}},true)})();</script><script>(function(){var FOCUS_TYPE="ecto:artifact-focus-request";var CLOSE_TYPE="ecto:artifact-close-request";function focusArtifactDocument(){var body=document.body;if(!body)return;try{window.focus();}catch(e){}if(!body.hasAttribute("tabindex"))body.setAttribute("tabindex","-1");try{body.focus({preventScroll:true});}catch(e){try{body.focus();}catch(e2){}}}window.addEventListener("message",function(event){if(event.source!==window.parent)return;var data=event.data;if(!data||typeof data!=="object"||data.type!==FOCUS_TYPE)return;if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",focusArtifactDocument,{once:true});return;}focusArtifactDocument();});window.addEventListener("keydown",function(event){if(event.key!=="Escape")return;window.setTimeout(function(){if(event.defaultPrevented)return;window.parent.postMessage({type:CLOSE_TYPE},"*");},0);});})();</script></body></html>
+<script>(function(){var loc=location.href.replace(/#.*$/,"");var ATTR_NAMES=["data-product-id","data-productid","data-product_id","product-id","productid","product_id","data-source-entity-id","source-entity-id","source_entity_id","data-product","data-metadata","data-meta"];var DATASET_KEYS=["productId","productid","product_id","sourceEntityId","sourceentityid","source_entity_id","product","metadata","meta"];function readProductId(value){if(typeof value!=="string"||value.length===0)return null;if(/^[0-9]{6,}$/.test(value))return value;var match=value.match(/(?:product(?:_|-)?id|source(?:_|-)?entity(?:_|-)?id)["'=:\s]+([0-9]{6,})/i);return match?match[1]:null}function extractProductId(start){for(var node=start;node&&node!==document.body;node=node.parentElement){for(var i=0;i<ATTR_NAMES.length;i++){var attrValue=node.getAttribute&&node.getAttribute(ATTR_NAMES[i]);var attrProductId=readProductId(attrValue);if(attrProductId)return attrProductId}var dataset=node.dataset||null;if(dataset){for(var j=0;j<DATASET_KEYS.length;j++){var dataValue=dataset[DATASET_KEYS[j]];var dataProductId=readProductId(dataValue);if(dataProductId)return dataProductId}}}return null}function isInlineMediaSlotElement(node){return !!(node&&node.getAttribute&&node.getAttribute("data-clippy-inline-media-slot")!==null)}function findInlineMediaSlot(start){for(var node=start;node&&node!==document.body;node=node.parentElement){if(isInlineMediaSlotElement(node))return node}return null}function readInlineMediaUrl(node){if(!node)return null;return node.getAttribute&&((node.getAttribute("data-clippy-inline-media-url")||node.getAttribute("data-url")||node.getAttribute("data_url")))||node.href||null}function stripHash(url){return String(url).replace(/#.*$/,"")}function urlsMatch(a,b){if(!a||!b)return false;try{return stripHash(new URL(a,loc).href)===stripHash(new URL(b,loc).href)}catch(_){return stripHash(a)===stripHash(b)}}function isFirstPartyReelUrl(value){try{var url=new URL(value,loc);if(url.protocol!=="https:")return false;var host=url.hostname.toLowerCase();var supported=host==="instagram.com"||host.endsWith(".instagram.com")||host==="facebook.com"||host.endsWith(".facebook.com");return supported&&/\/reels?\//i.test(url.pathname)}catch(_){return false}}function isInlineMediaUrlClick(node,href){var slot=findInlineMediaSlot(node);if(!slot)return false;var slotUrl=readInlineMediaUrl(slot);if(slotUrl)return urlsMatch(href,slotUrl);return isFirstPartyReelUrl(href)}function findDataHref(start){for(var node=start;node&&node!==document.body;node=node.parentElement){if(node.getAttribute){var href=node.getAttribute("data-href")||node.getAttribute("data-url");if(href)return{href:href,node:node}}}return null}var nativeOpen=window.open;window.open=function(url){if(parent!==window&&typeof url==="string"&&/^https?:\/\//.test(url)){parent.postMessage({type:"ecto:usercontent-link-click",href:url},"*");return null}return nativeOpen?nativeOpen.apply(window,arguments):null};document.addEventListener("click",function(e){var target=e.target instanceof Element?e.target:null;if(!target)return;if(parent===window)return;var a=target.closest?target.closest("a[href]"):null;if(a&&a.href&&/^https?:\/\//.test(a.href)&&a.href.replace(/#.*$/,"")!==loc){if(isInlineMediaUrlClick(a,a.href))return;var productId=extractProductId(target)||extractProductId(a);if(productId){e.preventDefault();parent.postMessage({type:"ecto-artifact-link-click",productId:productId},"*");return}e.preventDefault();parent.postMessage({type:"ecto:usercontent-link-click",href:a.href},"*");return}var dataHref=findDataHref(target);if(dataHref&&/^https?:\/\//.test(dataHref.href)&&dataHref.href.replace(/#.*$/,"")!==loc){if(isInlineMediaUrlClick(dataHref.node,dataHref.href))return;e.preventDefault();parent.postMessage({type:"ecto:usercontent-link-click",href:dataHref.href},"*")}},true)})();</script><script>(function(){var FOCUS_TYPE="ecto:artifact-focus-request";var CLOSE_TYPE="ecto:artifact-close-request";function focusArtifactDocument(){var body=document.body;if(!body)return;try{window.focus();}catch(e){}if(!body.hasAttribute("tabindex"))body.setAttribute("tabindex","-1");try{body.focus({preventScroll:true});}catch(e){try{body.focus();}catch(e2){}}}window.addEventListener("message",function(event){if(event.source!==window.parent)return;var data=event.data;if(!data||typeof data!=="object"||data.type!==FOCUS_TYPE)return;if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",focusArtifactDocument,{once:true});return;}focusArtifactDocument();});window.addEventListener("keydown",function(event){if(event.key!=="Escape")return;window.setTimeout(function(){if(event.defaultPrevented)return;window.parent.postMessage({type:CLOSE_TYPE},"*");},0);});})();</script><!-- Spider-Man scroll animation. Frames rendered from Swing to Land by Molon Modeler. -->
+<canvas id="deep-spider-swing" aria-hidden="true" style="position:fixed;inset:0;pointer-events:none;z-index:6"></canvas>
+<script>
+(()=>{
+
+const canvas = document.getElementById('deep-spider-swing');
+const pen = canvas.getContext('2d');
+if(!canvas || !pen) return;
+const cards = [...document.querySelectorAll(
+  '#cxChat, #lfm, #deeplistStats, #lyricsLab, .media-entry, #memoryFilm, #publicThoughts'
+)];
+if(cards.length<2) return;
+const demonstration = cards.filter(card=>!card.hidden);
+// Keep each throw's contact point stable while scrubbing that swing.
+const routes = demonstration.map(() => {
+  const count = 2;
+  const rightFirst = Math.random() < .5;
+  return Array.from({length:count+1}, (_, hop) => ({
+    x: ((hop%2===0)===rightFirst ? .60 : .15) + Math.random()*.24,
+    y: .10 + Math.random()*.34
+  }));
+});
+function waypoints(box, offset, index){
+  return routes[index].map(point=>({
+    x:box.left+box.width*point.x,
+    y:box.top+offset+box.height*point.y
+  }));
+}
+const preference = matchMedia('(prefers-reduced-motion: reduce)');
+const clamp = value => Math.max(0, Math.min(1, value));
+const lerp = (a,b,t) => a+(b-a)*t;
+const ease = t => t*t*(3-2*t);
+let width, height, frame, scroll, target, last;
+let paused = preference.matches;
+let lastScrollInput = -Infinity;
+let rest = 1;
+function resize(){
+  const density = Math.min(devicePixelRatio || 1, 2);
+  width = innerWidth;
+  height = innerHeight;
+  canvas.width = width*density;
+  canvas.height = height*density;
+  canvas.style.width = width+'px';
+  canvas.style.height = height+'px';
+  pen.setTransform(density,0,0,density,0,0);
+  target = scroll = scrollY;
+  requestDraw();
+}
+function stroke(points, color, thickness){
+  pen.beginPath();
+  pen.moveTo(...points[0]);
+  points.slice(1).forEach(point => pen.lineTo(...point));
+  pen.strokeStyle = color;
+  pen.lineWidth = thickness;
+  pen.lineCap = pen.lineJoin = 'round';
+  pen.stroke();
+}
+// Frames pre-rendered from the supplied Swing to Land GLB, with projected wrist positions.
+const wrists = [[0.42941,0.3668],[0.43155,0.3633],[0.43377,0.35993],[0.43598,0.35749],[0.43823,0.35526],[0.44046,0.354],[0.44269,0.35309],[0.44473,0.3525],[0.44667,0.35211],[0.44884,0.3517],[0.45124,0.35128],[0.45385,0.35068],[0.45679,0.34978],[0.45979,0.34884],[0.46296,0.34763],[0.4661,0.34656],[0.46895,0.34559],[0.47177,0.34478],[0.47411,0.34461],[0.47638,0.34458],[0.47848,0.34515],[0.48046,0.34591],[0.48223,0.34686],[0.48384,0.34795],[0.48514,0.349],[0.48628,0.35004],[0.48767,0.35068],[0.48937,0.35093],[0.49075,0.35096],[0.49159,0.3506],[0.49211,0.35029],[0.49169,0.34987],[0.49109,0.34979],[0.48993,0.35033],[0.48859,0.35116],[0.48762,0.3539],[0.48656,0.35691],[0.48539,0.36162],[0.48414,0.36681],[0.4814,0.37229],[0.4781,0.37804],[0.47238,0.38412],[0.46501,0.39058],[0.45529,0.39846],[0.44345,0.40812],[0.43204,0.41921],[0.42137,0.43267],[0.41326,0.4467],[0.40966,0.45952],[0.40696,0.47226],[0.40712,0.47946],[0.40688,0.48715],[0.40762,0.4904],[0.40814,0.49419],[0.40841,0.4971],[0.4087,0.50026],[0.40802,0.50314],[0.40728,0.50574],[0.40579,0.50803],[0.40415,0.50971],[0.40279,0.51086],[0.40169,0.5115],[0.40093,0.51197],[0.40026,0.51245],[0.39977,0.51323],[0.39877,0.51523],[0.39756,0.51735],[0.39419,0.52209],[0.39079,0.52608],[0.38513,0.53227],[0.37999,0.53701],[0.37517,0.53991],[0.37109,0.54088],[0.3684,0.54072],[0.36615,0.53988],[0.36482,0.54098],[0.36381,0.54368],[0.36321,0.54751],[0.36309,0.55244],[0.36328,0.55761],[0.36408,0.56308],[0.3648,0.56797],[0.36538,0.57234],[0.3659,0.57577],[0.36612,0.5784],[0.36635,0.57993],[0.36673,0.58144],[0.36713,0.58195],[0.36812,0.58374],[0.36919,0.58513],[0.37117,0.58991],[0.37351,0.59579],[0.37636,0.60196],[0.37957,0.60824],[0.38249,0.61273],[0.38511,0.61542],[0.38725,0.61695],[0.38863,0.61656],[0.39007,0.61589],[0.3915,0.61518],[0.39289,0.61443],[0.39399,0.61412],[0.3951,0.61372],[0.39597,0.61366],[0.39686,0.61354],[0.39758,0.61359],[0.3983,0.61363],[0.39889,0.61393],[0.39947,0.61428],[0.39998,0.61484],[0.40047,0.61549],[0.40092,0.61602],[0.40133,0.61646],[0.4017,0.61684],[0.40199,0.61718],[0.40227,0.61748],[0.40243,0.61776],[0.40261,0.61799],[0.4027,0.61812],[0.4028,0.61824]];
+const crop = {left:227,top:217,width:321,height:471};
+let readySheets = 0;
+let sheets = [];
+let loading = false;
+function loadFrames(){
+  if(loading || preference.matches) return;
+  loading = true;
+  sheets=Array.from({length:4},(_,i)=>{
+    const image=new Image();
+    image.onload=()=>{readySheets++;requestDraw()};
+    fetch('/spider-swing/swing-120-'+i+'.txt')
+      .then(response=>{
+        if(!response.ok) throw new Error('Frame sheet unavailable');
+        return response.text();
+      })
+      .then(source=>{image.src=source})
+      .catch(()=>{canvas.hidden=true});
+    image.onerror=()=>{canvas.hidden=true};
+    return image;
+  });
+}
+function drawModel(x,y,scale,direction,previousDirection,phase){
+  const lastFrame=wrists.length-1;
+  const takeoff=ease(clamp(phase/.10))*(1-rest);
+  const pose=clamp((phase-.10)/.77)*lastFrame;
+  const current=Math.round(pose);
+  function paint(index,alpha,facing){
+    if(alpha<=0) return;
+    pen.save();
+    pen.scale(-facing*scale*.4,scale*.4);
+    pen.globalAlpha=alpha;
+    const slot=index%30;
+    pen.drawImage(sheets[Math.floor(index/30)],slot%6*crop.width,Math.floor(slot/6)*crop.height,
+      crop.width,crop.height,crop.left-400,crop.top-400,crop.width,crop.height);
+    pen.restore();
+  }
+  pen.save();
+  pen.translate(x,y);
+  paint(lastFrame,1-takeoff,rest>.5?direction:previousDirection);
+  paint(current,takeoff,direction);
+  pen.restore();
+  const hand=wrists[current];
+  return [x-direction*(hand[0]-.5)*320*scale,y+(hand[1]-.5)*320*scale];
+}
+function draw(now){
+  frame = 0;
+  const elapsed = Math.min(now-(last || now-16),48);
+  last = now;
+  scroll = paused ? target : lerp(scroll,target,1-Math.exp(-elapsed/36));
+  const offset = target-scroll;
+  const scrolling=now-lastScrollInput<115;
+  const restTarget=scrolling?0:1;
+  rest=lerp(rest,restTarget,1-Math.exp(-elapsed/(scrolling?37:44)));
+  if(Math.abs(restTarget-rest)<.01) rest=restTarget;
+  pen.clearRect(0,0,width,height);
+  const trigger = height*.39;
+  const boxes = demonstration.map(card=>card.getBoundingClientRect()).filter(box=>box.width>0 && box.height>0);
+  if(boxes.length<2) return;
+  const stops = [];
+  const lead = Math.min(height*.48,320);
+  stops.push({x:width*.81,y:boxes[0].top+offset-lead,mark:boxes[0].top+offset-trigger-lead,index:-1});
+  boxes.forEach((box,index)=>{
+    const path=waypoints(box,offset,index);
+    const available=boxes[index+1] ? boxes[index+1].top-box.top : box.height+height*.4;
+    const spacing=Math.min(210,available*.74/(path.length-1));
+    path.forEach((point,hop)=>{
+      stops.push({...point,mark:box.top+offset-trigger+spacing*hop,index});
+    });
+  });
+  let segment=0;
+  while(segment<stops.length-2 && stops[segment+1].mark<0) segment++;
+  const start=stops[segment], end=stops[segment+1];
+  const local=start.index===end.index;
+  const phase=clamp(-start.mark/Math.max(1,end.mark-start.mark));
+  const flight=ease(clamp((phase-.15)/.65));
+  const landing=Math.sin(Math.PI*ease(clamp((phase-.80)/.20)));
+  const arc=Math.sin(Math.PI*flight);
+  if(!paused && readySheets===sheets.length){
+    const scale=width<600?1.02:1.48;
+    const direction=Math.sign(end.x-start.x) || 1;
+    const previousDirection=segment>0 ? Math.sign(start.x-stops[segment-1].x) || direction : direction;
+    const swing=local?0:Math.min(width*.10,80);
+    const x=Math.max(34,Math.min(width-34,lerp(start.x,end.x,flight)+direction*arc*swing));
+    const y=lerp(start.y,end.y,flight)+53*scale+(arc*(local?-43:33)+landing*11)*(1-rest);
+    const cast=ease(clamp((phase-.10)/.15));
+    const anchor=local ? end : start;
+    const lineAlpha=(1-rest)*(1-ease(clamp((phase-.78)/.22)));
+    if(y>-155 && y<height+155){
+      const wrist=drawModel(x,y,scale,direction,previousDirection,phase);
+      // Between cards, swing off the last contact without firing a third web.
+      const extend=local?cast:1;
+      if(scrolling && phase>.10 && lineAlpha>.01 && extend>.01){
+        const tipX=lerp(wrist[0],anchor.x,extend);
+        const tipY=lerp(wrist[1],anchor.y,extend);
+        const sag=(1-arc)*8+12*(1-extend);
+        pen.beginPath();pen.moveTo(...wrist);
+        pen.quadraticCurveTo((wrist[0]+tipX)/2+direction*sag,(wrist[1]+tipY)/2+sag,tipX,tipY);
+        pen.save();
+        pen.shadowColor='#b8dbff';pen.shadowBlur=8;
+        pen.strokeStyle='rgba(234,244,255,'+lineAlpha*.95+')';
+        pen.lineWidth=1.6;pen.stroke();
+        pen.restore();
+        if(local && extend>=.999){
+          const radius=(8+8*ease(clamp((phase-.25)/.22)))*(local?1:1.36);
+          const strands=Array.from({length:8},(_,i)=>{
+            const theta=phase*.12+i*Math.PI/4;
+            return [Math.cos(theta)*radius,Math.sin(theta)*radius*.73];
+          });
+          const color='rgba(235,244,255,'+lineAlpha*.78+')';
+          strands.forEach(([dx,dy])=>stroke([[tipX,tipY],[tipX+dx,tipY+dy]],color,.83));
+          for(const ratio of [.37,.65,.94]){
+            pen.beginPath();
+            const ring=strands.map(([dx,dy])=>[tipX+dx*ratio,tipY+dy*ratio]);
+            pen.moveTo(...ring[0]);
+            ring.forEach(([px,py],i)=>{
+              const [qx,qy]=ring[(i+1)%ring.length];
+              pen.quadraticCurveTo(lerp(tipX,(px+qx)/2,.86),lerp(tipY,(py+qy)/2,.86),qx,qy);
+            });
+            pen.strokeStyle=color;pen.lineWidth=.68;pen.stroke();
+          }
+        }
+      }
+    }
+
+  }
+  if(!paused && (Math.abs(offset)>.3 || scrolling || rest!==restTarget)) requestDraw();
+  else last=0;
+}
+function requestDraw(){if(!frame) frame=requestAnimationFrame(draw)}
+preference.addEventListener('change', event=>{
+  paused=event.matches;
+  if(!paused && scrollY>0) loadFrames();
+  requestDraw();
+});
+addEventListener('resize',resize);
+addEventListener('scroll',()=>{
+  target=scrollY;
+  lastScrollInput=performance.now();
+  if(target>0) loadFrames();
+  requestDraw();
+},{passive:true});
+resize();
+if(scrollY>0) loadFrames();
+})();
+</script>
+</body></html>
