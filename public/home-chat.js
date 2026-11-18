@@ -124,7 +124,7 @@ function paint(row,w){
   row._name.textContent=identityLabel(m.username,m.symbol,"@");
   if(m.ai){const badge=h("span","cx-ai-badge","AI");badge.title="AI assistant · fictional character";row._name.append(badge)}
   if(m.adminAuthor)row._name.append(h("span","cx-royal-badge","Admin"));
-  if(m.badge==="king"||m.badge==="queen")row._name.append(h("span","cx-royal-badge cx-crown-"+m.badge,m.badge==="king"?"♚":"♛"));
+  if(m.badge==="king"||m.badge==="queen")row._name.append(h("span","cx-royal-badge cx-crown-"+m.badge,m.badge==="king"?"♚ K":"♛ Q"));
   row._name.style.color=m.color?identityColor(m.color):"";row._av.textContent=m.ai?"✦":tag(m.username);
   row._av.style.cssText="background:hsl("+hue(m.username)+" 32% 20%);color:hsl("+hue(m.username)+" 55% 78%)";
   if(m.color){row._av.style.background=identityColor(m.color)+"25";row._av.style.color=identityColor(m.color);}

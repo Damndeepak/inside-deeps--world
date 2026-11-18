@@ -2,15 +2,17 @@ import {identityColor,identityLabel} from './chat-identity.js';
 (()=>{
 const box=document.getElementById('deeplistListeners');if(!box)return;let timer,loading=false,expiryTimers=[],failures=0;
 const cards=new Map();let hasLive=false;
+const royalBadge = badge => badge === 'king' || badge === 'queen' ? badge : '';
+const crown = badge => badge === 'king' ? '♚ K' : badge === 'queen' ? '♛ Q' : '';
 function clearExpiries(){expiryTimers.forEach(clearTimeout);expiryTimers=[];}
 async function load(){
  clearTimeout(timer);if(document.hidden||loading)return;loading=true;const pollStarted=performance.now();
  try{
   const started=performance.now(),r=await fetch('/api/deeplist/listeners',{cache:'no-store',signal:AbortSignal.timeout(4000)});if(!r.ok)throw Error();const d=await r.json();
   hasLive=(d.listeners||[]).some(visitor=>visitor.live);
-  const owner=document.getElementById('lfm')?.closest?.('.chalk-live-wrap');if(owner){owner.style.order='-1';}
+  const owner=document.getElementById('lfm')?.closest?.('.chalk-live-wrap');if(owner){owner.style.order='-1';owner.setAttribute?.('data-royal-player',royalBadge(d.owner?.badge));}
   const mainBadge=document.getElementById('deeplistOwnerBadge');
-  if(mainBadge){const badge=d.owner?.badge;mainBadge.textContent=badge==='king'?'♚':badge==='queen'?'♛':'';mainBadge.hidden=!mainBadge.textContent;}
+  if(mainBadge){mainBadge.textContent=crown(d.owner?.badge);mainBadge.hidden=!mainBadge.textContent;}
   const count=document.getElementById('deeplistConnectionCount');if(count)count.textContent=Number.isInteger(d.totalConnected)?d.totalConnected+' music connections recorded':'';
   clearExpiries();
   const wanted=new Set((d.listeners||[]).map(v=>v.channel));
@@ -18,7 +20,12 @@ async function load(){
   if(!cards.size&&d.listeners?.length)box.replaceChildren();
   if(!d.listeners?.length){const message='No other listeners are sharing right now. Connect your Deeplist to join.';if(box.textContent!==message){const empty=document.createElement('p');empty.className='world-note';empty.textContent=message;box.replaceChildren(empty);}}
   let index=0;
-  for(const visitor of [...(d.listeners||[])].sort((a,b)=>Number(b.live===true&&b.playing===true&&((d.serverNow??Date.now())-b.lastPlayedAt<15000))-Number(a.live===true&&a.playing===true&&((d.serverNow??Date.now())-a.lastPlayedAt<15000))) ){
+  const isPlaying = visitor => visitor.live === true && visitor.playing === true &&
+    (d.serverNow ?? Date.now()) - visitor.lastPlayedAt < 15000;
+  const listeners = [...(d.listeners || [])].sort((a,b) =>
+    Number(Boolean(royalBadge(b.badge))) - Number(Boolean(royalBadge(a.badge))) ||
+    Number(isPlaying(b)) - Number(isPlaying(a)));
+  for(const visitor of listeners){
    let card=cards.get(visitor.channel);
    if(!card){
    card=document.createElement('a');card.className='world-track deeplist-listener-card';card.href='/deeplist.html?user='+encodeURIComponent(visitor.channel);
@@ -32,7 +39,8 @@ async function load(){
     if(/^[A-Za-z0-9_-]{11}$/.test(visitor.id||'')){const img=document.createElement('img');img.src='https://i.ytimg.com/vi/'+visitor.id+'/hqdefault.jpg';img.alt='';img.loading='lazy';img.referrerPolicy='no-referrer';img.onerror=()=>{cover.textContent='d.'};cover.replaceChildren(img)}
    }
    const label=identityLabel(visitor.label,visitor.symbol),track=visitor.title+' · '+visitor.artist;
-   const badge=visitor.badge==='queen'?' ♛':visitor.badge==='king'?' ♚':'';
+   const icon=crown(visitor.badge),badge=icon?'  '+icon:'';
+   card.setAttribute?.('data-royal-player',royalBadge(visitor.badge));
    if(name.textContent!==label+badge)name.textContent=label+badge;
    name.style.color=visitor.color?identityColor(visitor.color):'';
    if(song.textContent!==track)song.textContent=track;

@@ -91,6 +91,19 @@ body { color:var(--world-ink); background:radial-gradient(ellipse at 78% 0%,#233
 }
 .cx-crown-queen { color:#ffc5e8; border-color:#ee92ce80; background:#3a2136; }
 .cx-royal-badge[hidden] { display:none; }
+#deeplistListeners > [data-royal-player="king"], #deeplistListeners > [data-royal-player="queen"] { grid-column:1/-1; }
+[data-royal-player="king"] { --crown-edge:#d9aa57; --crown-glow:#ce9a3d38; --crown-bg:#372714; }
+[data-royal-player="queen"] { --crown-edge:#e389c9; --crown-glow:#e378bd42; --crown-bg:#3c1f37; }
+#deeplistListeners > [data-royal-player="king"], #deeplistListeners > [data-royal-player="queen"],
+.chalk-live-wrap[data-royal-player="king"] #lfm, .chalk-live-wrap[data-royal-player="queen"] #lfm {
+  border:1px solid var(--crown-edge) !important;
+  background:linear-gradient(125deg,var(--crown-bg),#101523 80%) !important;
+  box-shadow:0 0 22px var(--crown-glow) !important;
+}
+.chalk-live-wrap[data-royal-player="queen"] #deeplistOwnerBadge {
+  color:#ffd0ec; background:#3a2136; border-color:#ee92ce80;
+}
+
 #cxChat .cx-admin-author .cx-bubble {
   border:1px solid #e8bb66; background:linear-gradient(135deg,#47341e,#242237 78%);
   box-shadow:0 0 14px #ffc96f45;
@@ -194,9 +207,9 @@ body { background:#070809 url("/black-geometric.svg") center top / max(100vw, 90
 
 
 <script defer="" src="/deeplist-home.js?v=owner-top-2"></script>
-<script type="module" src="/deeplist-listeners.js?v=royal-2"></script>
+<script type="module" src="/deeplist-listeners.js?v=royal-3"></script>
 <script type="module" src="/deeplist-stats.js?v=fast-1"></script>
-<script type="module" src="/home-chat.js?v=royal-2"></script>
+<script type="module" src="/home-chat.js?v=royal-3"></script>
 <dialog aria-labelledby="ptTitle" class="pt-dialog" id="ptDialog"><div class="pt-dialog-close"><button aria-label="Close dialog" class="close" id="ptClose" type="button">×</button></div><section aria-labelledby="ptTitle" class="world-card pt-section" id="publicThoughts">
 <div class="world-heading"><div><h2 id="ptTitle">Inside Deep’s Mind</h2></div><button class="world-delete" id="ptAdmin" type="button">Admin</button></div>
 
