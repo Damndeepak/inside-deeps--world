@@ -163,15 +163,6 @@ const cards = [...document.querySelectorAll(
 )];
 if(cards.length<2) return;
 const demonstration = cards.filter(card=>!card.hidden);
-// Keep each throw's contact point stable while scrubbing that swing.
-const routes = demonstration.map(() => {
-  const count = 2;
-  const rightFirst = Math.random() < .5;
-  return Array.from({length:count+1}, (_, hop) => ({
-    x: ((hop%2===0)===rightFirst ? .60 : .15) + Math.random()*.24,
-    y: .10 + Math.random()*.34
-  }));
-});
 let stops=[];
 let previousBounds=null;
 let bounds=null;
@@ -183,37 +174,32 @@ let surfaces=new Map();
 function measure(){
   layoutFrame=0;
   const top=window.scrollY;
-  const trigger=height*.39;
-  const boxes=demonstration.map((card,index)=>({box:card.getBoundingClientRect(),index}))
+  const trigger=height*.38;
+  const maxScroll=Math.max(1,document.documentElement.scrollHeight-height);
+  const rows=demonstration.map((card,index)=>({box:card.getBoundingClientRect(),index}))
     .filter(({box})=>box.width>0 && box.height>0)
     .sort((a,b)=>a.box.top-b.box.top);
-  const rows=boxes.filter(({box},i)=>i===0 || box.top-boxes[i-1].box.top>32);
   surfaces=new Map(rows.map(({box,index})=>[index,
     {x:box.left,y:box.top+top,width:box.width,height:box.height}]));
-  if(!rows.length) { stops=[];return; }
-  const lead=Math.min(height*.48,320);
-  const first=rows[0].box.top+top-lead;
-  stops=[{x:width*.81,y:first,mark:first-trigger,index:-1}];
-  rows.forEach(({box,index},row)=>{
-    const available=rows[row+1] ? rows[row+1].box.top-box.top : box.height+height*.4;
-    const spacing=Math.min(210,available*.37);
-    const card=demonstration[index];
-    const action=card.id==='cxChat'?'vault':card.id==='lfm'?'crawl':null;
-    const edge=box.left+box.width-Math.min(17,box.width*.06);
-    const head=box.top+top;
-    routes[index].forEach((point,hop)=>{
-      let x=box.left+box.width*point.x,y=head+box.height*point.y;
-      if(action==='vault' && hop<2){
-        x=edge-(hop===0?52:91);
-        y=head+(hop===0?40:11);
-      }
-      if(action==='crawl'){
-        x=edge-43;
-        y=head+Math.min(box.height*.48,120)-hop*Math.min(box.height*.13,26);
-      }
-      stops.push({x,y,mark:head-trigger+spacing*hop,index,hop,action,edge,head});
-    });
+  const hero=document.querySelector('.deep-hero')?.getBoundingClientRect();
+  const footer=document.querySelector('.deep-footer')?.getBoundingClientRect();
+  stops=[{x:width*.87,y:Math.min(height*.40,(hero?.top??0)+top+height*.25),mark:0,index:-1}];
+  const minimumGap=Math.min(460,height*.54);
+  rows.forEach(({box,index})=>{
+    const previous=stops.at(-1);
+    const y=box.top+top+Math.min(box.height*.14,72);
+    const mark=y-trigger;
+    if(mark-previous.mark<minimumGap || maxScroll-mark<minimumGap) return;
+    const side=previous.x>width*.50?.18:.82;
+    const x=Math.max(48,Math.min(width-48,box.left+box.width*side));
+    stops.push({x,y,mark,index});
   });
+  const footerTop=footer?footer.top+top:maxScroll+height*.72;
+  const previous=stops.at(-1);
+  stops.push({x:width*(previous.x>width*.5?.20:.80),
+    y:Math.max(maxScroll+height*.46,Math.min(footerTop-45,maxScroll+height*.72)),
+    mark:maxScroll,index:-1});
+
   requestDraw();
 }
 function scheduleMeasure(){
@@ -426,11 +412,11 @@ function modelShadow(index,x,y,scale,facing,lift,alpha,surface,angle=0){
     pen.restore();
   });
 }
-function drawModel(x,y,scale,direction,previousDirection,phase,lift,surface,move){
+function drawModel(x,y,scale,direction,previousDirection,phase,lift,surface){
   const lastFrame=wrists.length-1;
-  const takeoff=move?.mix ?? ease(clamp(phase/.10))*(1-rest);
+  const takeoff=ease(clamp(phase/.10))*(1-rest);
   const pose=clamp((phase-.10)/.77)*lastFrame;
-  const current=move?.frame ?? Math.round(pose);
+  const current=Math.round(pose);
   function paint(index,alpha,facing,angle=0){
     if(alpha<=0) return;
     pen.save();
@@ -442,41 +428,20 @@ function drawModel(x,y,scale,direction,previousDirection,phase,lift,surface,move
   }
   const crouchDirection=rest>.5?direction:previousDirection;
   modelShadow(lastFrame,x,y,scale,crouchDirection,lift,1-takeoff,surface);
-  modelShadow(current,x,y,scale,direction,lift,takeoff,surface,move?.angle);
+  modelShadow(current,x,y,scale,direction,lift,takeoff,surface);
   pen.save();
   pen.translate(x,y);
   paint(lastFrame,1-takeoff,crouchDirection);
-  paint(current,takeoff,direction,move?.angle);
+  paint(current,takeoff,direction);
   pen.restore();
   const hand=wrists[current];
   return [x-direction*(hand[0]-.5)*320*scale,y+(hand[1]-.5)*320*scale];
-}
-// Position the body relative to the projected wrist from its actual animation frame.
-function cardAction(start,end,phase,x,y,scale){
-  if(start.index!==end.index || !start.action || (start.action==='vault' && start.hop!==0)) return null;
-  const vault=start.action==='vault';
-  const facing=-1;
-  const enter=ease(clamp(phase/.22));
-  const exit=ease(clamp((phase-.69)/.31));
-  const progress=ease(clamp((phase-.22)/.47));
-  // The first poses in the existing rig have both arms reaching, with the knees moving under the torso.
-  const frame=Math.round(vault?lerp(2,28,progress):lerp(start.hop===0?1:8,start.hop===0?21:32,progress));
-  const angle=vault?lerp(-.48,.99,progress):lerp(-.32,.19,progress);
-  const hand=wrists[frame];
-  const dx=-facing*(hand[0]-.5)*320*scale;
-  const dy=(hand[1]-.5)*320*scale;
-  const gripX=start.edge-(vault?10:3);
-  const gripY=(vault?start.head+17:start.y-12)-viewportTop;
-  const holdX=gripX-(Math.cos(angle)*dx-Math.sin(angle)*dy);
-  const holdY=gripY-(Math.sin(angle)*dx+Math.cos(angle)*dy);
-  const mix=enter*(1-exit);
-  return {x:lerp(x,holdX,mix),y:lerp(y,holdY,mix),frame,angle,facing,mix};
 }
 function draw(now){
   frame = 0;
   const elapsed = Math.min(now-(last || now-16),48);
   last = now;
-  scroll = paused ? target : lerp(scroll,target,1-Math.exp(-elapsed/36));
+  scroll = paused ? target : lerp(scroll,target,1-Math.exp(-elapsed/47));
   viewportTop=target;
   const scrolling=now-lastScrollInput<100;
   const restTarget=scrolling?0:1;
@@ -488,9 +453,8 @@ function draw(now){
   let segment=0;
   while(segment<stops.length-2 && stops[segment+1].mark<scroll) segment++;
   const start=stops[segment], end=stops[segment+1];
-  const local=start.index===end.index;
   const phase=clamp((scroll-start.mark)/Math.max(1,end.mark-start.mark));
-  const flight=ease(clamp((phase-.15)/.65));
+  const flight=ease(clamp((phase-.12)/.79));
   const landing=Math.sin(Math.PI*ease(clamp((phase-.80)/.20)));
   const arc=Math.sin(Math.PI*flight);
   let attached=false;
@@ -498,13 +462,12 @@ function draw(now){
     const scale=width<600?1.08:width>=1800?1.66:1.48;
     const direction=Math.sign(end.x-start.x) || 1;
     const previousDirection=segment>0 ? Math.sign(start.x-stops[segment-1].x) || direction : direction;
-    const swing=local?0:Math.min(width*.10,80);
-    let x=Math.max(44,Math.min(width-44,lerp(start.x,end.x,flight)+direction*arc*swing));
-    let y=lerp(start.y,end.y,flight)-scroll+53*scale+(arc*(local?-43:33)+landing*11)*(1-rest);
-    const extension=local?1-Math.pow(1-clamp((phase-.095)/.125),3):1;
-    const anchor=local?end:start;
-    const move=cardAction(start,end,phase,x,y,scale);
-    if(move){x=move.x;y=move.y;}
+    const swing=Math.min(width*.075,88);
+    const x=Math.max(44,Math.min(width-44,lerp(start.x,end.x,flight)+direction*arc*swing));
+    const sag=Math.min(height*.12,Math.hypot(end.x-start.x,end.y-start.y)*.115);
+    const y=lerp(start.y,end.y,flight)-viewportTop+45*scale+(arc*sag+landing*9)*(1-rest);
+    const extension=1-Math.pow(1-clamp((phase-.045)/.14),3);
+    const anchor=end;
     if(y>-165 && y<height+165){
       include(x,y,142*scale);
       // A compressed contact shadow gives the crouch weight against the surface.
@@ -515,8 +478,8 @@ function draw(now){
         pen.fillStyle='rgba(2,9,19,'+contact*.28+')';pen.fill();
       }
       const surface=surfaces.get(phase<.5?start.index:end.index);
-      const wrist=drawModel(x,y,scale,move?.facing??direction,previousDirection,phase,move?.mix??arc*(1-rest),surface,move);
-      attached=!move && scrolling && phase>.095 && phase<.80 && extension>.01;
+      const wrist=drawModel(x,y,scale,direction,previousDirection,phase,arc*(1-rest),surface);
+      attached=scrolling && phase>.045 && phase<.86 && extension>.01;
       if(rope && (!attached || rope.segment!==segment)) detach(now);
       if(attached){
         const anchorY=anchor.y-viewportTop;
@@ -524,7 +487,7 @@ function draw(now){
         const receiver=surfaces.get(anchor.index) ?? surfaces.get(end.index);
         const points=castWeb(wrist,anchor.x,anchorY,extension,tension,segment,now,receiver);
         silk(points,.95,receiver);
-        if(local && rope.latched) impact(anchor.x,anchorY,.95);
+        if(rope.latched) impact(anchor.x,anchorY,.95);
       }
     }
   }
