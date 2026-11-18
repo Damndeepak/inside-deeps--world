@@ -446,7 +446,7 @@ function drawModel(x,y,scale,direction,previousDirection,phase,lift,surface){
 }
 const soundToggle=document.getElementById('spiderWebSound');
 const AudioEngine=window.AudioContext || window.webkitAudioContext;
-let webAudio,webNoise,soundEnabled=false,lastShot=-1,changingSound=false;
+let webAudio,webShotBuffer,soundEnabled=false,lastShot=-1,changingSound=false;
 if(!AudioEngine) soundToggle.hidden=true;
 soundToggle.addEventListener('click',async()=>{
   if(changingSound) return;
@@ -465,27 +465,35 @@ soundToggle.addEventListener('click',async()=>{
 });
 function playWebShot(){
   if(!soundEnabled || webAudio?.state!=='running' || document.hidden) return;
-  if(!webNoise){
-    const length=Math.ceil(webAudio.sampleRate*.115);
-    webNoise=webAudio.createBuffer(1,length,webAudio.sampleRate);
-    const samples=webNoise.getChannelData(0);
-    for(let i=0;i<length;i++) samples[i]=Math.random()*2-1;
+  if(!webShotBuffer){
+    const rate=webAudio.sampleRate;
+    webShotBuffer=webAudio.createBuffer(1,Math.ceil(rate*.085),rate);
+    const samples=webShotBuffer.getChannelData(0);
+    let previousNoise=0,filamentPhase=0;
+    for(let i=0;i<samples.length;i++){
+      const t=i/rate;
+      const noise=Math.random()*2-1;
+      const edge=(noise-previousNoise)*.5;
+      previousNoise=noise;
+      const attack=Math.min(1,t/.0012);
+      const latch=(.43*Math.sin(2*Math.PI*980*t)+.24*Math.sin(2*Math.PI*2380*t))*Math.exp(-t/.0034);
+      const burstTime=Math.max(0,t-.004);
+      const burst=t>=.004 ? edge*.27*Math.min(1,burstTime/.0016)*Math.exp(-burstTime/.008) : 0;
+      // A short, pitched filament snap follows the mechanical release.
+      filamentPhase+=2*Math.PI*(430+1430*Math.exp(-burstTime/.010))/rate;
+      const filament=t>=.004 ? Math.min(1,burstTime/.0018)*Math.exp(-burstTime/.012)
+        *(.24*Math.sin(filamentPhase)+.075*Math.sin(filamentPhase*2.17)) : 0;
+      samples[i]=attack*(latch+burst+filament)*(1-Math.min(1,t/.085));
+    }
   }
-  const at=webAudio.currentTime;
   const source=webAudio.createBufferSource();
-  const filter=webAudio.createBiquadFilter();
   const gain=webAudio.createGain();
-  source.buffer=webNoise;
-  filter.type='bandpass';
-  filter.frequency.setValueAtTime(2200,at);
-  filter.frequency.exponentialRampToValueAtTime(700,at+.1);
-  filter.Q.value=.86;
-  gain.gain.setValueAtTime(.0001,at);
-  gain.gain.exponentialRampToValueAtTime(.19,at+.012);
-  gain.gain.exponentialRampToValueAtTime(.0001,at+.11);
-  source.connect(filter);filter.connect(gain);gain.connect(webAudio.destination);
-  source.onended=()=>{source.disconnect();filter.disconnect();gain.disconnect();};
-  source.start(at);
+  source.buffer=webShotBuffer;
+  gain.gain.value=.55;
+  source.connect(gain);
+  gain.connect(webAudio.destination);
+  source.onended=()=>{source.disconnect();gain.disconnect();};
+  source.start();
 }
 function draw(now){
   frame = 0;
