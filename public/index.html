@@ -67,6 +67,10 @@ body { background:#070809 url("/black-geometric.svg") center top / max(100vw, 90
   backdrop-filter:none !important;
   -webkit-backdrop-filter:none !important;
 }
+#spiderWebSound { display:inline-flex; align-items:center; min-height:44px; margin-top:9px; padding:0 12px; border:1px solid #5c789352; border-radius:999px; background:#14243a; color:#daeafa; cursor:pointer; font-family:inherit; font-weight:600; font-size:.78rem; }
+#spiderWebSound[hidden] { display:none; }
+#spiderWebSound[aria-pressed="true"] { color:#8de9ff; border-color:#8de9ff70; }
+#spiderWebSound:focus-visible { outline:2px solid #8de9ff; outline-offset:3px; }
 </style>
 
 </head>
@@ -74,7 +78,7 @@ body { background:#070809 url("/black-geometric.svg") center top / max(100vw, 90
 <div aria-hidden="true" class="scroll-progress"><span id="scrollProgress"></span></div>
 <main class="wrap" id="mainContent">
 <nav aria-label="Main navigation" class="deep-nav"><a aria-label="Inside Deep’s World home" class="deep-brand" href="/">deep<span>.</span></a><div><a href="#download">Deeplist</a><a href="#cxChat">Chat</a><a href="#deepExplore">Explore</a></div></nav>
-<header class="deep-hero" style="grid-template-columns:minmax(0,1fr)"><span class="chalk-art chalk-headphones" aria-hidden="true"><svg><use href="/chalk-doodles.svg#headphones"/></svg></span><span class="chalk-art chalk-planet" aria-hidden="true"><svg><use href="/chalk-doodles.svg#planet"/></svg></span><span class="chalk-art chalk-stars" aria-hidden="true"><svg><use href="/chalk-doodles.svg#stars"/></svg></span><span class="chalk-art chalk-tape" aria-hidden="true"><svg><use href="/chalk-doodles.svg#cassette"/></svg></span><span class="chalk-art chalk-ghost" aria-hidden="true"><svg><use href="/chalk-doodles.svg#ghost"/></svg></span><span class="chalk-hero-heart" aria-hidden="true">♡</span><div class="hero-copy"><p class="deep-kicker"><span class="status-dot"></span> DEEPLIST BY DEEPAK</p><h1>Life sounds<br/>better with<br/><span class="chalk-lyric-word">lyrics.</span></h1><p class="hero-description">Your music, with synced lyrics.</p><noscript><p>JavaScript is needed for live listening and chat. You can still download Deeplist and explore the pages below.</p></noscript><div class="hero-actions" id="download"><a class="button primary" download="Deeplist-13.8.6.apk" href="/downloads/deeplist.apk">Download APK <span class="version-badge">v13.8.6</span><span aria-hidden="true">↓</span></a></div><p class="release-note">FOR ANDROID · RELEASED <time datetime="2026-11-06">06 NOV 2026</time></p></div></header><section aria-labelledby="chatTitle" class="cx-card" id="cxChat">
+<header class="deep-hero" style="grid-template-columns:minmax(0,1fr)"><span class="chalk-art chalk-headphones" aria-hidden="true"><svg><use href="/chalk-doodles.svg#headphones"/></svg></span><span class="chalk-art chalk-planet" aria-hidden="true"><svg><use href="/chalk-doodles.svg#planet"/></svg></span><span class="chalk-art chalk-stars" aria-hidden="true"><svg><use href="/chalk-doodles.svg#stars"/></svg></span><span class="chalk-art chalk-tape" aria-hidden="true"><svg><use href="/chalk-doodles.svg#cassette"/></svg></span><span class="chalk-art chalk-ghost" aria-hidden="true"><svg><use href="/chalk-doodles.svg#ghost"/></svg></span><span class="chalk-hero-heart" aria-hidden="true">♡</span><div class="hero-copy"><p class="deep-kicker"><span class="status-dot"></span> DEEPLIST BY DEEPAK</p><h1>Life sounds<br/>better with<br/><span class="chalk-lyric-word">lyrics.</span></h1><p class="hero-description">Your music, with synced lyrics.</p><noscript><p>JavaScript is needed for live listening and chat. You can still download Deeplist and explore the pages below.</p></noscript><div class="hero-actions" id="download"><a class="button primary" download="Deeplist-13.8.6.apk" href="/downloads/deeplist.apk">Download APK <span class="version-badge">v13.8.6</span><span aria-hidden="true">↓</span></a></div><p class="release-note">FOR ANDROID · RELEASED <time datetime="2026-11-06">06 NOV 2026</time></p><button id="spiderWebSound" type="button" aria-pressed="false">Web sound off</button></div></header><section aria-labelledby="chatTitle" class="cx-card" id="cxChat">
 <div class="deep-chat-intro"><h2 id="chatTitle">The common room<span aria-hidden="true">.</span></h2><p>Share a song or say hi. Ask <strong>@deepAi</strong> or <strong>@S.Ai</strong>.</p></div><div class="cx-head"><div class="cx-label"><span class="cx-dot"></span>Public chat</div><div class="cx-count" id="cxCount"></div></div>
 <div class="cx-id"><span class="identity-pill"><span class="status-dot"></span><b id="cxMe">Guest</b></span><details class="cx-nickname"><summary>Change name</summary>
 <form autocomplete="off" id="cxNicknameForm"><label for="cxNickname">Your listener name</label><div class="cx-nickname-fields"><input aria-describedby="cxNicknameHint" id="cxNickname" maxlength="24" name="nickname" placeholder="Your nickname"/><button class="cx-tool" id="cxNicknameDice" type="button" aria-label="Suggest a random nickname" title="Roll a name">🎲</button></div>
@@ -190,13 +194,12 @@ function measure(){
   const hero=document.querySelector('.deep-hero')?.getBoundingClientRect();
   const footer=document.querySelector('.deep-footer')?.getBoundingClientRect();
   stops=[{x:width*.87,y:Math.min(height*.40,(hero?.top??0)+top+height*.25),mark:0,index:-1}];
-  const minimumGap=Math.min(460,height*.54);
-  rows.forEach(({box,index})=>{
+  const gap=Math.min(120,height*.16,maxScroll/(rows.length+1));
+  rows.forEach(({box,index},row)=>{
     const previous=stops.at(-1);
-    const y=box.top+top+Math.min(box.height*.14,72);
-    const mark=y-trigger;
-    if(mark-previous.mark<minimumGap || maxScroll-mark<minimumGap) return;
-    const side=previous.x>width*.50?.18:.82;
+    const y=box.top+top+Math.min(box.height*.20,94);
+    const mark=Math.max(previous.mark+gap,Math.min(y-trigger,maxScroll-(rows.length-row)*gap));
+    const side=previous.x>width*.50?.36:.64;
     const x=Math.max(48,Math.min(width-48,box.left+box.width*side));
     stops.push({x,y,mark,index});
   });
@@ -441,6 +444,49 @@ function drawModel(x,y,scale,direction,previousDirection,phase,lift,surface){
   const hand=wrists[current];
   return [x-direction*(hand[0]-.5)*320*scale,y+(hand[1]-.5)*320*scale];
 }
+const soundToggle=document.getElementById('spiderWebSound');
+const AudioEngine=window.AudioContext || window.webkitAudioContext;
+let webAudio,webNoise,soundEnabled=false,lastShot=-1,changingSound=false;
+if(!AudioEngine) soundToggle.hidden=true;
+soundToggle.addEventListener('click',async()=>{
+  if(changingSound) return;
+  if(soundEnabled){
+    soundEnabled=false;
+  }else{
+    changingSound=true;
+    try{
+      webAudio??=new AudioEngine();
+      await webAudio.resume();
+      soundEnabled=webAudio.state==='running';
+    }catch{}finally{changingSound=false;}
+  }
+  soundToggle.setAttribute('aria-pressed',String(soundEnabled));
+  soundToggle.textContent=soundEnabled?'Web sound on':'Web sound off';
+});
+function playWebShot(){
+  if(!soundEnabled || webAudio?.state!=='running' || document.hidden) return;
+  if(!webNoise){
+    const length=Math.ceil(webAudio.sampleRate*.115);
+    webNoise=webAudio.createBuffer(1,length,webAudio.sampleRate);
+    const samples=webNoise.getChannelData(0);
+    for(let i=0;i<length;i++) samples[i]=Math.random()*2-1;
+  }
+  const at=webAudio.currentTime;
+  const source=webAudio.createBufferSource();
+  const filter=webAudio.createBiquadFilter();
+  const gain=webAudio.createGain();
+  source.buffer=webNoise;
+  filter.type='bandpass';
+  filter.frequency.setValueAtTime(2200,at);
+  filter.frequency.exponentialRampToValueAtTime(700,at+.1);
+  filter.Q.value=.86;
+  gain.gain.setValueAtTime(.0001,at);
+  gain.gain.exponentialRampToValueAtTime(.19,at+.012);
+  gain.gain.exponentialRampToValueAtTime(.0001,at+.11);
+  source.connect(filter);filter.connect(gain);gain.connect(webAudio.destination);
+  source.onended=()=>{source.disconnect();filter.disconnect();gain.disconnect();};
+  source.start(at);
+}
 function draw(now){
   frame = 0;
   const elapsed = Math.min(now-(last || now-16),48);
@@ -457,6 +503,7 @@ function draw(now){
   let segment=0;
   while(segment<stops.length-2 && stops[segment+1].mark<scroll) segment++;
   const start=stops[segment], end=stops[segment+1];
+  if(lastShot!==-1 && lastShot!==segment) lastShot=-1;
   const phase=clamp((scroll-start.mark)/Math.max(1,end.mark-start.mark));
   const flight=ease(clamp((phase-.12)/.79));
   const landing=Math.sin(Math.PI*ease(clamp((phase-.80)/.20)));
@@ -466,9 +513,9 @@ function draw(now){
     const scale=width<600?1.08:width>=1800?1.66:1.48;
     const direction=Math.sign(end.x-start.x) || 1;
     const previousDirection=segment>0 ? Math.sign(start.x-stops[segment-1].x) || direction : direction;
-    const swing=Math.min(width*.075,88);
+    const swing=Math.min(width*.035,38);
     const x=Math.max(44,Math.min(width-44,lerp(start.x,end.x,flight)+direction*arc*swing));
-    const sag=Math.min(height*.12,Math.hypot(end.x-start.x,end.y-start.y)*.115);
+    const sag=Math.min(height*.078,Math.hypot(end.x-start.x,end.y-start.y)*.09);
     const y=lerp(start.y,end.y,flight)-viewportTop+45*scale+(arc*sag+landing*9)*(1-rest);
     const extension=1-Math.pow(1-clamp((phase-.045)/.14),3);
     const anchor=end;
@@ -486,6 +533,7 @@ function draw(now){
       attached=scrolling && phase>.045 && phase<.86 && extension>.01;
       if(rope && (!attached || rope.segment!==segment)) detach(now);
       if(attached){
+        if(lastShot!==segment){lastShot=segment;playWebShot();}
         const anchorY=anchor.y-viewportTop;
         const tension=ease(clamp((phase-.17)/.23))*(1-.60*ease(clamp((phase-.60)/.20)));
         const receiver=surfaces.get(anchor.index) ?? surfaces.get(end.index);
