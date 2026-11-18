@@ -174,6 +174,7 @@ let previousBounds=null;
 let bounds=null;
 let rope=null;
 let released=null;
+let webFlash=null;
 let layoutFrame=0;
 let viewportTop=0;
 let surfaces=new Map();
@@ -281,9 +282,10 @@ function silk(points,alpha,surface){
       draw(shadow,'rgba(2,6,14,'+alpha*.40+')',1.45);
     });
   }
-  points.forEach(point=>include(point.x,point.y-viewportTop,5));
-  draw(points,'rgba(96,169,207,'+alpha*.34+')',3.2);
-  draw(points,'rgba(238,248,255,'+alpha*.93+')',1.15);
+  points.forEach(point=>include(point.x,point.y-viewportTop,8));
+  draw(points,'rgba(53,174,255,'+alpha*.12+')',10);
+  draw(points,'rgba(85,202,255,'+alpha*.38+')',4.2);
+  draw(points,'rgba(223,252,255,'+alpha*.98+')',1.25);
 }
 function castWeb(wrist,x,y,extension,tension,segment,now,surface){
   const top=viewportTop;
@@ -334,15 +336,21 @@ function fall(now,elapsed){
   }
   silk(points,1-ease(clamp((age-135)/445)),released.surface);
 }
-function impact(x,y,alpha){
-  include(x,y,14);
-  pen.strokeStyle='rgba(230,246,255,'+alpha*.62+')';
-  pen.lineWidth=.65;
-  for(let i=0;i<7;i++){
-    const theta=i*2*Math.PI/7;
-    const dx=Math.cos(theta)*11,dy=Math.sin(theta)*8;
-    pen.beginPath();pen.moveTo(x,y);pen.lineTo(x+dx,y+dy);pen.stroke();
-  }
+function drawWebFlash(now){
+  if(!webFlash) return;
+  const progress=clamp((now-webFlash.time)/150);
+  if(progress===1){webFlash=null;return;}
+  const {x}=webFlash;
+  const y=webFlash.y-viewportTop;
+  const alpha=(1-progress)**2;
+  const radius=13+9*progress;
+  include(x,y,radius+1);
+  const glow=pen.createRadialGradient(x,y,0,x,y,radius);
+  glow.addColorStop(0,'rgba(215,255,255,'+alpha*.95+')');
+  glow.addColorStop(.24,'rgba(80,234,255,'+alpha*.75+')');
+  glow.addColorStop(1,'rgba(40,204,255,0)');
+  pen.fillStyle=glow;
+  pen.fillRect(x-radius,y-radius,radius*2,radius*2);
 }
 // Frames pre-rendered from the supplied Swing to Land GLB, with projected wrist positions.
 const wrists = [[0.42941,0.3668],[0.43155,0.3633],[0.43377,0.35993],[0.43598,0.35749],[0.43823,0.35526],[0.44046,0.354],[0.44269,0.35309],[0.44473,0.3525],[0.44667,0.35211],[0.44884,0.3517],[0.45124,0.35128],[0.45385,0.35068],[0.45679,0.34978],[0.45979,0.34884],[0.46296,0.34763],[0.4661,0.34656],[0.46895,0.34559],[0.47177,0.34478],[0.47411,0.34461],[0.47638,0.34458],[0.47848,0.34515],[0.48046,0.34591],[0.48223,0.34686],[0.48384,0.34795],[0.48514,0.349],[0.48628,0.35004],[0.48767,0.35068],[0.48937,0.35093],[0.49075,0.35096],[0.49159,0.3506],[0.49211,0.35029],[0.49169,0.34987],[0.49109,0.34979],[0.48993,0.35033],[0.48859,0.35116],[0.48762,0.3539],[0.48656,0.35691],[0.48539,0.36162],[0.48414,0.36681],[0.4814,0.37229],[0.4781,0.37804],[0.47238,0.38412],[0.46501,0.39058],[0.45529,0.39846],[0.44345,0.40812],[0.43204,0.41921],[0.42137,0.43267],[0.41326,0.4467],[0.40966,0.45952],[0.40696,0.47226],[0.40712,0.47946],[0.40688,0.48715],[0.40762,0.4904],[0.40814,0.49419],[0.40841,0.4971],[0.4087,0.50026],[0.40802,0.50314],[0.40728,0.50574],[0.40579,0.50803],[0.40415,0.50971],[0.40279,0.51086],[0.40169,0.5115],[0.40093,0.51197],[0.40026,0.51245],[0.39977,0.51323],[0.39877,0.51523],[0.39756,0.51735],[0.39419,0.52209],[0.39079,0.52608],[0.38513,0.53227],[0.37999,0.53701],[0.37517,0.53991],[0.37109,0.54088],[0.3684,0.54072],[0.36615,0.53988],[0.36482,0.54098],[0.36381,0.54368],[0.36321,0.54751],[0.36309,0.55244],[0.36328,0.55761],[0.36408,0.56308],[0.3648,0.56797],[0.36538,0.57234],[0.3659,0.57577],[0.36612,0.5784],[0.36635,0.57993],[0.36673,0.58144],[0.36713,0.58195],[0.36812,0.58374],[0.36919,0.58513],[0.37117,0.58991],[0.37351,0.59579],[0.37636,0.60196],[0.37957,0.60824],[0.38249,0.61273],[0.38511,0.61542],[0.38725,0.61695],[0.38863,0.61656],[0.39007,0.61589],[0.3915,0.61518],[0.39289,0.61443],[0.39399,0.61412],[0.3951,0.61372],[0.39597,0.61366],[0.39686,0.61354],[0.39758,0.61359],[0.3983,0.61363],[0.39889,0.61393],[0.39947,0.61428],[0.39998,0.61484],[0.40047,0.61549],[0.40092,0.61602],[0.40133,0.61646],[0.4017,0.61684],[0.40199,0.61718],[0.40227,0.61748],[0.40243,0.61776],[0.40261,0.61799],[0.4027,0.61812],[0.4028,0.61824]];
@@ -481,7 +489,7 @@ function draw(now){
   if(Math.abs(restTarget-rest)<.01) rest=restTarget;
   clearPrevious();
   bounds=null;
-  if(paused || stops.length<2){rope=released=null;return;}
+  if(paused || stops.length<2){rope=released=webFlash=null;return;}
   let segment=0;
   while(segment<stops.length-2 && stops[segment+1].mark<scroll) segment++;
   const start=stops[segment], end=stops[segment+1];
@@ -518,16 +526,18 @@ function draw(now){
         const anchorY=anchor.y-viewportTop;
         const tension=ease(clamp((phase-.17)/.23))*(1-.60*ease(clamp((phase-.60)/.20)));
         const receiver=surfaces.get(anchor.index) ?? surfaces.get(end.index);
+        const wasLatched=rope?.latched;
         const points=castWeb(wrist,anchor.x,anchorY,extension,tension,segment,now,receiver);
         silk(points,.95,receiver);
-        if(rope.latched) impact(anchor.x,anchorY,.95);
+        if(rope.latched && !wasLatched) webFlash={x:anchor.x,y:anchor.y,time:now};
       }
     }
   }
   if(!attached) detach(now);
   fall(now,elapsed);
+  drawWebFlash(now);
   previousBounds=bounds;
-  if(Math.abs(target-scroll)>.3 || scrolling || rest!==restTarget || released) requestDraw();
+  if(Math.abs(target-scroll)>.3 || scrolling || rest!==restTarget || released || webFlash) requestDraw();
   else last=0;
 }
 function requestDraw(){if(!frame) frame=requestAnimationFrame(draw)}
