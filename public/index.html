@@ -197,9 +197,21 @@ function measure(){
   rows.forEach(({box,index},row)=>{
     const available=rows[row+1] ? rows[row+1].box.top-box.top : box.height+height*.4;
     const spacing=Math.min(210,available*.37);
+    const card=demonstration[index];
+    const action=card.id==='cxChat'?'vault':card.id==='lfm'?'crawl':null;
+    const edge=box.left+box.width-Math.min(17,box.width*.06);
+    const head=box.top+top;
     routes[index].forEach((point,hop)=>{
-      stops.push({x:box.left+box.width*point.x,y:box.top+top+box.height*point.y,
-        mark:box.top+top-trigger+spacing*hop,index});
+      let x=box.left+box.width*point.x,y=head+box.height*point.y;
+      if(action==='vault' && hop<2){
+        x=edge-(hop===0?52:91);
+        y=head+(hop===0?40:11);
+      }
+      if(action==='crawl'){
+        x=edge-43;
+        y=head+Math.min(box.height*.48,120)-hop*Math.min(box.height*.13,26);
+      }
+      stops.push({x,y,mark:head-trigger+spacing*hop,index,hop,action,edge,head});
     });
   });
   requestDraw();
@@ -390,7 +402,7 @@ function frameSource(index){
   const width=sheet.width/6,height=sheet.height/5;
   return [sheet,slot%6*width,Math.floor(slot/6)*height,width,height];
 }
-function modelShadow(index,x,y,scale,facing,lift,alpha,surface){
+function modelShadow(index,x,y,scale,facing,lift,alpha,surface,angle=0){
   if(!shadowPen || alpha<=0) return;
   if(stampedFrame!==index){
     shadowPen.clearRect(0,0,shadowStamp.width,shadowStamp.height);
@@ -407,20 +419,22 @@ function modelShadow(index,x,y,scale,facing,lift,alpha,surface){
     const lightOffset=12+lift*23;
     pen.translate(x+lightOffset,y+(29+lift*9)*scale);
     pen.transform(-facing*k,0,-.43*k,(.47+.13*lift)*k,0,0);
+    pen.rotate(angle);
     pen.globalAlpha=alpha*(surface?.height ? .48-.22*lift : .26-.12*lift);
     if('filter' in pen) pen.filter='blur('+(1.7+lift*5)+'px)';
     pen.drawImage(shadowStamp,crop.left-400,crop.top-400,crop.width,crop.height);
     pen.restore();
   });
 }
-function drawModel(x,y,scale,direction,previousDirection,phase,lift,surface){
+function drawModel(x,y,scale,direction,previousDirection,phase,lift,surface,move){
   const lastFrame=wrists.length-1;
-  const takeoff=ease(clamp(phase/.10))*(1-rest);
+  const takeoff=move?.mix ?? ease(clamp(phase/.10))*(1-rest);
   const pose=clamp((phase-.10)/.77)*lastFrame;
-  const current=Math.round(pose);
-  function paint(index,alpha,facing){
+  const current=move?.frame ?? Math.round(pose);
+  function paint(index,alpha,facing,angle=0){
     if(alpha<=0) return;
     pen.save();
+    pen.rotate(angle);
     pen.scale(-facing*scale*.4,scale*.4);
     pen.globalAlpha=alpha;
     pen.drawImage(...frameSource(index),crop.left-400,crop.top-400,crop.width,crop.height);
@@ -428,14 +442,35 @@ function drawModel(x,y,scale,direction,previousDirection,phase,lift,surface){
   }
   const crouchDirection=rest>.5?direction:previousDirection;
   modelShadow(lastFrame,x,y,scale,crouchDirection,lift,1-takeoff,surface);
-  modelShadow(current,x,y,scale,direction,lift,takeoff,surface);
+  modelShadow(current,x,y,scale,direction,lift,takeoff,surface,move?.angle);
   pen.save();
   pen.translate(x,y);
   paint(lastFrame,1-takeoff,crouchDirection);
-  paint(current,takeoff,direction);
+  paint(current,takeoff,direction,move?.angle);
   pen.restore();
   const hand=wrists[current];
   return [x-direction*(hand[0]-.5)*320*scale,y+(hand[1]-.5)*320*scale];
+}
+// Position the body relative to the projected wrist from its actual animation frame.
+function cardAction(start,end,phase,x,y,scale){
+  if(start.index!==end.index || !start.action || (start.action==='vault' && start.hop!==0)) return null;
+  const vault=start.action==='vault';
+  const facing=-1;
+  const enter=ease(clamp(phase/.22));
+  const exit=ease(clamp((phase-.69)/.31));
+  const progress=ease(clamp((phase-.22)/.47));
+  // The first poses in the existing rig have both arms reaching, with the knees moving under the torso.
+  const frame=Math.round(vault?lerp(2,28,progress):lerp(start.hop===0?1:8,start.hop===0?21:32,progress));
+  const angle=vault?lerp(-.48,.99,progress):lerp(-.32,.19,progress);
+  const hand=wrists[frame];
+  const dx=-facing*(hand[0]-.5)*320*scale;
+  const dy=(hand[1]-.5)*320*scale;
+  const gripX=start.edge-(vault?10:3);
+  const gripY=(vault?start.head+17:start.y-12)-viewportTop;
+  const holdX=gripX-(Math.cos(angle)*dx-Math.sin(angle)*dy);
+  const holdY=gripY-(Math.sin(angle)*dx+Math.cos(angle)*dy);
+  const mix=enter*(1-exit);
+  return {x:lerp(x,holdX,mix),y:lerp(y,holdY,mix),frame,angle,facing,mix};
 }
 function draw(now){
   frame = 0;
@@ -464,10 +499,12 @@ function draw(now){
     const direction=Math.sign(end.x-start.x) || 1;
     const previousDirection=segment>0 ? Math.sign(start.x-stops[segment-1].x) || direction : direction;
     const swing=local?0:Math.min(width*.10,80);
-    const x=Math.max(44,Math.min(width-44,lerp(start.x,end.x,flight)+direction*arc*swing));
-    const y=lerp(start.y,end.y,flight)-scroll+53*scale+(arc*(local?-43:33)+landing*11)*(1-rest);
+    let x=Math.max(44,Math.min(width-44,lerp(start.x,end.x,flight)+direction*arc*swing));
+    let y=lerp(start.y,end.y,flight)-scroll+53*scale+(arc*(local?-43:33)+landing*11)*(1-rest);
     const extension=local?1-Math.pow(1-clamp((phase-.095)/.125),3):1;
     const anchor=local?end:start;
+    const move=cardAction(start,end,phase,x,y,scale);
+    if(move){x=move.x;y=move.y;}
     if(y>-165 && y<height+165){
       include(x,y,142*scale);
       // A compressed contact shadow gives the crouch weight against the surface.
@@ -478,8 +515,8 @@ function draw(now){
         pen.fillStyle='rgba(2,9,19,'+contact*.28+')';pen.fill();
       }
       const surface=surfaces.get(phase<.5?start.index:end.index);
-      const wrist=drawModel(x,y,scale,direction,previousDirection,phase,arc*(1-rest),surface);
-      attached=scrolling && phase>.095 && phase<.80 && extension>.01;
+      const wrist=drawModel(x,y,scale,move?.facing??direction,previousDirection,phase,move?.mix??arc*(1-rest),surface,move);
+      attached=!move && scrolling && phase>.095 && phase<.80 && extension>.01;
       if(rope && (!attached || rope.segment!==segment)) detach(now);
       if(attached){
         const anchorY=anchor.y-viewportTop;
