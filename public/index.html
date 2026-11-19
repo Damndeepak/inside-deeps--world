@@ -185,6 +185,15 @@ body {
   }
 }
 </style>
+<style>
+.deep-web-surface { position:relative; }
+.deep-web-decoration {
+  position:absolute; inset:2px auto auto 3px; width:min(43%,168px); aspect-ratio:168/116;
+  pointer-events:none; z-index:3; opacity:.77;
+  background:center / contain no-repeat url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20168%20116%22%20fill%3D%22none%22%3E%3Cg%20stroke%3D%22%23d4e9ff%22%20stroke-linecap%3D%22round%22%3E%3Cpath%20opacity%3D%22.38%22%20d%3D%22M3%204q65%205%20159%201M4%206q60%2015%20158%200%22%2F%3E%3Cpath%20opacity%3D%22.72%22%20d%3D%22M21%207%204%2038m17-31%2012%2062m-12-62%2045%2048M21%207l75%2016m-75-16%201%2042M4%2038q12-9%2018%2011%206-7%2011%2020%209-13%2033-14-9-16%2030-32M10%2027q8-4%2012%207%205-5%207%209%209-9%2022-3%201-11%2022-21M16%2017q4-2%206%203%203-2%203%206%204-3%2012%200%200-5%2015-11%22%2F%3E%3Cpath%20opacity%3D%22.8%22%20stroke-width%3D%221.2%22%20d%3D%22M33%2069c-3%2012%208%2021%205%2042m28-56c1%2014-4%2020%202%2031%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E");
+}
+.deep-web-decoration.right { inset-inline:auto 3px; transform:scaleX(-1); }
+</style>
 </head>
 <body data-world-motion="premium"><canvas class="holiday-snow" aria-hidden="true"></canvas><noscript><style>.player-skeleton{display:none}.lfm{min-height:180px}</style></noscript><a class="skip-link" href="#mainContent">Skip to content</a>
 <div aria-hidden="true" class="scroll-progress"><span id="scrollProgress"></span></div>
@@ -294,7 +303,7 @@ body {
 <script defer="" src="/home-thoughts.js"></script>
 
 <!-- Spider-Man scroll animation. Frames rendered from Swing to Land by Molon Modeler. -->
-<canvas id="deep-spider-swing" aria-hidden="true" style="position:fixed;inset:0;pointer-events:none;z-index:6;filter:saturate(1.38) contrast(1.08) brightness(1.12)"></canvas>
+<canvas id="deep-spider-swing" aria-hidden="true" style="position:fixed;inset:0;pointer-events:none;z-index:6"></canvas>
 <script>
 (()=>{
 
@@ -306,12 +315,18 @@ const cards = [...document.querySelectorAll(
 )];
 if(cards.length<2) return;
 const demonstration = cards.filter(card=>!card.hidden);
+demonstration.forEach((card,index)=>{
+  if(getComputedStyle(card).position==='static') card.classList.add('deep-web-surface');
+  const decoration=document.createElement('span');
+  decoration.className='deep-web-decoration'+(index%2?' right':'');
+  decoration.setAttribute('aria-hidden','true');
+  card.append(decoration);
+});
 let stops=[];
 let previousBounds=null;
 let bounds=null;
 let rope=null;
 let released=null;
-const hangingWebs=new Map();
 let webFlash=null;
 let layoutFrame=0;
 let viewportTop=0;
@@ -326,7 +341,6 @@ const routes=Array.from({length:cards.length+1},()=>({
 function measure(){
   layoutFrame=0;
   resetLooseCard();
-  hangingWebs.clear();
   const top=window.scrollY;
   const trigger=height*.38;
   const maxScroll=Math.max(1,document.documentElement.scrollHeight-height);
@@ -378,7 +392,7 @@ let paused = preference.matches;
 let lastScrollInput = -Infinity;
 let rest = 1;
 function resize(){
-  const density = Math.min(devicePixelRatio || 1, innerWidth<750?1.5:2);
+  const density = Math.min(devicePixelRatio || 1, innerWidth<750?1.15:1.5);
   width = innerWidth;
   height = innerHeight;
   canvas.width = width*density;
@@ -453,8 +467,6 @@ function castWeb(wrist,x,y,extension,tension,segment,now,surface){
 function detach(now){
   if(!rope) return;
   if(rope.latched){
-    const anchor=rope.points.at(-1);
-    hangingWebs.set(rope.segment,{x:anchor.x,y:anchor.y,time:now});
     released={time:now,surface:rope.surface,points:rope.points.map((p,i)=>({...p,px:p.x-(i/12-.5)*2,py:p.y})),
       lengths:rope.points.slice(1).map((p,i)=>Math.max(1,Math.hypot(p.x-rope.points[i].x,p.y-rope.points[i].y)))};
   }
@@ -484,80 +496,6 @@ function fall(now,elapsed){
     });
   }
   silk(points,1-ease(clamp((age-135)/445)),released.surface);
-}
-function webPoint(index,box,x,y){
-  if(index!==looseCardIndex) return [x,y-viewportTop];
-  const cx=box.x+box.width/2,cy=box.y+box.height/2;
-  const dx=x-cx,dy=y-cy,cos=Math.cos(cardAngle),sin=Math.sin(cardAngle);
-  return [cx+dx*cos-dy*sin+cardShift,cy+dx*sin+dy*cos+cardLift-viewportTop];
-}
-function drawSupportWebs(now){
-  const rows=[...surfaces];
-  let moving=false;
-  pen.save();
-  pen.lineCap='round';
-  for(let i=0;i<rows.length;i++){
-    const [index,box]=rows[i];
-    const next=rows[i+1];
-    if(next && box.y+box.height>=viewportTop-40 && next[1].y<=viewportTop+height+40){
-      const [nextIndex,lower]=next;
-      const [ax,ay]=webPoint(index,box,box.x+box.width*.84,box.y+box.height-4);
-      const [bx,by]=webPoint(nextIndex,lower,lower.x+lower.width*.16,lower.y+4);
-      const dx=bx-ax,dy=by-ay;
-      const sag=Math.min(40,Math.hypot(dx,dy)*.10);
-      const points=Array.from({length:9},(_,j)=>{
-        const t=j/8, bow=4*t*(1-t);
-        return [ax+dx*t,ay+dy*t+sag*bow,12*bow];
-      });
-      include(ax,ay,24);
-      include(bx,by,sag+24);
-      pen.strokeStyle='#bcd9f1a0';
-      pen.lineWidth=1;
-      pen.beginPath();
-      for(const side of [-1,1]){
-        points.forEach(([x,y,spread],j)=>{
-          if(j===0) pen.moveTo(x,y);else pen.lineTo(x,y+spread*side);
-        });
-      }
-      for(let j=1;j<points.length-1;j++){
-        const [x,y,spread]=points[j];
-        const [nx,ny,nspread]=points[j+1];
-        pen.moveTo(x,y-spread);
-        pen.quadraticCurveTo((x+nx)*.5,y+spread*.4,nx,ny+nspread);
-      }
-      pen.stroke();
-    }
-    const anchor=stops.find(stop=>stop.index===index);
-    if(!anchor || anchor.y<viewportTop-85 || anchor.y>viewportTop+height+30) continue;
-    const segment=stops.indexOf(anchor)-1;
-    const drop=hangingWebs.get(segment);
-    const [x,y]=webPoint(index,box,drop?.x??anchor.x,drop?.y??anchor.y);
-    const age=drop?now-drop.time:1400;
-    const settle=clamp(age/1400);
-    const sway=Math.sin(age/115)*10*(1-settle)**2;
-    moving ||= settle<1;
-    include(x,y,87);
-    pen.strokeStyle='#d0e6f4a6';
-    pen.lineWidth=.95;
-    pen.beginPath();
-    const rays=[[-23,-4],[-16,-16],[4,-19],[20,-12],[23,6],[8,15],[-12,13]];
-    for(const [dx,dy] of rays){
-      pen.moveTo(x,y);
-      pen.lineTo(x+dx,y+dy);
-    }
-    for(const radius of [.38,.65,.91]){
-      rays.forEach(([dx,dy],j)=>{
-        const [nx,ny]=rays[(j+1)%rays.length];
-        if(j===0) pen.moveTo(x+dx*radius,y+dy*radius);
-        pen.quadraticCurveTo(x+(dx+nx)*radius*.42,y+(dy+ny)*radius*.42,x+nx*radius,y+ny*radius);
-      });
-    }
-    pen.moveTo(x,y);
-    pen.bezierCurveTo(x-8,y+22,x+sway+6,y+47,x+sway,y+65);
-    pen.stroke();
-  }
-  pen.restore();
-  return moving;
 }
 function drawWebFlash(now){
   if(!webFlash) return;
@@ -658,13 +596,15 @@ function drawModel(x,y,scale,direction,previousDirection,phase,lift,surface,lean
     pen.scale(-facing*scale*.4,scale*.4);
     pen.globalAlpha=alpha;
     pen.shadowColor='#509bff70';
-    pen.shadowBlur=8*scale;
+    pen.shadowBlur=width<750?0:5*scale;
     pen.drawImage(...frameSource(index),crop.left-400,crop.top-400,crop.width,crop.height);
     pen.restore();
   }
   const crouchDirection=rest>.5?direction:previousDirection;
-  modelShadow(lastFrame,x,y,scale,crouchDirection,lift,1-takeoff,surface);
-  modelShadow(current,x,y,scale,direction,lift,takeoff,surface);
+  if(width>=750){
+    modelShadow(lastFrame,x,y,scale,crouchDirection,lift,1-takeoff,surface);
+    modelShadow(current,x,y,scale,direction,lift,takeoff,surface);
+  }
   pen.save();
   pen.translate(x,y);
   paint(lastFrame,1-takeoff,crouchDirection);
@@ -804,7 +744,7 @@ function draw(now){
   bounds=null;
   if(paused || stops.length<2){
     resetLooseCard();rope=released=webFlash=null;
-    drawSupportWebs(now);previousBounds=bounds;return;
+    return;
   }
   let segment=0;
   while(segment<stops.length-2 && stops[segment+1].mark<scroll) segment++;
@@ -860,9 +800,8 @@ function draw(now){
   if(!attached) detach(now);
   fall(now,elapsed);
   drawWebFlash(now);
-  const webSettling=drawSupportWebs(now);
   previousBounds=bounds;
-  if(Math.abs(target-scroll)>.3 || scrolling || rest!==restTarget || released || webFlash || webSettling) requestDraw();
+  if(Math.abs(target-scroll)>.3 || scrolling || rest!==restTarget || released || webFlash) requestDraw();
   else last=0;
 }
 function requestDraw(){if(!frame) frame=requestAnimationFrame(draw)}
@@ -895,6 +834,8 @@ if(scrollY>0) loadFrames();
   const motion = matchMedia('(prefers-reduced-motion: reduce)');
   const random = (min, max) => min + Math.random() * (max - min);
   let width, height, flakes, frame, previous;
+  let lastScroll = -Infinity;
+  addEventListener('scroll',()=>{lastScroll=performance.now();},{passive:true});
   let wind = 0;
   let targetWind = 0;
   let gustStart = 0;
@@ -902,7 +843,7 @@ if(scrollY>0) loadFrames();
   function resize() {
     width = canvas.clientWidth;
     height = canvas.clientHeight;
-    const density = Math.min(devicePixelRatio || 1, 1.5);
+    const density = 1;
     canvas.width = Math.round(width * density);
     canvas.height = Math.round(height * density);
     context.setTransform(density, 0, 0, density, 0, 0);
@@ -914,6 +855,10 @@ if(scrollY>0) loadFrames();
   }
 
   function draw(now) {
+    if(now-lastScroll<150 || (previous!==undefined && now-previous<32)){
+      frame=requestAnimationFrame(draw);
+      return;
+    }
     const elapsed = previous === undefined ? 0 : Math.min((now - previous) / 1000, .05);
     previous = now;
     if (now >= gustStart) {
