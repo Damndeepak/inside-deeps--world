@@ -8,7 +8,7 @@ function clearExpiries(){expiryTimers.forEach(clearTimeout);expiryTimers=[];}
 async function load(){
  clearTimeout(timer);if(document.hidden||loading)return;loading=true;const pollStarted=performance.now();
  try{
-  const started=performance.now(),r=await fetch('/api/deeplist/listeners',{cache:'no-store',signal:AbortSignal.timeout(4000)});if(!r.ok)throw Error();const d=await r.json();
+  const started=performance.now(),r=await fetch('/api/deeplist/listeners',{cache:'no-store',signal:AbortSignal.timeout(25000)});if(!r.ok)throw Error();const d=await r.json();
   hasLive=(d.listeners||[]).some(visitor=>visitor.live);
   const owner=document.getElementById('lfm')?.closest?.('.chalk-live-wrap');if(owner){owner.style.order='-1';owner.setAttribute?.('data-royal-player',royalBadge(d.owner?.badge));}
   const mainBadge=document.getElementById('deeplistOwnerBadge');
@@ -41,7 +41,7 @@ async function load(){
     card._coverId=visitor.id;cover.textContent='d.';
     if(/^[A-Za-z0-9_-]{11}$/.test(visitor.id||'')){const img=document.createElement('img');img.src='https://i.ytimg.com/vi/'+visitor.id+'/hqdefault.jpg';img.alt='';img.loading='lazy';img.referrerPolicy='no-referrer';img.onerror=()=>{cover.textContent='d.'};cover.replaceChildren(img)}
    }
-   const label=identityLabel(visitor===queen?'DEEPTE':visitor.label,visitor.symbol),track=visitor.title+' · '+visitor.artist;
+   const label=identityLabel(visitor===queen?'Deeptea':visitor.label,visitor.symbol),track=visitor.title+' · '+visitor.artist;
    const icon=crown(visitor.badge),badge=icon?'  '+icon:'';
    card.setAttribute?.('data-royal-player',royalBadge(visitor.badge));
    if(name.textContent!==label+badge)name.textContent=label+badge;
