@@ -702,9 +702,11 @@ function loadFrames(){
     requestDraw();
   }
   async function load(){
-    for(let i=0;i<4;i++) await loadSheet(i);
+    // The resting pose is on the last sheet. Show it while the swing loads.
+    await loadSheet(3);
+    for(let i=0;i<3;i++) await loadSheet(i);
   }
-  load().catch(()=>{canvas.hidden=true});
+  load().catch(()=>{});
 }
 
 function frameSource(index){
@@ -715,9 +717,9 @@ function frameSource(index){
 }
 function drawModel(x,y,scale,direction,previousDirection,phase,lean){
   const lastFrame=wrists.length-1;
-  const takeoff=ease(clamp(phase/.10))*(1-rest);
   const pose=clamp((phase-.10)/.77)*lastFrame;
   const current=Math.round(pose);
+  const takeoff=sheets[Math.floor(current/30)]?ease(clamp(phase/.10))*(1-rest):0;
   function paint(index,alpha,facing,angle=0){
     if(alpha<=0) return;
     pen.save();
@@ -877,7 +879,7 @@ function draw(now){
   const landing=Math.sin(Math.PI*ease(clamp((phase-.80)/.20)));
   const arc=Math.sin(Math.PI*flight);
   let attached=false;
-  if(sheets.length===4 && readySheets===sheets.length){
+  if(sheets[3]){
     const scale=width<600?1.22:width>=1800?1.87:1.68;
     const route=routes[segment];
     const direction=Math.sign(end.x-start.x) || 1;
@@ -904,7 +906,7 @@ function draw(now){
       }
       drawSpeedLines(x,y,scale,segment,flight,scrolling,elapsed);
       const wrist=drawModel(x,y,scale,direction,previousDirection,phase,lean);
-      attached=scrolling && phase>.045 && phase<.86 && extension>.01;
+      attached=readySheets===sheets.length && scrolling && phase>.045 && phase<.86 && extension>.01;
       if(rope && (!attached || rope.segment!==segment)) detach(now);
       if(attached){
         if(!rope) playWebShot();
@@ -929,7 +931,7 @@ function draw(now){
 function requestDraw(){if(!frame) frame=requestAnimationFrame(draw)}
 preference.addEventListener('change', event=>{
   paused=event.matches;
-  if(!paused && scrollY>0) loadFrames();
+  if(!paused) loadFrames();
   requestDraw();
 });
 let resizeTimer;
@@ -950,7 +952,7 @@ observer.observe(document.body);
 demonstration.forEach(card=>observer.observe(card));
 if(document.fonts) document.fonts.ready.then(scheduleMeasure);
 resize();
-if(scrollY>0) loadFrames();
+loadFrames();
 })();
 </script>
 <script>
