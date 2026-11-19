@@ -599,7 +599,8 @@ function drawModel(x,y,scale,direction,previousDirection,phase,lift,surface,lean
 }
 const AudioEngine=window.AudioContext || window.webkitAudioContext;
 const webAudioGestures=['pointerup','touchend','keydown','click'];
-let webAudio, webShotBuffer, loadWebShot;
+let webAudio, webShotBuffer, loadWebShot, swingWhoosh;
+let previousSwingPoint, lastWhooshSegment=-1;
 function unlockWebAudio(){
   if(!AudioEngine || paused) return;
   try{
@@ -624,6 +625,63 @@ function playWebShot(){
   source.buffer=webShotBuffer;
   source.connect(webAudio.destination);
   source.onended=()=>source.disconnect();
+  source.start();
+}
+function drawSpeedLines(x,y,scale,segment,flight,scrolling){
+  const previous=previousSwingPoint;
+  previousSwingPoint={x,y,segment};
+  if(!scrolling || flight<.08 || flight>.91 || previous?.segment!==segment) return;
+  const dx=x-previous.x, dy=y-previous.y;
+  const speed=Math.hypot(dx,dy);
+  const intensity=clamp((speed-2)/17);
+  if(intensity<=0) return;
+  const ux=dx/speed, uy=dy/speed;
+  pen.save();
+  pen.lineCap='round';
+  for(let i=-1;i<=1;i++){
+    const offset=i*14*scale;
+    const startX=x-ux*26*scale-uy*offset;
+    const startY=y-uy*26*scale+ux*offset;
+    const endX=startX-ux*(24+intensity*47)*scale;
+    const endY=startY-uy*(24+intensity*47)*scale;
+    const ink=pen.createLinearGradient(endX,endY,startX,startY);
+    ink.addColorStop(0,'rgba(95,143,255,0)');
+    ink.addColorStop(1,'rgba(158,218,255,'+(intensity*(i===0?.48:.28))+')');
+    pen.strokeStyle=ink;
+    pen.lineWidth=i===0?2:1.15;
+    pen.beginPath();
+    pen.moveTo(endX,endY);
+    pen.lineTo(startX,startY);
+    pen.stroke();
+    include(endX,endY,4);
+  }
+  pen.restore();
+  if(intensity>.32 && segment!==lastWhooshSegment && webAudio?.state==='running' && !document.hidden){
+    lastWhooshSegment=segment;
+    playSwingWhoosh();
+  }
+}
+function playSwingWhoosh(){
+  if(!swingWhoosh){
+    swingWhoosh=webAudio.createBuffer(1,Math.ceil(webAudio.sampleRate*.22),webAudio.sampleRate);
+    const samples=swingWhoosh.getChannelData(0);
+    for(let i=0;i<samples.length;i++){
+      const envelope=Math.sin(Math.PI*i/samples.length);
+      samples[i]=(Math.random()*2-1)*envelope*envelope;
+    }
+  }
+  const source=webAudio.createBufferSource();
+  const filter=webAudio.createBiquadFilter();
+  const volume=webAudio.createGain();
+  source.buffer=swingWhoosh;
+  filter.type='bandpass';
+  filter.frequency.setValueAtTime(900,webAudio.currentTime);
+  filter.frequency.exponentialRampToValueAtTime(380,webAudio.currentTime+.22);
+  volume.gain.value=.075;
+  source.connect(filter);
+  filter.connect(volume);
+  volume.connect(webAudio.destination);
+  source.onended=()=>{source.disconnect();filter.disconnect();volume.disconnect();};
   source.start();
 }
 function draw(now){
@@ -670,6 +728,7 @@ function draw(now){
         pen.fillStyle='rgba(2,9,19,'+contact*.28+')';pen.fill();
       }
       const surface=surfaces.get(phase<.5?start.index:end.index);
+      drawSpeedLines(x,y,scale,segment,flight,scrolling);
       const wrist=drawModel(x,y,scale,direction,previousDirection,phase,arc*(1-rest),surface,lean);
       attached=scrolling && phase>.045 && phase<.86 && extension>.01;
       if(rope && (!attached || rope.segment!==segment)) detach(now);
@@ -685,6 +744,7 @@ function draw(now){
       }
     }
   }
+  if(!scrolling){previousSwingPoint=null;lastWhooshSegment=-1;}
   if(!attached) detach(now);
   fall(now,elapsed);
   drawWebFlash(now);
