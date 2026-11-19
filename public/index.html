@@ -527,7 +527,7 @@ let paused = preference.matches;
 let lastScrollInput = -Infinity;
 let rest = 1;
 function resize(){
-  const density = Math.min(devicePixelRatio || 1, innerWidth<750?1.15:1.5);
+  const density = Math.min(devicePixelRatio || 1, innerWidth<750?1.35:1.75);
   width = innerWidth;
   height = innerHeight;
   canvas.width = width*density;
@@ -535,6 +535,8 @@ function resize(){
   canvas.style.width = width+'px';
   canvas.style.height = height+'px';
   pen.setTransform(density,0,0,density,0,0);
+  pen.imageSmoothingEnabled=true;
+  pen.imageSmoothingQuality='high';
   target = scroll = scrollY;
   previousBounds=null;
   scheduleMeasure();
@@ -659,6 +661,23 @@ function loadFrames(){
   loading = true;
   const compact=width<750 && typeof createImageBitmap==='function';
   sheets=Array(4);
+  // Grade each sprite sheet once, so the swing needs no per-frame colour filter.
+  async function brightenSprite(source){
+    if(typeof createImageBitmap!=='function')return source;
+    const grading=document.createElement('canvas');
+    grading.width=source.width;
+    grading.height=source.height;
+    const context=grading.getContext('2d');
+    if(!context || !('filter' in context))return source;
+    try{
+      context.filter='saturate(1.5) brightness(1.26) contrast(1.05)';
+      context.drawImage(source,0,0);
+      const result=await createImageBitmap(grading);
+      source.close?.();
+      return result;
+    }catch{return source}
+    finally{grading.width=grading.height=0}
+  }
   async function loadSheet(index){
     const url='/spider-swing/swing-120-'+index+'.webp';
     let sheet;
@@ -667,7 +686,7 @@ function loadFrames(){
         const response=await fetch(url);
         if(!response.ok) throw Error('Sprite unavailable');
         sheet=await createImageBitmap(await response.blob(),{
-          resizeWidth:960,resizeHeight:1175,resizeQuality:'medium'
+          resizeWidth:1200,resizeHeight:1470,resizeQuality:'high'
         });
       }catch{}
     }
@@ -677,16 +696,12 @@ function loadFrames(){
       await image.decode();
       sheet=image;
     }
-    sheets[index]=sheet;
+    sheets[index]=await brightenSprite(sheet);
     readySheets++;
     requestDraw();
   }
   async function load(){
-    if(compact){
-      for(let i=0;i<4;i++) await loadSheet(i);
-    }else{
-      await Promise.all([0,1,2,3].map(loadSheet));
-    }
+    for(let i=0;i<4;i++) await loadSheet(i);
   }
   load().catch(()=>{canvas.hidden=true});
 }
