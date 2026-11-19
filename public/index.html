@@ -223,6 +223,9 @@ body {
 .cx-card,.world-card,.corner-card,.public-moments{box-shadow:inset 0 1px 0 #c8e6ff42,0 10px 24px #040a164f!important}
 .deep-social-link{box-shadow:inset 0 1px 0 #d7eeff45,0 5px 12px #050d1b45}
 </style>
+<style>
+.deep-repair-seam{position:absolute;top:4px;left:8%;width:100px;height:24px;pointer-events:none;opacity:0;z-index:4;background:#cfeaff;clip-path:polygon(0 34%,21% 34%,31% 0,43% 62%,54% 27%,67% 62%,100% 62%,100% 68%,65% 68%,54% 34%,42% 70%,30% 11%,22% 40%,0 40%)}
+</style>
 </head>
 <body data-world-motion="premium"><canvas class="holiday-snow" aria-hidden="true"></canvas><noscript><style>.player-skeleton{display:none}.lfm{min-height:180px}</style></noscript><a class="skip-link" href="#mainContent">Skip to content</a>
 <div aria-hidden="true" class="scroll-progress"><span id="scrollProgress"></span></div>
@@ -439,7 +442,7 @@ syncInbox();
 
 <!-- Spider-Man scroll animation. Frames rendered from Swing to Land by Molon Modeler. -->
 <canvas id="deep-spider-swing" aria-hidden="true" style="position:fixed;inset:0;pointer-events:none;z-index:6"></canvas>
-<canvas id="deep-spider-sprite" aria-hidden="true" hidden style="position:fixed;top:0;left:0;z-index:7;pointer-events:none;will-change:transform"></canvas>
+<canvas id="deep-spider-sprite" aria-hidden="true" hidden style="position:fixed;top:0;left:0;z-index:7;pointer-events:none;will-change:transform;filter:drop-shadow(6px 10px 3px #020916b8)"></canvas>
 <script>
 (()=>{
 
@@ -462,7 +465,10 @@ demonstration.forEach((card,index)=>{
   const decoration=document.createElement('span');
   decoration.className='deep-web-decoration'+(index%2?' right':'');
   decoration.setAttribute('aria-hidden','true');
-  card.append(decoration);
+  const seam=document.createElement('span');
+  seam.className='deep-repair-seam';
+  seam.setAttribute('aria-hidden','true');
+  card.append(decoration,seam);
 });
 let stops=[];
 let previousBounds=null;
@@ -630,13 +636,14 @@ function drawWebHead(point,extension){
   pen.stroke();
   pen.restore();
 }
-function findWebAnchor(wrist,direction){
+function findWebAnchor(wrist,direction,exclude){
   const handY=wrist[1]+viewportTop;
   const reach=Math.min(width*.74,280);
   let best,bestScore=Infinity;
   for(const surface of webSurfaces){
     for(const side of [.12,.88]){
       const x=surface.x+surface.width*side,y=surface.y+7;
+      if(exclude && Math.hypot(x-exclude.x,y-exclude.y)<36)continue;
       const dx=x-wrist[0],dy=handY-y;
       const length=Math.hypot(dx,dy);
       if(dy<32 || length>reach || y<viewportTop-25 || x<0 || x>width)continue;
@@ -646,7 +653,13 @@ function findWebAnchor(wrist,direction){
   }
   return best;
 }
-function castWeb(wrist,x,y,extension,tension,segment,now,surface){
+function aimWeb(wrist,direction,exclude){
+  return findWebAnchor(wrist,direction,exclude)||{
+    x:Math.max(12,Math.min(width-12,wrist[0]+direction*Math.min(90,width*.22))),
+    y:wrist[1]+viewportTop-110,reach:220
+  };
+}
+function castWeb(wrist,x,y,extension,tension,segment,now,surface,track=true){
   const top=viewportTop;
   const endX=lerp(wrist[0],x,extension);
   const endY=lerp(wrist[1],y,extension);
@@ -659,7 +672,7 @@ function castWeb(wrist,x,y,extension,tension,segment,now,surface){
     const py=lerp(wrist[1],endY,t)+bend*(slack+Math.sin(now*.018+t*7)*3*(1-tension));
     return {x:px,y:py+top};
   });
-  rope={points,segment,surface,latched:extension>.98};
+  if(track)rope={points,segment,surface,latched:extension>.98};
   return points;
 }
 function detach(now){
@@ -820,7 +833,7 @@ const AudioEngine=window.AudioContext || window.webkitAudioContext;
 const webAudioGestures=['pointerup','touchend','keydown','click'];
 let webAudio, webShotBuffer, loadWebShot, swingWhoosh;
 let previousSwingPoint, lastWhooshSegment=-1;
-let shotSegment=-1, shotAt=-Infinity, lastShotInput=-Infinity, shotAnchor;
+let shotSegment=-1, shotAt=-Infinity, lastShotInput=-Infinity, shotAnchor, secondAnchor;
 let looseCard, looseCardTransform, looseCardIndex=-1;
 let cardShift=0, cardLift=0, cardAngle=0;
 function unlockWebAudio(){
@@ -851,6 +864,21 @@ function playWebShot(){
   volume.connect(webAudio.destination);
   source.onended=()=>{source.disconnect();volume.disconnect()};
   source.start();
+}
+function repairPair(first,second){
+  for(const [index,side] of [[first,-1],[second,1]]){
+    const web=demonstration[index]?.querySelector('.deep-web-decoration');
+    if(!web?.animate)continue;
+    web.getAnimations().forEach(animation=>animation.cancel());
+    web.animate([
+      {translate:side*12+'px 3px',opacity:.30},
+      {translate:side*7+'px 0',opacity:1,offset:.36},
+      {translate:-side*3+'px 0',opacity:.95,offset:.69},
+      {translate:'0 0',opacity:.77}
+    ],{duration:310,easing:'ease-out'});
+    const seam=demonstration[index]?.querySelector('.deep-repair-seam');
+    seam?.animate([{opacity:0},{opacity:.95,offset:.22},{opacity:0}],{duration:310});
+  }
 }
 function resetLooseCard(){
   if(!looseCard) return;
@@ -972,14 +1000,14 @@ function draw(now){
       settleCard(end.index,phase,direction);
     }else resetLooseCard();
     const previousDirection=segment>0 ? Math.sign(start.x-stops[segment-1].x) || direction : direction;
-    const swing=Math.min(width*.168,192)*route.drift;
+    const swing=Math.min(width*.10,115)*route.drift;
     const edge=Math.ceil(46*scale);
     const x=Math.max(edge,Math.min(width-edge,lerp(start.x,end.x,flight)+direction*arc*swing));
     const sag=Math.min(height*.28,Math.hypot(end.x-start.x,end.y-start.y)*.32)*route.dip;
     const push=clamp((phase-.035)/.26);
-    const launch=4*push*(1-push)*Math.min(48,height*.11);
+    const launch=4*push*(1-push)*Math.min(20,height*.045);
     const drop=ease(clamp((phase-.14)/.82));
-    const y=lerp(start.y,end.y,drop)-viewportTop+45*scale-arc*sag*.56+landing*13+load*9-launch;
+    const y=lerp(start.y,end.y,drop)-viewportTop+45*scale-arc*sag*.22+landing*7+load*5-launch;
     const lean=direction*(route.lean*1.3*Math.sin(2*Math.PI*flight)*arc+.14*load-.12*landing);
     const compression=.09*load+.14*landing;
     if(y>-165 && y<height+165){
@@ -994,20 +1022,22 @@ function draw(now){
       }
       drawSpeedLines(x,y,scale,segment,flight,scrolling,elapsed);
       const wrist=drawModel(x,y,scale,direction,previousDirection,phase,lean,compression);
+      const otherWrist=[x+(x-wrist[0])*.7,wrist[1]+9*scale];
       if(readySheets===sheets.length && scrolling && phase>.065 && phase<.94 &&
         (shotSegment!==segment || lastScrollInput-lastShotInput>360)){
         if(rope)detach(now);
         shotSegment=segment;
         shotAt=now;
-        shotAnchor=findWebAnchor(wrist,direction);
-        if(shotAnchor)playWebShot();
+        shotAnchor=aimWeb(wrist,direction);
+        secondAnchor=aimWeb(otherWrist,-direction,shotAnchor);
+        playWebShot();
       }
       if(scrolling&&shotSegment===segment)lastShotInput=lastScrollInput;
       const shotAge=now-shotAt;
       const extension=1-Math.pow(1-clamp(shotAge/115),3);
       const anchor=shotAnchor;
       const anchorY=anchor?anchor.y-viewportTop:0;
-      attached=Boolean(anchor && shotSegment===segment && shotAge>=0 && shotAge<280 && phase<.92 &&
+      attached=Boolean(anchor && shotSegment===segment && shotAge>=0 && shotAge<360 && phase<.97 &&
         wrist[1]-anchorY>18 && Math.hypot(anchor.x-wrist[0],anchorY-wrist[1])<=anchor.reach);
       if(rope && (!attached || rope.segment!==segment)) detach(now);
       if(attached){
@@ -1017,7 +1047,20 @@ function draw(now){
         const points=castWeb(wrist,anchor.x,anchorY,extension,tension,segment,now,receiver);
         silk(points,.95,receiver);
         drawWebHead(points.at(-1),extension);
-        if(rope.latched && !wasLatched) webFlash={x:anchor.x,y:anchor.y,time:now};
+        if(secondAnchor){
+          const secondY=secondAnchor.y-viewportTop;
+          if(shotAge>22 && otherWrist[1]-secondY>18 &&
+            Math.hypot(secondAnchor.x-otherWrist[0],secondY-otherWrist[1])<=secondAnchor.reach){
+            const spread=1-Math.pow(1-clamp((shotAge-22)/115),3);
+            const second=castWeb(otherWrist,secondAnchor.x,secondY,spread,tension,segment,now,secondAnchor.surface,false);
+            silk(second,.68,secondAnchor.surface);
+            drawWebHead(second.at(-1),spread);
+          }
+        }
+        if(rope.latched && !wasLatched){
+          webFlash={x:anchor.x,y:anchor.y,time:now};
+          repairPair(start.index,end.index);
+        }
       }
     }
   }
