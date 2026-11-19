@@ -302,7 +302,7 @@ const canvas = document.getElementById('deep-spider-swing');
 const pen = canvas?.getContext('2d');
 if(!canvas || !pen) return;
 const cards = [...document.querySelectorAll(
-  '#cxChat, #lfm, #deeplistStats, .media-entry, #memoryFilm, #publicThoughts'
+  '#cxChat, .deep-socials, #lfm, #deeplistStats, .media-entry, #memoryFilm, #publicThoughts'
 )];
 if(cards.length<2) return;
 const demonstration = cards.filter(card=>!card.hidden);
@@ -325,6 +325,8 @@ const routes=Array.from({length:cards.length+1},()=>({
 }));
 function measure(){
   layoutFrame=0;
+  resetLooseCard();
+  hangingWebs.clear();
   const top=window.scrollY;
   const trigger=height*.38;
   const maxScroll=Math.max(1,document.documentElement.scrollHeight-height);
