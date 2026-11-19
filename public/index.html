@@ -601,6 +601,7 @@ const AudioEngine=window.AudioContext || window.webkitAudioContext;
 const webAudioGestures=['pointerup','touchend','keydown','click'];
 let webAudio, webShotBuffer, loadWebShot, swingWhoosh;
 let previousSwingPoint, lastWhooshSegment=-1;
+let looseCard, looseCardTransform;
 function unlockWebAudio(){
   if(!AudioEngine || paused) return;
   try{
@@ -626,6 +627,25 @@ function playWebShot(){
   source.connect(webAudio.destination);
   source.onended=()=>source.disconnect();
   source.start();
+}
+function resetLooseCard(){
+  if(!looseCard) return;
+  looseCard.style.transform=looseCardTransform;
+  looseCard=null;
+}
+function settleCard(index,phase,direction){
+  const card=demonstration[index];
+  if(card!==looseCard) resetLooseCard();
+  if(!card || phase<=.02 || phase>=.76){resetLooseCard();return;}
+  if(!looseCard){looseCard=card;looseCardTransform=card.style.transform;}
+  // Drift before the web reaches the card, then pull straight with a small overshoot.
+  const displacement=phase<.24
+    ? ease(clamp((phase-.02)/.22))
+    : Math.cos(clamp((phase-.24)/.52)*Math.PI*1.6)*Math.pow(1-clamp((phase-.24)/.52),2.5);
+  const distance=width<600?8:14;
+  card.style.transform=(looseCardTransform ? looseCardTransform+' ' : '')+
+    'translate('+direction*distance*displacement+'px,'+(-5*displacement)+'px) rotate('+
+    direction*1.25*displacement+'deg)';
 }
 function drawSpeedLines(x,y,scale,segment,flight,scrolling){
   const previous=previousSwingPoint;
@@ -696,7 +716,7 @@ function draw(now){
   if(Math.abs(restTarget-rest)<.01) rest=restTarget;
   clearPrevious();
   bounds=null;
-  if(paused || stops.length<2){rope=released=webFlash=null;return;}
+  if(paused || stops.length<2){resetLooseCard();rope=released=webFlash=null;return;}
   let segment=0;
   while(segment<stops.length-2 && stops[segment+1].mark<scroll) segment++;
   const start=stops[segment], end=stops[segment+1];
@@ -705,10 +725,14 @@ function draw(now){
   const landing=Math.sin(Math.PI*ease(clamp((phase-.80)/.20)));
   const arc=Math.sin(Math.PI*flight);
   let attached=false;
+  resetLooseCard();
   if(sheets.length===4 && readySheets===sheets.length){
     const scale=width<600?1.22:width>=1800?1.87:1.68;
     const route=routes[segment];
     const direction=Math.sign(end.x-start.x) || 1;
+    if(scrolling && end.y-viewportTop>-100 && end.y-viewportTop<height+100){
+      settleCard(end.index,phase, direction);
+    }
     const previousDirection=segment>0 ? Math.sign(start.x-stops[segment-1].x) || direction : direction;
     const swing=Math.min(width*.056,64)*route.drift;
     const edge=Math.ceil(46*scale);
