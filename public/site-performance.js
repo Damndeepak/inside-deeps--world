@@ -18,7 +18,7 @@ window.worldPublicJSON=path=>{
  const previous=reads.get(path);
  if(previous&&Date.now()-previous.at<30000)return previous.promise;
  const entry={at:Date.now()};
- entry.promise=fetch(path,{cache:'no-store',signal:AbortSignal.timeout(12000)}).then(response=>{
+ entry.promise=fetch(path,{cache:'no-store',signal:AbortSignal.timeout(25000)}).then(response=>{
   if(!response.ok)throw Error('Music request failed');return response.json();
  }).catch(error=>{if(reads.get(path)===entry)reads.delete(path);throw error;});
  reads.set(path,entry);return entry.promise;
