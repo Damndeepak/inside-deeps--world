@@ -13,6 +13,13 @@ async function load(){
   const owner=document.getElementById('lfm')?.closest?.('.chalk-live-wrap');if(owner){owner.style.order='-1';owner.setAttribute?.('data-royal-player',royalBadge(d.owner?.badge));}
   const mainBadge=document.getElementById('deeplistOwnerBadge');
   if(mainBadge){mainBadge.textContent=crown(d.owner?.badge);mainBadge.hidden=!mainBadge.textContent;}
+  const pair=document.getElementById('deeplistRoyalPair');
+  const deepti=(d.listeners||[]).find(visitor=>visitor.badge==='queen');
+  if(pair){
+   const queen=pair.querySelector('[data-queen-link]');
+   if(deepti) queen.href='/deeplist.html?user='+encodeURIComponent(deepti.channel);
+   pair.hidden=d.owner?.badge!=='king'||!deepti;
+  }
   const count=document.getElementById('deeplistConnectionCount');if(count)count.textContent=Number.isInteger(d.totalConnected)?d.totalConnected+' music connections recorded':'';
   clearExpiries();
   const wanted=new Set((d.listeners||[]).map(v=>v.channel));
