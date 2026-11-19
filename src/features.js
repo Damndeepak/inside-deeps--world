@@ -10,6 +10,7 @@ export async function ensureFeatures(db) {
     db.prepare('CREATE INDEX IF NOT EXISTS idx_memory_visits_seen ON memory_visits(last_seen_at)'),
     db.prepare('CREATE TABLE IF NOT EXISTS memory_wall (id TEXT PRIMARY KEY, caption TEXT NOT NULL, memory_date TEXT NOT NULL, r2_key TEXT NOT NULL, content_type TEXT NOT NULL, created_at TEXT NOT NULL)'),
     db.prepare('CREATE TABLE IF NOT EXISTS public_thoughts (id TEXT PRIMARY KEY, body TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)'),
+    db.prepare('CREATE TABLE IF NOT EXISTS private_inbox (id INTEGER PRIMARY KEY AUTOINCREMENT, sender TEXT NOT NULL, message TEXT NOT NULL, created_at INTEGER NOT NULL)'),
     db.prepare('CREATE TABLE IF NOT EXISTS feature_limits (k TEXT PRIMARY KEY, started INTEGER NOT NULL, n INTEGER NOT NULL)')
   ]).catch(e => { ready.delete(db); throw e; }));
   await ready.get(db);
@@ -52,8 +53,72 @@ async function mediaResponse(request,bucket,key,type) {
   if(object.range){const {offset,length}=object.range;h.set('Content-Range',`bytes ${offset}-${offset+length-1}/${object.size}`);h.set('Content-Length',String(length));status=206;}
   return new Response(object.body,{status,headers:h});
 }
+const privateCookie='__Host-deep-inbox';
+async function inboxSignature(secret,expires){
+  const encoder=new TextEncoder();
+  const key=await crypto.subtle.importKey('raw',encoder.encode(secret),{name:'HMAC',hash:'SHA-256'},false,['sign']);
+  const signature=await crypto.subtle.sign('HMAC',key,encoder.encode('private-inbox:'+expires));
+  return Array.from(new Uint8Array(signature),byte=>byte.toString(16).padStart(2,'0')).join('');
+}
+async function handlePrivateMessages(request,env,chatIsAdmin){
+  const url=new URL(request.url);
+  const method=request.method;
+  const session=url.pathname.endsWith('/session');
+  if(!env.DB)return fail('Inbox unavailable',503);
+  if(method!=='GET' && request.headers.get('Origin')!==url.origin)return fail('Forbidden origin',403);
+  const cookieAttributes='; Path=/; Secure; HttpOnly; SameSite=Strict';
+  if(session && method==='DELETE'){
+    const response=json({success:true});
+    response.headers.set('Set-Cookie',privateCookie+'='+cookieAttributes+'; Max-Age=0');
+    return response;
+  }
+  const secret=env.ADMIN_KEY||'';
+  const token=(request.headers.get('Cookie')||'').match(/(?:^|;\s*)__Host-deep-inbox=(\d{13})\.([a-f0-9]{64})(?:;|$)/);
+  let authenticated=false;
+  if(secret.length>=12 && token && Number(token[1])>Date.now()){
+    const expected=await inboxSignature(secret,token[1]);
+    let diff=0;
+    for(let i=0;i<expected.length;i++) diff|=expected.charCodeAt(i)^token[2].charCodeAt(i);
+    authenticated=diff===0;
+  }
+  if(session){
+    if(method==='GET')return json({authenticated});
+    if(method!=='POST')return fail('Method not allowed',405);
+    if(!await chatIsAdmin(request))return fail('Admin access required',403);
+    const maxAge=30*24*3600;
+    const expires=String(Date.now()+maxAge*1000);
+    const signature=await inboxSignature(secret,expires);
+    const response=json({authenticated:true});
+    response.headers.set('Set-Cookie',privateCookie+'='+expires+'.'+signature+cookieAttributes+'; Max-Age='+maxAge);
+    return response;
+  }
+  if(method==='GET' && !authenticated)return fail('Admin access required',403);
+  if(!['GET','POST'].includes(method))return fail('Method not allowed',405);
+  await ensureFeatures(env.DB);
+  if(method==='POST'){
+    if(!request.headers.get('Content-Type')?.startsWith('application/json') || Number(request.headers.get('Content-Length')||0)>12000)return fail('Invalid message');
+    const data=await smallJson(request);
+    const message=typeof data?.message==='string'?data.message.trim():'';
+    const sender=typeof data?.sender==='string'?data.sender.trim():'';
+    if(!message||message.length>2000||sender.length>80)return fail('Enter a message up to 2,000 characters and an optional name up to 80 characters');
+    const ip=request.headers.get('CF-Connecting-IP')||'unknown';
+    const rateKey=secret.length>=12?await inboxSignature(secret,'rate:'+ip):ip;
+    if(!await limit(env.DB,'private-inbox:'+rateKey,5,3600000))return fail('Too many messages. Try again later.',429);
+    await env.DB.prepare('INSERT INTO private_inbox(sender,message,created_at) VALUES(?,?,?)').bind(sender,message,Date.now()).run();
+    return json({success:true},201);
+  }
+  const before=url.searchParams.get('before');
+  if(before!==null && (!/^\d+$/.test(before)||!Number.isSafeInteger(Number(before))))return fail('Invalid cursor');
+  const query=before===null?env.DB.prepare('SELECT id,sender,message,created_at FROM private_inbox ORDER BY id DESC LIMIT 51'):
+    env.DB.prepare('SELECT id,sender,message,created_at FROM private_inbox WHERE id<? ORDER BY id DESC LIMIT 51').bind(Number(before));
+  const rows=(await query.all()).results;
+  return json({messages:rows.slice(0,50),next:rows.length>50?rows[49].id:null});
+}
 export async function handleFeatures(request,env,ctx,helpers) {
   const url=new URL(request.url), path=url.pathname, method=request.method;
+  if(path==='/api/private-messages'||path==='/api/private-messages/session'){
+    try{return await handlePrivateMessages(request,env,helpers.chatIsAdmin)}catch(error){return fail(error instanceof SyntaxError?'Invalid message':'Inbox temporarily unavailable',error instanceof SyntaxError?400:503)}
+  }
   const known=/^\/api\/thoughts(?:\/[A-Za-z0-9_-]{1,64})?$/.test(path)||path==='/api/lastfm/history'||path==='/api/lastfm/on-repeat'||path==='/api/chat/presence'||path==='/api/chat/admin/presence'||path==='/api/chat/reactions'||path==='/api/chat/voice'||/^\/api\/chat\/audio\/[A-Za-z0-9_-]+$/.test(path)||/^\/api\/memories(?:\/[A-Za-z0-9_-]+(?:\/image)?)?$/.test(path);
   if(!known)return null;
   const {getUser,getUserId,chatIsAdmin,ensureChatSchema,notifyChat,chatSniffImage}=helpers;
