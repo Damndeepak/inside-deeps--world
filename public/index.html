@@ -300,7 +300,7 @@ body {
 <script defer="" src="/home-thoughts.js"></script>
 
 <!-- Spider-Man scroll animation. Frames rendered from Swing to Land by Molon Modeler. -->
-<canvas id="deep-spider-swing" aria-hidden="true" style="position:fixed;inset:0;pointer-events:none;z-index:6"></canvas>
+<canvas id="deep-spider-swing" aria-hidden="true" style="position:fixed;inset:0;pointer-events:none;z-index:6;filter:saturate(1.38) contrast(1.08) brightness(1.12)"></canvas>
 <script>
 (()=>{
 
@@ -321,6 +321,13 @@ let webFlash=null;
 let layoutFrame=0;
 let viewportTop=0;
 let surfaces=new Map();
+// Sample once so a resize or reversing the scroll keeps each route stable.
+const routes=Array.from({length:cards.length+1},()=>({
+  drift:.75+Math.random()*.65,
+  dip:.75+Math.random()*.65,
+  lean:.09+Math.random()*.09,
+  lift:Math.random()>.55?-1:1
+}));
 function measure(){
   layoutFrame=0;
   const top=window.scrollY;
@@ -374,7 +381,7 @@ let paused = preference.matches;
 let lastScrollInput = -Infinity;
 let rest = 1;
 function resize(){
-  const density = Math.min(devicePixelRatio || 1, innerWidth<750?1.25:1.75);
+  const density = Math.min(devicePixelRatio || 1, innerWidth<750?1.5:2);
   width = innerWidth;
   height = innerHeight;
   canvas.width = width*density;
@@ -566,7 +573,7 @@ function modelShadow(index,x,y,scale,facing,lift,alpha,surface,angle=0){
     pen.restore();
   });
 }
-function drawModel(x,y,scale,direction,previousDirection,phase,lift,surface){
+function drawModel(x,y,scale,direction,previousDirection,phase,lift,surface,lean){
   const lastFrame=wrists.length-1;
   const takeoff=ease(clamp(phase/.10))*(1-rest);
   const pose=clamp((phase-.10)/.77)*lastFrame;
@@ -577,6 +584,8 @@ function drawModel(x,y,scale,direction,previousDirection,phase,lift,surface){
     pen.rotate(angle);
     pen.scale(-facing*scale*.4,scale*.4);
     pen.globalAlpha=alpha;
+    pen.shadowColor='#509bff70';
+    pen.shadowBlur=8*scale;
     pen.drawImage(...frameSource(index),crop.left-400,crop.top-400,crop.width,crop.height);
     pen.restore();
   }
@@ -586,10 +595,13 @@ function drawModel(x,y,scale,direction,previousDirection,phase,lift,surface){
   pen.save();
   pen.translate(x,y);
   paint(lastFrame,1-takeoff,crouchDirection);
-  paint(current,takeoff,direction);
+  paint(current,takeoff,direction,lean);
   pen.restore();
   const hand=wrists[current];
-  return [x-direction*(hand[0]-.5)*320*scale,y+(hand[1]-.5)*320*scale];
+  const wristX=-direction*(hand[0]-.5)*320*scale;
+  const wristY=(hand[1]-.5)*320*scale;
+  return [x+wristX*Math.cos(lean)-wristY*Math.sin(lean),
+    y+wristX*Math.sin(lean)+wristY*Math.cos(lean)];
 }
 const AudioEngine=window.AudioContext || window.webkitAudioContext;
 const webAudioGestures=['pointerup','touchend','keydown','click'];
@@ -637,22 +649,25 @@ function draw(now){
   while(segment<stops.length-2 && stops[segment+1].mark<scroll) segment++;
   const start=stops[segment], end=stops[segment+1];
   const phase=clamp((scroll-start.mark)/Math.max(1,end.mark-start.mark));
-  const flight=ease(clamp((phase-.12)/.79));
+  const flight=ease(clamp((phase-.08)/.84));
   const landing=Math.sin(Math.PI*ease(clamp((phase-.80)/.20)));
   const arc=Math.sin(Math.PI*flight);
   let attached=false;
   if(sheets.length===4 && readySheets===sheets.length){
-    const scale=width<600?1.08:width>=1800?1.66:1.48;
+    const scale=width<600?1.22:width>=1800?1.87:1.68;
+    const route=routes[segment];
     const direction=Math.sign(end.x-start.x) || 1;
     const previousDirection=segment>0 ? Math.sign(start.x-stops[segment-1].x) || direction : direction;
-    const swing=Math.min(width*.035,38);
-    const x=Math.max(44,Math.min(width-44,lerp(start.x,end.x,flight)+direction*arc*swing));
-    const sag=Math.min(height*.078,Math.hypot(end.x-start.x,end.y-start.y)*.09);
-    const y=lerp(start.y,end.y,flight)-viewportTop+45*scale+(arc*sag+landing*9)*(1-rest);
+    const swing=Math.min(width*.056,64)*route.drift;
+    const edge=Math.ceil(46*scale);
+    const x=Math.max(edge,Math.min(width-edge,lerp(start.x,end.x,flight)+direction*arc*swing));
+    const sag=Math.min(height*.11,Math.hypot(end.x-start.x,end.y-start.y)*.12)*route.dip;
+    const y=lerp(start.y,end.y,flight)-viewportTop+45*scale+(route.lift*arc*sag+landing*11)*(1-rest);
+    const lean=direction*route.lean*Math.sin(2*Math.PI*flight)*arc*(1-rest);
     const extension=1-Math.pow(1-clamp((phase-.045)/.14),3);
     const anchor=end;
     if(y>-165 && y<height+165){
-      include(x,y,142*scale);
+      include(x,y,158*scale);
       // A compressed contact shadow gives the crouch weight against the surface.
       const contact=1-clamp(arc*(1-rest)*1.6);
       if(contact>.15){
@@ -661,7 +676,7 @@ function draw(now){
         pen.fillStyle='rgba(2,9,19,'+contact*.28+')';pen.fill();
       }
       const surface=surfaces.get(phase<.5?start.index:end.index);
-      const wrist=drawModel(x,y,scale,direction,previousDirection,phase,arc*(1-rest),surface);
+      const wrist=drawModel(x,y,scale,direction,previousDirection,phase,arc*(1-rest),surface,lean);
       attached=scrolling && phase>.045 && phase<.86 && extension>.01;
       if(rope && (!attached || rope.segment!==segment)) detach(now);
       if(attached){
