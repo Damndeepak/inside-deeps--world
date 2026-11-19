@@ -311,6 +311,7 @@ let previousBounds=null;
 let bounds=null;
 let rope=null;
 let released=null;
+let hangingWeb=null;
 let webFlash=null;
 let layoutFrame=0;
 let viewportTop=0;
@@ -450,6 +451,8 @@ function castWeb(wrist,x,y,extension,tension,segment,now,surface){
 function detach(now){
   if(!rope) return;
   if(rope.latched){
+    const anchor=rope.points.at(-1);
+    hangingWeb={x:anchor.x,y:anchor.y+viewportTop,time:now};
     released={time:now,surface:rope.surface,points:rope.points.map((p,i)=>({...p,px:p.x-(i/12-.5)*2,py:p.y})),
       lengths:rope.points.slice(1).map((p,i)=>Math.max(1,Math.hypot(p.x-rope.points[i].x,p.y-rope.points[i].y)))};
   }
@@ -479,6 +482,37 @@ function fall(now,elapsed){
     });
   }
   silk(points,1-ease(clamp((age-135)/445)),released.surface);
+}
+function drawHangingWeb(now){
+  if(!hangingWeb) return;
+  const age=now-hangingWeb.time;
+  if(age>=1250){hangingWeb=null;return;}
+  const {x}=hangingWeb;
+  const y=hangingWeb.y-viewportTop;
+  const alpha=1-ease(clamp((age-640)/610));
+  const tip=42+32*ease(clamp(age/350));
+  const sway=Math.sin(age/110)*8*(1-age/1500);
+  include(x,y,tip+15);
+  pen.save();
+  pen.lineWidth=1;
+  pen.strokeStyle='rgba(197,226,255,'+alpha*.58+')';
+  pen.beginPath();
+  for(let i=0;i<7;i++){
+    const angle=i*Math.PI*2/7;
+    pen.moveTo(x,y);
+    pen.lineTo(x+Math.cos(angle)*21,y+Math.sin(angle)*16);
+  }
+  for(const radius of [.42,.76]){
+    for(let i=0;i<=7;i++){
+      const angle=i*Math.PI*2/7;
+      const px=x+Math.cos(angle)*21*radius,py=y+Math.sin(angle)*16*radius;
+      if(i===0) pen.moveTo(px,py);else pen.lineTo(px,py);
+    }
+  }
+  pen.moveTo(x,y);
+  pen.bezierCurveTo(x-9,y+23,x+sway+9,y+tip*.68,x+sway,y+tip);
+  pen.stroke();
+  pen.restore();
 }
 function drawWebFlash(now){
   if(!webFlash) return;
@@ -642,10 +676,10 @@ function settleCard(index,phase,direction){
   const displacement=phase<.24
     ? ease(clamp((phase-.02)/.22))
     : Math.cos(clamp((phase-.24)/.52)*Math.PI*1.6)*Math.pow(1-clamp((phase-.24)/.52),2.5);
-  const distance=width<600?8:14;
+  const distance=width<600?13:23;
   card.style.transform=(looseCardTransform ? looseCardTransform+' ' : '')+
-    'translate('+direction*distance*displacement+'px,'+(-5*displacement)+'px) rotate('+
-    direction*1.25*displacement+'deg)';
+    'translate('+direction*distance*displacement+'px,'+(-9*displacement)+'px) rotate('+
+    direction*2.15*displacement+'deg)';
 }
 function drawSpeedLines(x,y,scale,segment,flight,scrolling){
   const previous=previousSwingPoint;
@@ -658,17 +692,19 @@ function drawSpeedLines(x,y,scale,segment,flight,scrolling){
   const ux=dx/speed, uy=dy/speed;
   pen.save();
   pen.lineCap='round';
-  for(let i=-1;i<=1;i++){
-    const offset=i*14*scale;
+  for(let i=-2;i<=2;i++){
+    const offset=i*10*scale;
     const startX=x-ux*26*scale-uy*offset;
     const startY=y-uy*26*scale+ux*offset;
-    const endX=startX-ux*(24+intensity*47)*scale;
-    const endY=startY-uy*(24+intensity*47)*scale;
+    const endX=startX-ux*(32+intensity*63)*scale;
+    const endY=startY-uy*(32+intensity*63)*scale;
     const ink=pen.createLinearGradient(endX,endY,startX,startY);
-    ink.addColorStop(0,'rgba(95,143,255,0)');
-    ink.addColorStop(1,'rgba(158,218,255,'+(intensity*(i===0?.48:.28))+')');
+    const red=i%2===0;
+    const color=red?'255,62,83':'43,81,166';
+    ink.addColorStop(0,'rgba('+color+',0)');
+    ink.addColorStop(1,'rgba('+color+','+(intensity*(i===0?.72:.56))+')');
     pen.strokeStyle=ink;
-    pen.lineWidth=i===0?2:1.15;
+    pen.lineWidth=i===0?2.8:1.75;
     pen.beginPath();
     pen.moveTo(endX,endY);
     pen.lineTo(startX,startY);
@@ -716,7 +752,7 @@ function draw(now){
   if(Math.abs(restTarget-rest)<.01) rest=restTarget;
   clearPrevious();
   bounds=null;
-  if(paused || stops.length<2){resetLooseCard();rope=released=webFlash=null;return;}
+  if(paused || stops.length<2){resetLooseCard();rope=released=webFlash=hangingWeb=null;return;}
   let segment=0;
   while(segment<stops.length-2 && stops[segment+1].mark<scroll) segment++;
   const start=stops[segment], end=stops[segment+1];
@@ -772,8 +808,9 @@ function draw(now){
   if(!attached) detach(now);
   fall(now,elapsed);
   drawWebFlash(now);
+  drawHangingWeb(now);
   previousBounds=bounds;
-  if(Math.abs(target-scroll)>.3 || scrolling || rest!==restTarget || released || webFlash) requestDraw();
+  if(Math.abs(target-scroll)>.3 || scrolling || rest!==restTarget || released || webFlash || hangingWeb) requestDraw();
   else last=0;
 }
 function requestDraw(){if(!frame) frame=requestAnimationFrame(draw)}
