@@ -165,25 +165,40 @@ export async function handleFeatures(request,env,ctx,helpers) {
       if(!user)return fail('Reload to get a chat identity',401);
       if(!env.CHAT_IMAGES)return fail('Media storage is unavailable',503);
       await ensureChatSchema();
-      if(!await limit(env.DB,'voice:'+user.id,10,3600000))return fail('Voice-note limit reached; try later',429);
       const recent=await env.DB.prepare('SELECT COUNT(*) AS n FROM messages WHERE sender_id=? AND created_at>?').bind(user.id,new Date(Date.now()-300000).toISOString()).first();
       if(recent.n>=20)return fail('Slow down a little',429);
-      const form=await request.formData(),file=form.get('audio');
+      let form;
+      try{form=await request.formData()}catch{return fail('Could not read the recording upload',400)}
+      const file=form.get('audio');
       if(!file||typeof file.arrayBuffer!=='function'||!file.size||file.size>8*1024*1024)return fail('Choose a recording under 8 MB',413);
-      const bytes=new Uint8Array(await file.arrayBuffer()),type=audioType(bytes);
+      const recording=await file.arrayBuffer(),type=audioType(new Uint8Array(recording));
       if(!type)return fail('Unsupported recording format',415);
       const message=text(form.get('message'),1000),parentId=text(form.get('parent_id'),64)||null;
       if(parentId&&!await env.DB.prepare('SELECT id FROM messages WHERE id=?').bind(parentId).first())return fail('Reply target no longer exists');
       let main=await env.DB.prepare('SELECT id FROM conversations ORDER BY created_at ASC LIMIT 1').first();
       if(!main){main={id:crypto.randomUUID()};await env.DB.prepare('INSERT INTO conversations(id,user_id,created_at) VALUES(?,?,?)').bind(main.id,user.id,new Date().toISOString()).run();}
       const id=crypto.randomUUID(),now=new Date().toISOString();storedKey='voice/'+id;
-      await env.CHAT_IMAGES.put(storedKey,bytes,{httpMetadata:{contentType:type}});
-      await env.DB.batch([
-        env.DB.prepare('INSERT INTO messages(id,conversation_id,sender_id,message,parent_id,created_at) VALUES(?,?,?,?,?,?)').bind(id,main.id,user.id,message,parentId,now),
-        env.DB.prepare('INSERT INTO message_audio(message_id,r2_key,content_type,size,created_at) VALUES(?,?,?,?,?)').bind(id,storedKey,type,bytes.length,now)
+      try{
+        await env.CHAT_IMAGES.put(storedKey,recording,{httpMetadata:{contentType:type}});
+      }catch{
+        return fail('Voice-note storage is unavailable. Retry your recording shortly.',503);
+      }
+      const cutoff=new Date(Date.parse(now)-3600000).toISOString();
+      const [created]=await env.DB.batch([
+        env.DB.prepare(`INSERT INTO messages(id,conversation_id,sender_id,message,parent_id,created_at)
+          SELECT ?,?,?,?,?,? WHERE (
+            SELECT COUNT(*) FROM messages m JOIN message_audio a ON a.message_id=m.id
+            WHERE m.sender_id=? AND m.created_at>?
+          )<10`).bind(id,main.id,user.id,message,parentId,now,user.id,cutoff),
+        env.DB.prepare(`INSERT INTO message_audio(message_id,r2_key,content_type,size,created_at)
+          SELECT ?,?,?,?,? WHERE EXISTS (SELECT 1 FROM messages WHERE id=?)`).bind(id,storedKey,type,recording.byteLength,now,id)
       ]);
+      if(!created.meta.changes){
+        await env.CHAT_IMAGES.delete(storedKey).catch(()=>{});
+        return fail('Voice-note limit reached; try later',429);
+      }
       storedKey=null;
-      if(ctx?.waitUntil)ctx.waitUntil(notifyChat(user.id));
+      if(typeof ctx?.waitUntil==='function')ctx.waitUntil(notifyChat(user.id).catch(()=>{}));
       await recordAudit(env.DB,user,'message_sent',id,{type:'voice'});
       return json({success:true,message_id:id,created_at:now});
     }
