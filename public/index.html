@@ -525,15 +525,22 @@ function loadFrames(){
   const compact=width<750 && typeof createImageBitmap==='function';
   sheets=Array(4);
   async function loadSheet(index){
-    const image=new Image();
-    image.src='/spider-swing/swing-120-'+index+'.webp';
-    await image.decode();
-    let sheet=image;
+    const url='/spider-swing/swing-120-'+index+'.webp';
+    let sheet;
     if(compact){
       try{
-        sheet=await createImageBitmap(image,{resizeWidth:1440,resizeHeight:1765,resizeQuality:'high'});
+        const response=await fetch(url);
+        if(!response.ok) throw Error('Sprite unavailable');
+        sheet=await createImageBitmap(await response.blob(),{
+          resizeWidth:960,resizeHeight:1175,resizeQuality:'medium'
+        });
       }catch{}
-      if(sheet!==image) image.removeAttribute('src');
+    }
+    if(!sheet){
+      const image=new Image();
+      image.src=url;
+      await image.decode();
+      sheet=image;
     }
     sheets[index]=sheet;
     readySheets++;
@@ -579,7 +586,7 @@ function modelShadow(index,x,y,scale,facing,lift,alpha,surface,angle=0){
     pen.transform(-facing*k,0,-.43*k,(.47+.13*lift)*k,0,0);
     pen.rotate(angle);
     pen.globalAlpha=alpha*(surface?.height ? .48-.22*lift : .26-.12*lift);
-    if('filter' in pen) pen.filter='blur('+(1.7+lift*5)+'px)';
+    if('filter' in pen) pen.filter='blur(2px)';
     pen.drawImage(shadowStamp,crop.left-400,crop.top-400,crop.width,crop.height);
     pen.restore();
   });
@@ -596,7 +603,7 @@ function drawModel(x,y,scale,direction,previousDirection,phase,lift,surface,lean
     pen.scale(-facing*scale*.4,scale*.4);
     pen.globalAlpha=alpha;
     pen.shadowColor='#509bff70';
-    pen.shadowBlur=width<750?0:5*scale;
+    if(width>=750) pen.shadowBlur=5*scale;
     pen.drawImage(...frameSource(index),crop.left-400,crop.top-400,crop.width,crop.height);
     pen.restore();
   }
@@ -828,6 +835,7 @@ if(scrollY>0) loadFrames();
 <script>
 (() => {
   const canvas = document.querySelector('.holiday-snow');
+  if (matchMedia('(pointer: coarse)').matches) { canvas.hidden=true; return; }
   const context = canvas.getContext('2d');
   if (!context) return;
 
