@@ -536,7 +536,8 @@ function resize(){
   canvas.style.height = height+'px';
   pen.setTransform(density,0,0,density,0,0);
   pen.imageSmoothingEnabled=true;
-  pen.imageSmoothingQuality='high';
+  // Keep the prefiltered sheet detail with inexpensive per-frame sampling.
+  pen.imageSmoothingQuality='low';
   target = scroll = scrollY;
   previousBounds=null;
   scheduleMeasure();
@@ -706,42 +707,13 @@ function loadFrames(){
   load().catch(()=>{canvas.hidden=true});
 }
 
-const shadowStamp=document.createElement('canvas');
-shadowStamp.width=161;
-shadowStamp.height=236;
-const shadowPen=shadowStamp.getContext('2d');
-let stampedFrame=-1;
 function frameSource(index){
   const sheet=sheets[Math.floor(index/30)];
   const slot=index%30;
   const width=sheet.width/6,height=sheet.height/5;
   return [sheet,slot%6*width,Math.floor(slot/6)*height,width,height];
 }
-function modelShadow(index,x,y,scale,facing,lift,alpha,surface,angle=0){
-  if(!shadowPen || alpha<=0) return;
-  if(stampedFrame!==index){
-    shadowPen.clearRect(0,0,shadowStamp.width,shadowStamp.height);
-    shadowPen.drawImage(...frameSource(index),0,0,shadowStamp.width,shadowStamp.height);
-    shadowPen.globalCompositeOperation='source-in';
-    shadowPen.fillStyle='#020611';
-    shadowPen.fillRect(0,0,shadowStamp.width,shadowStamp.height);
-    shadowPen.globalCompositeOperation='source-over';
-    stampedFrame=index;
-  }
-  onSurface(surface,()=>{
-    pen.save();
-    const k=scale*.4;
-    const lightOffset=12+lift*23;
-    pen.translate(x+lightOffset,y+(29+lift*9)*scale);
-    pen.transform(-facing*k,0,-.43*k,(.47+.13*lift)*k,0,0);
-    pen.rotate(angle);
-    pen.globalAlpha=alpha*(surface?.height ? .48-.22*lift : .26-.12*lift);
-    if('filter' in pen) pen.filter='blur(2px)';
-    pen.drawImage(shadowStamp,crop.left-400,crop.top-400,crop.width,crop.height);
-    pen.restore();
-  });
-}
-function drawModel(x,y,scale,direction,previousDirection,phase,lift,surface,lean){
+function drawModel(x,y,scale,direction,previousDirection,phase,lean){
   const lastFrame=wrists.length-1;
   const takeoff=ease(clamp(phase/.10))*(1-rest);
   const pose=clamp((phase-.10)/.77)*lastFrame;
@@ -752,16 +724,10 @@ function drawModel(x,y,scale,direction,previousDirection,phase,lift,surface,lean
     pen.rotate(angle);
     pen.scale(-facing*scale*.4,scale*.4);
     pen.globalAlpha=alpha;
-    pen.shadowColor='#509bff70';
-    if(width>=750) pen.shadowBlur=5*scale;
     pen.drawImage(...frameSource(index),crop.left-400,crop.top-400,crop.width,crop.height);
     pen.restore();
   }
   const crouchDirection=rest>.5?direction:previousDirection;
-  if(width>=750){
-    modelShadow(lastFrame,x,y,scale,crouchDirection,lift,1-takeoff,surface);
-    modelShadow(current,x,y,scale,direction,lift,takeoff,surface);
-  }
   pen.save();
   pen.translate(x,y);
   paint(lastFrame,1-takeoff,crouchDirection);
@@ -828,13 +794,13 @@ function settleCard(index,phase,direction){
   card.style.transform=(looseCardTransform ? looseCardTransform+' ' : '')+
     'translate('+cardShift+'px,'+cardLift+'px) rotate('+cardAngle+'rad)';
 }
-function drawSpeedLines(x,y,scale,segment,flight,scrolling){
+function drawSpeedLines(x,y,scale,segment,flight,scrolling,elapsed){
   const previous=previousSwingPoint;
   previousSwingPoint={x,y,segment};
   if(!scrolling || flight<.08 || flight>.91 || previous?.segment!==segment) return;
   const dx=x-previous.x, dy=y-previous.y;
   const speed=Math.hypot(dx,dy);
-  const intensity=clamp((speed-2)/17);
+  const intensity=clamp((speed*16.67/Math.max(1,elapsed)-2)/17);
   if(intensity<=0) return;
   const ux=dx/speed, uy=dy/speed;
   pen.save();
@@ -936,9 +902,8 @@ function draw(now){
         pen.ellipse(x,y+32*scale,32*scale,6*scale,0,0,Math.PI*2);
         pen.fillStyle='rgba(2,9,19,'+contact*.28+')';pen.fill();
       }
-      const surface=surfaces.get(phase<.5?start.index:end.index);
-      drawSpeedLines(x,y,scale,segment,flight,scrolling);
-      const wrist=drawModel(x,y,scale,direction,previousDirection,phase,arc*(1-rest),surface,lean);
+      drawSpeedLines(x,y,scale,segment,flight,scrolling,elapsed);
+      const wrist=drawModel(x,y,scale,direction,previousDirection,phase,lean);
       attached=scrolling && phase>.045 && phase<.86 && extension>.01;
       if(rope && (!attached || rope.segment!==segment)) detach(now);
       if(attached){
@@ -967,7 +932,13 @@ preference.addEventListener('change', event=>{
   if(!paused && scrollY>0) loadFrames();
   requestDraw();
 });
-addEventListener('resize',resize);
+let resizeTimer;
+addEventListener('resize',()=>{
+  clearTimeout(resizeTimer);
+  // Mobile browser chrome can send a resize on each scroll frame.
+  if(innerWidth!==width)resize();
+  else resizeTimer=setTimeout(()=>{if(innerHeight!==height)resize();},160);
+},{passive:true});
 addEventListener('scroll',()=>{
   target=scrollY;
   lastScrollInput=performance.now();
