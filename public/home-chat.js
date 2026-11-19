@@ -189,7 +189,7 @@ E.thread.addEventListener("scroll",()=>{if(nearBottom()){S.unseen=0;E.pill.hidde
 E.pill.addEventListener("click",()=>toBottom(true));
 
 /* ---------- data ---------- */
-async function getState(){try{const r=await fetch("/api/chat/state",{cache:"no-store",signal:AbortSignal.timeout(10000)});const d=await r.json();if(d.success){E.count.textContent=d.count+(d.count===1?" message":" messages");return d.count+"|"+d.latest+"|"+(d.names_version||0)+"|"+(d.badges_version||"")+"|"+(d.admins_version||0)}}catch(e){}return null}
+async function getState(){try{const r=await fetch("/api/chat/state",{cache:"no-store",signal:AbortSignal.timeout(25000)});const d=await r.json();if(d.success){E.count.textContent=d.count+(d.count===1?" message":" messages");return d.count+"|"+d.latest+"|"+(d.names_version||0)+"|"+(d.badges_version||"")+"|"+(d.admins_version||0)}}catch(e){}return null}
 
 const messageOrder=(a,b)=>a.created_at<b.created_at?-1:a.created_at>b.created_at?1:a.id<b.id?-1:a.id>b.id?1:0;
 function applyFeed(srv,hasMore,first){
@@ -210,7 +210,7 @@ function applyFeed(srv,hasMore,first){
 }
 
 async function loadFeed(sig){
-  const r=await fetch("/api/chat?limit="+(S.ready?100:30),{cache:"no-store",signal:AbortSignal.timeout(10000)});const d=await r.json();
+  const r=await fetch("/api/chat?limit="+(S.ready?100:30),{cache:"no-store",signal:AbortSignal.timeout(25000)});const d=await r.json();
   if(!d.success)throw new Error("feed");
   const first=!S.ready;
   if(d.me){S.me=d.me;paintMyIdentity()}
@@ -232,7 +232,7 @@ async function boot(){
 E.more.addEventListener("click",async()=>{
   if(S.loading||!S.hasMore||!S.msgs.length)return;S.loading=true;E.more.textContent="loading…";
   try{
-    const r=await fetch("/api/chat?limit=50&before="+encodeURIComponent(S.msgs[0].created_at)+"&before_id="+encodeURIComponent(S.msgs[0].id),{cache:"no-store",signal:AbortSignal.timeout(10000)});const d=await r.json();
+    const r=await fetch("/api/chat?limit=50&before="+encodeURIComponent(S.msgs[0].created_at)+"&before_id="+encodeURIComponent(S.msgs[0].id),{cache:"no-store",signal:AbortSignal.timeout(25000)});const d=await r.json();
     if(!d.success)throw new Error("older");
     const h0=E.thread.scrollHeight,t0=E.thread.scrollTop;
     S.msgs=d.messages.concat(S.msgs);S.hasMore=d.has_more;reconcile(false);
@@ -705,7 +705,7 @@ const nicknameControls=initNicknameControls({
 /* ---------- start ---------- */
 (async()=>{
   grow();updateSend();
-  try{const r=await fetch("/api/user",{signal:AbortSignal.timeout(10000)});const d=await r.json();if(d.success&&d.user)S.me=d.user}catch(e){}
+  try{const r=await fetch("/api/user",{signal:AbortSignal.timeout(25000)});const d=await r.json();if(d.success&&d.user)S.me=d.user}catch(e){}
   paintMyIdentity();
   if(S.me)nicknameControls.load();
   await boot();
