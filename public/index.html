@@ -452,7 +452,7 @@ function detach(now){
   if(!rope) return;
   if(rope.latched){
     const anchor=rope.points.at(-1);
-    hangingWeb={x:anchor.x,y:anchor.y+viewportTop,time:now};
+    hangingWeb={x:anchor.x,y:anchor.y,time:now};
     released={time:now,surface:rope.surface,points:rope.points.map((p,i)=>({...p,px:p.x-(i/12-.5)*2,py:p.y})),
       lengths:rope.points.slice(1).map((p,i)=>Math.max(1,Math.hypot(p.x-rope.points[i].x,p.y-rope.points[i].y)))};
   }
