@@ -140,6 +140,21 @@ body { background:#070809 url("/black-geometric.svg") center top / max(100vw, 90
 }
 </style>
 
+<style>
+.deep-socials { margin: 16px 0 24px; }
+.deep-socials h2 { margin: 0 0 12px; font-size: clamp(1.2rem, 3vw, 1.55rem); }
+.deep-socials ul { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; list-style: none; padding: 0; margin: 0; }
+.deep-social-link { display: flex; align-items: center; gap: 10px; min-height: 64px; padding: 9px 11px; border: 1px solid #ffffff24; border-radius: 14px; background: #201b26; color: #fff; text-decoration: none; transition: background-color 180ms ease, border-color 180ms ease, transform 180ms ease; }
+.deep-social-icon { display: grid; place-items: center; flex: 0 0 34px; height: 34px; border-radius: 10px; color: var(--social-color); background: #ffffff0e; }
+.deep-social-icon svg { width: 20px; height: 20px; }
+.deep-social-label { min-width: 0; overflow-wrap: anywhere; }
+.deep-social-label small { display: block; color: #d6cbdc; font-size: .76rem; margin-top: 3px; }
+.deep-social-link:focus-visible { outline: 2px solid var(--social-color); outline-offset: 3px; }
+.deep-social-link:active { transform: scale(.98); }
+@media (hover: hover) { .deep-social-link:hover { border-color: var(--social-color); background: #2b2331; transform: translateY(-2px); } }
+@media (max-width: 650px) { .deep-socials ul { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (prefers-reduced-motion: reduce) { .deep-social-link { transition: none; } .deep-social-link:hover, .deep-social-link:active { transform: none; } }
+</style>
 </head>
 <body data-world-motion="premium"><canvas class="holiday-snow" aria-hidden="true"></canvas><noscript><style>.player-skeleton{display:none}.lfm{min-height:180px}</style></noscript><a class="skip-link" href="#mainContent">Skip to content</a>
 <div aria-hidden="true" class="scroll-progress"><span id="scrollProgress"></span></div>
@@ -185,6 +200,35 @@ body { background:#070809 url("/black-geometric.svg") center top / max(100vw, 90
 <input accept="image/jpeg,image/png,image/webp,image/gif" hidden="" id="cxFile" type="file"/>
 <div class="cx-foot"><span id="cxCounter"></span></div><div class="cx-bottom"><div style="flex:1;min-width:0"><p style="font-size:11px;color:#a69cab;margin:8px 0">Public chat · Deleted text retained by admin for 30 days.</p><details style="font-size:11px;color:#a69cab"><summary>Privacy &amp; AI</summary><p class="public-note">Public room · Everyone can read and join. Visits and action metadata are logged for site administration. Deleted message text and captions are retained for admin-only moderation for 30 days; media files are not archived. <span class="cx-ai-note">@deepAi uses Llama on Cloudflare · S.Ai uses GPT-OSS on Groq. Your mention and reply thread go to the selected provider. Affectionate messages to an AI may trigger one playful reaction from the other, sharing this reply thread with both providers. Two independent AI assistants. deepAi may use Groq as a fallback.</span></p></details></div><details class="cx-options"><summary>Chat options</summary><div class="cx-tools"><button class="cx-tool" hidden="" id="cxInstall" type="button">📲 Install app</button><button class="cx-tool" hidden="" id="cxNotify" type="button">🔔 Notifications: off</button></div><button class="cx-admin" id="cxAdmin" type="button">admin</button><a id="cxAuditLink" href="/admin-activity.html" hidden>Activity dashboard ↗</a><a id="cxBadgeAdminLink" href="/deeplist.html#admin" hidden>Manage badges ↗</a></details></div>
 <div class="cx-toast" hidden="" id="cxToast"></div>
+</section>
+<section class="deep-socials" aria-labelledby="deepSocialsTitle">
+  <h2 id="deepSocialsTitle">Find me elsewhere</h2>
+  <ul>
+    <li><a class="deep-social-link" href="https://www.instagram.com/damnndeepakk/" style="--social-color:#f487bd">
+      <span class="deep-social-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" focusable="false"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><path d="M17.5 6.5h.01"/></svg></span>
+      <span class="deep-social-label"><strong>Instagram</strong><small>@damnndeepakk</small></span>
+    </a></li>
+    <li><a class="deep-social-link" href="https://discord.gg/UbKfQbpw" style="--social-color:#9fa8ff">
+      <span class="deep-social-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M8 6 5 7c-2 3-3 6-3 10l5 2 1-2m8-11 3 1c2 3 3 6 3 10l-5 2-1-2M6 15c4 3 8 3 12 0M8 6l1 1h6l1-1"/><circle cx="9" cy="12" r=".7"/><circle cx="15" cy="12" r=".7"/></svg></span>
+      <span class="deep-social-label"><strong>Discord</strong><small>Join Discord</small></span>
+    </a></li>
+    <li><a class="deep-social-link" href="https://x.com/deepxiykyk" style="--social-color:#f1edf2">
+      <span class="deep-social-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M4 4h4l12 16h-4zM20 4l-7 8m-2 2-7 6"/></svg></span>
+      <span class="deep-social-label"><strong>X</strong><small>@deepxiykyk</small></span>
+    </a></li>
+    <li><a class="deep-social-link" href="https://t.me/damndeepak" style="--social-color:#7ccfff">
+      <span class="deep-social-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M22 3 2 11l7 3 3 7 10-18ZM9 14l8-6"/></svg></span>
+      <span class="deep-social-label"><strong>Telegram</strong><small>@damndeepak</small></span>
+    </a></li>
+    <li><a class="deep-social-link" href="https://www.linkedin.com/in/deepak-gandhi-989630283/" style="--social-color:#83c6ff">
+      <span class="deep-social-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" focusable="false"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 11v6m0-10h.01M12 17v-6m0 2a2.5 2.5 0 0 1 5 0v4"/></svg></span>
+      <span class="deep-social-label"><strong>LinkedIn</strong><small>Deepak Gandhi</small></span>
+    </a></li>
+    <li><a class="deep-social-link" href="https://github.com/Damndeepak" style="--social-color:#dfc3fc">
+      <span class="deep-social-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M9 19c-4 1-4-2-6-2m12 5v-3.9a3.4 3.4 0 0 0-.9-2.7c3-.3 6.1-1.5 6.1-6.7a5.2 5.2 0 0 0-1.4-3.6 4.9 4.9 0 0 0-.1-3.6s-1.1-.3-3.7 1.4a13 13 0 0 0-6 0C6.4 1.2 5.3 1.5 5.3 1.5a4.9 4.9 0 0 0-.1 3.6 5.2 5.2 0 0 0-1.4 3.6c0 5.2 3.1 6.4 6.1 6.7a3.4 3.4 0 0 0-.9 2.7V22"/></svg></span>
+      <span class="deep-social-label"><strong>GitHub</strong><small>@damndeepak</small></span>
+    </a></li>
+  </ul>
 </section>
 <div class="world-actions"><a class="world-button primary" href="/deeplist.html?connect=1">Connect your Deeplist ↗</a><span class="world-note">Name optional · add it later</span></div>
 <div class="activity-grid"><section aria-label="Recent listening" class="world-card activity-panel" data-activity="" hidden=""><div class="world-heading"><h2>Recent listening</h2><a class="world-link" href="/on-repeat.html">This week ↗</a></div><div class="world-history" id="worldHistory"><div aria-label="Loading listening activity" class="loading-row" role="status"><span class="skeleton skeleton-thumb"></span><span class="skeleton skeleton-line"></span></div></div></section><section aria-label="Other Deeplist listeners" class="world-card activity-panel listener-panel" data-activity="" data-rail-shell hidden=""><div class="world-heading"><h2>Listening now</h2><a class="world-link" href="/deeplist.html?connect=1">Connect your Deeplist ↗</a></div><p class="world-note" id="deeplistConnectionCount" role="status"></p><div class="chalk-live-wrap"><section aria-label="Deeplist Now Playing" class="lfm" id="lfm"><div aria-hidden="true" class="player-wash"></div><div class="player-top"><span class="player-brand">DEEPAK’S FREQUENCY</span><span class="lfm-label" id="lfmLabel">THE LISTENING ROOM</span><span id="deeplistOwnerBadge" class="cx-royal-badge" hidden></span></div><div aria-live="polite" id="lfmBody"><div aria-label="Loading current track" class="player-skeleton" role="status"><div class="skeleton skeleton-cover"></div><div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line short"></div></div></div><p class="live-lyric" id="deeplistHomeLyrics"></p><div class="player-progress" hidden="" id="homeProgress"><div class="progress-track"><span id="homeProgressFill"></span></div><div class="progress-times"><span id="homeElapsed">0:00</span><span id="homeDuration">0:00</span></div></div><a class="player-open" href="/deeplist.html"><span>Open the listening room</span><span aria-hidden="true" class="round-arrow">↗</span></a></section></div><div class="world-history" id="deeplistListeners" data-scroll-rail tabindex="0" role="group" aria-label="Connected listener cards"><div aria-label="Loading listening activity" class="loading-row" role="status"><span class="skeleton skeleton-thumb"></span><span class="skeleton skeleton-line"></span></div></div><div class="rail-footer"><div class="rail-controls" aria-label="Listener card controls"><button type="button" data-rail-prev="deeplistListeners" aria-label="Previous listeners" disabled>←</button><button type="button" data-rail-next="deeplistListeners" aria-label="Next listeners" disabled>→</button></div></div></section></div>
