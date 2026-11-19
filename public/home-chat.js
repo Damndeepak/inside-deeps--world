@@ -593,7 +593,7 @@ window.addEventListener('world-admin-change',async()=>{
     try{
       stream=await navigator.mediaDevices.getUserMedia({audio:true});
       if(document.hidden||discard){stopTracks();reset();return}
-      const type=['audio/mp4','audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus'].find(t=>MediaRecorder.isTypeSupported(t));
+      const type=['audio/webm;codecs=opus','audio/webm','audio/mp4','audio/ogg;codecs=opus'].find(t=>MediaRecorder.isTypeSupported(t));
       if(!type)throw new Error('This browser cannot record a supported audio format');
       recorder=new MediaRecorder(stream,{mimeType:type,audioBitsPerSecond:64000});chunks=[];started=Date.now();
       recorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
@@ -601,7 +601,7 @@ window.addEventListener('world-admin-change',async()=>{
       recorder.onstop=()=>{
         stopTracks();mic.classList.remove('recording');mic.textContent='🎙';mic.setAttribute('aria-label','Record voice note');
         if(discard){reset();return}
-        blob=new Blob(chunks,{type:recorder.mimeType});
+        blob=new Blob(chunks,{type:chunks[0]?.type||recorder.mimeType||type});
         if(!blob.size||blob.size>8*1024*1024){reset();toast('Recording is empty or too large');return}
         objectURL=URL.createObjectURL(blob);preview.src=objectURL;preview.hidden=false;label.textContent='Preview your voice note before sending';send.disabled=false;mic.disabled=true;
       };
@@ -618,7 +618,7 @@ window.addEventListener('world-admin-change',async()=>{
     uploading=true;send.disabled=true;cancel.disabled=true;label.textContent='Sending voice note…';
     const caption=E.input.value.trim(),reply=S.replyTo?.id||'';
     const fd=new FormData();fd.append('audio',blob,'voice.'+(blob.type.includes('mp4')?'m4a':blob.type.includes('ogg')?'ogg':'webm'));fd.append('message',caption);if(reply)fd.append('parent_id',reply);
-    try{const r=await fetch('/api/chat/voice',{method:'POST',body:fd});const d=await r.json();if(!r.ok||!d.success)throw new Error(d.warning ? d.error+'. '+d.warning : d.error||'Voice note could not be sent');if(E.input.value.trim()===caption){E.input.value='';grow();updateSend()}if(S.replyTo?.id===reply)clearReply();reset();toast('Voice note sent');await loadFeed(await getState());toBottom(false)}catch(e){label.textContent='Not sent. Your recording is still here.';toast(e.message)}finally{uploading=false;send.disabled=!blob;cancel.disabled=false}
+    try{const r=await fetch('/api/chat/voice',{method:'POST',body:fd});const d=await r.json().catch(()=>null);if(!r.ok||!d?.success)throw new Error(d?.warning ? d.error+'. '+d.warning : d?.error||'Voice note upload failed ('+r.status+'). Try Send again.');if(E.input.value.trim()===caption){E.input.value='';grow();updateSend()}if(S.replyTo?.id===reply)clearReply();reset();toast('Voice note sent');await loadFeed(await getState());toBottom(false)}catch(e){label.textContent='Not sent. Your recording is still here.';toast(e.message)}finally{uploading=false;send.disabled=!blob;cancel.disabled=false}
   });
   document.addEventListener('visibilitychange',()=>{if(document.hidden&&(opening||recorder?.state==='recording'))stop(true)});
   window.addEventListener('pagehide',()=>{stop(true);stopTracks()});
