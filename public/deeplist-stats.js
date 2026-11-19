@@ -17,7 +17,7 @@ import {identityColor,identityLabel} from './chat-identity.js';
     if (typeof window!=='undefined'&&window.worldIsVisible&&!window.worldIsVisible(box)){timer=setTimeout(load,30000);return;}
     controller?.abort();
     const active = new AbortController(); controller = active;
-    const deadline = setTimeout(() => active.abort(), 15000);
+    const deadline = setTimeout(() => active.abort(), 25000);
     try {
       const query = new URLSearchParams({ period: period.value, month: month.value || currentMonth });
       const response = await fetch('/api/deeplist/stats?' + query, { cache: 'no-store', signal: active.signal });
