@@ -357,6 +357,8 @@ id('strangersSignOut').addEventListener('click',async()=>{
   try{
     const response=await fetch(endpoint+'/session',{method:'DELETE'});
     if(!response.ok)throw Error();
+    try{sessionStorage.removeItem('cxAdminKey')}catch{}
+    if(id('cxAdmin')?.classList.contains('on'))id('cxAdmin').click();
     ++sessionVersion;
     closeInbox();
   }catch{inboxStatus.textContent='Could not sign out. Try again.'}
