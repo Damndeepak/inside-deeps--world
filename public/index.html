@@ -311,7 +311,7 @@ let previousBounds=null;
 let bounds=null;
 let rope=null;
 let released=null;
-let hangingWeb=null;
+const hangingWebs=new Map();
 let webFlash=null;
 let layoutFrame=0;
 let viewportTop=0;
@@ -452,7 +452,7 @@ function detach(now){
   if(!rope) return;
   if(rope.latched){
     const anchor=rope.points.at(-1);
-    hangingWeb={x:anchor.x,y:anchor.y,time:now};
+    hangingWebs.set(rope.segment,{x:anchor.x,y:anchor.y,time:now});
     released={time:now,surface:rope.surface,points:rope.points.map((p,i)=>({...p,px:p.x-(i/12-.5)*2,py:p.y})),
       lengths:rope.points.slice(1).map((p,i)=>Math.max(1,Math.hypot(p.x-rope.points[i].x,p.y-rope.points[i].y)))};
   }
@@ -483,36 +483,79 @@ function fall(now,elapsed){
   }
   silk(points,1-ease(clamp((age-135)/445)),released.surface);
 }
-function drawHangingWeb(now){
-  if(!hangingWeb) return;
-  const age=now-hangingWeb.time;
-  if(age>=1250){hangingWeb=null;return;}
-  const {x}=hangingWeb;
-  const y=hangingWeb.y-viewportTop;
-  const alpha=1-ease(clamp((age-640)/610));
-  const tip=42+32*ease(clamp(age/350));
-  const sway=Math.sin(age/110)*8*(1-age/1500);
-  include(x,y,tip+15);
+function webPoint(index,box,x,y){
+  if(index!==looseCardIndex) return [x,y-viewportTop];
+  const cx=box.x+box.width/2,cy=box.y+box.height/2;
+  const dx=x-cx,dy=y-cy,cos=Math.cos(cardAngle),sin=Math.sin(cardAngle);
+  return [cx+dx*cos-dy*sin+cardShift,cy+dx*sin+dy*cos+cardLift-viewportTop];
+}
+function drawSupportWebs(now){
+  const rows=[...surfaces];
+  let moving=false;
   pen.save();
-  pen.lineWidth=1;
-  pen.strokeStyle='rgba(197,226,255,'+alpha*.58+')';
-  pen.beginPath();
-  for(let i=0;i<7;i++){
-    const angle=i*Math.PI*2/7;
-    pen.moveTo(x,y);
-    pen.lineTo(x+Math.cos(angle)*21,y+Math.sin(angle)*16);
-  }
-  for(const radius of [.42,.76]){
-    for(let i=0;i<=7;i++){
-      const angle=i*Math.PI*2/7;
-      const px=x+Math.cos(angle)*21*radius,py=y+Math.sin(angle)*16*radius;
-      if(i===0) pen.moveTo(px,py);else pen.lineTo(px,py);
+  pen.lineCap='round';
+  for(let i=0;i<rows.length;i++){
+    const [index,box]=rows[i];
+    const next=rows[i+1];
+    if(next && box.y+box.height>=viewportTop-40 && next[1].y<=viewportTop+height+40){
+      const [nextIndex,lower]=next;
+      const [ax,ay]=webPoint(index,box,box.x+box.width*.84,box.y+box.height-4);
+      const [bx,by]=webPoint(nextIndex,lower,lower.x+lower.width*.16,lower.y+4);
+      const dx=bx-ax,dy=by-ay;
+      const sag=Math.min(40,Math.hypot(dx,dy)*.10);
+      const points=Array.from({length:9},(_,j)=>{
+        const t=j/8, bow=4*t*(1-t);
+        return [ax+dx*t,ay+dy*t+sag*bow,12*bow];
+      });
+      include(ax,ay,24);
+      include(bx,by,sag+24);
+      pen.strokeStyle='#bcd9f1a0';
+      pen.lineWidth=1;
+      pen.beginPath();
+      for(const side of [-1,1]){
+        points.forEach(([x,y,spread],j)=>{
+          if(j===0) pen.moveTo(x,y);else pen.lineTo(x,y+spread*side);
+        });
+      }
+      for(let j=1;j<points.length-1;j++){
+        const [x,y,spread]=points[j];
+        const [nx,ny,nspread]=points[j+1];
+        pen.moveTo(x,y-spread);
+        pen.quadraticCurveTo((x+nx)*.5,y+spread*.4,nx,ny+nspread);
+      }
+      pen.stroke();
     }
+    const anchor=stops.find(stop=>stop.index===index);
+    if(!anchor || anchor.y<viewportTop-85 || anchor.y>viewportTop+height+30) continue;
+    const segment=stops.indexOf(anchor)-1;
+    const drop=hangingWebs.get(segment);
+    const [x,y]=webPoint(index,box,drop?.x??anchor.x,drop?.y??anchor.y);
+    const age=drop?now-drop.time:1400;
+    const settle=clamp(age/1400);
+    const sway=Math.sin(age/115)*10*(1-settle)**2;
+    moving ||= settle<1;
+    include(x,y,87);
+    pen.strokeStyle='#d0e6f4a6';
+    pen.lineWidth=.95;
+    pen.beginPath();
+    const rays=[[-23,-4],[-16,-16],[4,-19],[20,-12],[23,6],[8,15],[-12,13]];
+    for(const [dx,dy] of rays){
+      pen.moveTo(x,y);
+      pen.lineTo(x+dx,y+dy);
+    }
+    for(const radius of [.38,.65,.91]){
+      rays.forEach(([dx,dy],j)=>{
+        const [nx,ny]=rays[(j+1)%rays.length];
+        if(j===0) pen.moveTo(x+dx*radius,y+dy*radius);
+        pen.quadraticCurveTo(x+(dx+nx)*radius*.42,y+(dy+ny)*radius*.42,x+nx*radius,y+ny*radius);
+      });
+    }
+    pen.moveTo(x,y);
+    pen.bezierCurveTo(x-8,y+22,x+sway+6,y+47,x+sway,y+65);
+    pen.stroke();
   }
-  pen.moveTo(x,y);
-  pen.bezierCurveTo(x-9,y+23,x+sway+9,y+tip*.68,x+sway,y+tip);
-  pen.stroke();
   pen.restore();
+  return moving;
 }
 function drawWebFlash(now){
   if(!webFlash) return;
@@ -635,7 +678,8 @@ const AudioEngine=window.AudioContext || window.webkitAudioContext;
 const webAudioGestures=['pointerup','touchend','keydown','click'];
 let webAudio, webShotBuffer, loadWebShot, swingWhoosh;
 let previousSwingPoint, lastWhooshSegment=-1;
-let looseCard, looseCardTransform;
+let looseCard, looseCardTransform, looseCardIndex=-1;
+let cardShift=0, cardLift=0, cardAngle=0;
 function unlockWebAudio(){
   if(!AudioEngine || paused) return;
   try{
@@ -666,6 +710,7 @@ function resetLooseCard(){
   if(!looseCard) return;
   looseCard.style.transform=looseCardTransform;
   looseCard=null;
+  looseCardIndex=-1;
 }
 function settleCard(index,phase,direction){
   const card=demonstration[index];
@@ -677,9 +722,12 @@ function settleCard(index,phase,direction){
     ? ease(clamp((phase-.02)/.22))
     : Math.cos(clamp((phase-.24)/.52)*Math.PI*1.6)*Math.pow(1-clamp((phase-.24)/.52),2.5);
   const distance=width<600?13:23;
+  looseCardIndex=index;
+  cardShift=direction*distance*displacement;
+  cardLift=-9*displacement;
+  cardAngle=direction*2.15*displacement*Math.PI/180;
   card.style.transform=(looseCardTransform ? looseCardTransform+' ' : '')+
-    'translate('+direction*distance*displacement+'px,'+(-9*displacement)+'px) rotate('+
-    direction*2.15*displacement+'deg)';
+    'translate('+cardShift+'px,'+cardLift+'px) rotate('+cardAngle+'rad)';
 }
 function drawSpeedLines(x,y,scale,segment,flight,scrolling){
   const previous=previousSwingPoint;
@@ -752,7 +800,10 @@ function draw(now){
   if(Math.abs(restTarget-rest)<.01) rest=restTarget;
   clearPrevious();
   bounds=null;
-  if(paused || stops.length<2){resetLooseCard();rope=released=webFlash=hangingWeb=null;return;}
+  if(paused || stops.length<2){
+    resetLooseCard();rope=released=webFlash=null;
+    drawSupportWebs(now);previousBounds=bounds;return;
+  }
   let segment=0;
   while(segment<stops.length-2 && stops[segment+1].mark<scroll) segment++;
   const start=stops[segment], end=stops[segment+1];
@@ -761,14 +812,13 @@ function draw(now){
   const landing=Math.sin(Math.PI*ease(clamp((phase-.80)/.20)));
   const arc=Math.sin(Math.PI*flight);
   let attached=false;
-  resetLooseCard();
   if(sheets.length===4 && readySheets===sheets.length){
     const scale=width<600?1.22:width>=1800?1.87:1.68;
     const route=routes[segment];
     const direction=Math.sign(end.x-start.x) || 1;
     if(scrolling && end.y-viewportTop>-100 && end.y-viewportTop<height+100){
-      settleCard(end.index,phase, direction);
-    }
+      settleCard(end.index,phase,direction);
+    }else resetLooseCard();
     const previousDirection=segment>0 ? Math.sign(start.x-stops[segment-1].x) || direction : direction;
     const swing=Math.min(width*.056,64)*route.drift;
     const edge=Math.ceil(46*scale);
@@ -808,9 +858,9 @@ function draw(now){
   if(!attached) detach(now);
   fall(now,elapsed);
   drawWebFlash(now);
-  drawHangingWeb(now);
+  const webSettling=drawSupportWebs(now);
   previousBounds=bounds;
-  if(Math.abs(target-scroll)>.3 || scrolling || rest!==restTarget || released || webFlash || hangingWeb) requestDraw();
+  if(Math.abs(target-scroll)>.3 || scrolling || rest!==restTarget || released || webFlash || webSettling) requestDraw();
   else last=0;
 }
 function requestDraw(){if(!frame) frame=requestAnimationFrame(draw)}
