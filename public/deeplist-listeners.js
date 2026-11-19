@@ -15,8 +15,8 @@ async function load(){
   if(mainBadge){mainBadge.textContent=crown(d.owner?.badge);mainBadge.hidden=!mainBadge.textContent;}
   const pair=document.getElementById('deeplistRoyalPair');
   const deepti=(d.listeners||[]).find(visitor=>visitor.badge==='queen');
-  if(pair){
-   const queen=pair.querySelector('[data-queen-link]');
+  const queen=pair?.querySelector?.('[data-queen-link]');
+  if(queen){
    if(deepti) queen.href='/deeplist.html?user='+encodeURIComponent(deepti.channel);
    pair.hidden=d.owner?.badge!=='king'||!deepti;
   }
