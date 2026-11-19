@@ -13,13 +13,9 @@ async function load(){
   const owner=document.getElementById('lfm')?.closest?.('.chalk-live-wrap');if(owner){owner.style.order='-1';owner.setAttribute?.('data-royal-player',royalBadge(d.owner?.badge));}
   const mainBadge=document.getElementById('deeplistOwnerBadge');
   if(mainBadge){mainBadge.textContent=crown(d.owner?.badge);mainBadge.hidden=!mainBadge.textContent;}
-  const pair=document.getElementById('deeplistRoyalPair');
-  const deepti=(d.listeners||[]).find(visitor=>visitor.badge==='queen');
-  const queen=pair?.querySelector?.('[data-queen-link]');
-  if(queen){
-   if(deepti) queen.href='/deeplist.html?user='+encodeURIComponent(deepti.channel);
-   pair.hidden=d.owner?.badge!=='king'||!deepti;
-  }
+  const queenSlot=document.getElementById('deeplistQueenSlot');
+  const queen=(d.listeners||[]).find(visitor=>visitor.badge==='queen');
+  if(queenSlot)queenSlot.hidden=!queen;
   const count=document.getElementById('deeplistConnectionCount');if(count)count.textContent=Number.isInteger(d.totalConnected)?d.totalConnected+' music connections recorded':'';
   clearExpiries();
   const wanted=new Set((d.listeners||[]).map(v=>v.channel));
@@ -45,7 +41,7 @@ async function load(){
     card._coverId=visitor.id;cover.textContent='d.';
     if(/^[A-Za-z0-9_-]{11}$/.test(visitor.id||'')){const img=document.createElement('img');img.src='https://i.ytimg.com/vi/'+visitor.id+'/hqdefault.jpg';img.alt='';img.loading='lazy';img.referrerPolicy='no-referrer';img.onerror=()=>{cover.textContent='d.'};cover.replaceChildren(img)}
    }
-   const label=identityLabel(visitor.label,visitor.symbol),track=visitor.title+' · '+visitor.artist;
+   const label=identityLabel(visitor===queen?'DEEPTE':visitor.label,visitor.symbol),track=visitor.title+' · '+visitor.artist;
    const icon=crown(visitor.badge),badge=icon?'  '+icon:'';
    card.setAttribute?.('data-royal-player',royalBadge(visitor.badge));
    if(name.textContent!==label+badge)name.textContent=label+badge;
@@ -58,8 +54,12 @@ async function load(){
    name.className=live&&visitor.playing===true?'deeplist-live-indicator':'';
    status.textContent=live?(visitor.playing?'Live · open synced lyrics':'Paused · open synced lyrics'):lastShared;
    if(live)expiryTimers.push(setTimeout(()=>{name.className='';card.className='world-track deeplist-listener-card';status.textContent=lastShared;},remaining));
-   if(box.children[index]!==card)box.insertBefore(card,box.children[index]||null);
-   index++;
+   if(visitor===queen&&queenSlot){
+    if(queenSlot.firstElementChild!==card)queenSlot.replaceChildren(card);
+   }else{
+    if(box.children[index]!==card)box.insertBefore(card,box.children[index]||null);
+    index++;
+   }
   }
  failures=0;
  }catch{failures++;if(!cards.size){const message='Connected listeners are unavailable right now.';if(box.textContent!==message)box.textContent=message;}}
