@@ -27,12 +27,22 @@ function card(track,live){
 }
 function paint(now){frame=0;if(!snapshot||document.hidden)return;if(now-last>=100){last=now;const raw=snapshot.position+(snapshot.playing?performance.now()-received:0),p=Math.min(snapshot.duration||raw,Math.max(0,raw));let active;for(const line of snapshot.lines||[]){if(line.time>p+(snapshot.offset||0))break;active=line}const text=active?.text||'';showLyric(text);if(progress){progress.hidden=!snapshot.duration;fill.style.width=(snapshot.duration?Math.min(100,p/snapshot.duration*100):0)+'%';const e=time(p),d=time(snapshot.duration);if(elapsed.textContent!==e)elapsed.textContent=e;if(duration.textContent!==d)duration.textContent=d}}if(snapshot.playing&&(window.worldIsVisible||(()=>!document.hidden))(box))frame=requestAnimationFrame(paint)}
 function empty(unavailable=false){clearTimeout(freshnessTimer);snapshot=null;const emptyKey='empty:'+unavailable;if(key===emptyKey)return;key=emptyKey;showLyric('');if(progress)progress.hidden=true;box.classList.remove('is-playing');label.classList.remove('deeplist-live-indicator');box.style.removeProperty('--album-art');label.textContent=unavailable?'BETWEEN CONNECTIONS':'BETWEEN SONGS';body.replaceChildren();const cover=document.createElement('div');cover.className='lfm-card';const mark=document.createElement('div');mark.className='lfm-cover';mark.textContent='d.';const title=document.createElement('div');title.className='lfm-title';title.textContent=unavailable?'A quiet moment.':'The next song is a feeling.';const note=document.createElement('div');note.className='lfm-artist';note.textContent=unavailable?'Live listening will return when connected.':'Deepak’s shared tracks will appear here.';cover.append(mark,title,note);body.append(cover)}
+async function showRecent(){
+  if(performance.now()-historyChecked>=30000){
+    const history=window.worldPublicJSON?await window.worldPublicJSON('/api/deeplist/history'):
+      await fetch('/api/deeplist/history',{cache:'no-store',signal:AbortSignal.timeout(25000)}).then(response=>{
+        if(!response.ok)throw Error('History unavailable');return response.json();
+      });
+    historyTrack=history.tracks?.[0]||null;
+    historyChecked=performance.now();
+  }
+  if(historyTrack)card(historyTrack,false);else empty();
+}
 async function poll(){clearTimeout(timer);if(document.hidden||loading)return;loading=true;const started=performance.now();try{
- const r=await fetch('/api/deeplist/state'+(snapshot?.lyricsVersion?'?lyricsVersion='+encodeURIComponent(snapshot.lyricsVersion):''),{cache:'no-store',signal:AbortSignal.timeout(4000)});if(!r.ok)throw Error();const d=await r.json();cancelAnimationFrame(frame);
+ const r=await fetch('/api/deeplist/state'+(snapshot?.lyricsVersion?'?lyricsVersion='+encodeURIComponent(snapshot.lyricsVersion):''),{cache:'no-store',signal:AbortSignal.timeout(25000)});if(!r.ok)throw Error();const d=await r.json();cancelAnimationFrame(frame);
  if(d.connected&&d.state){const next=d.state;if(next.lines===undefined)next.lines=snapshot?.id===next.id&&snapshot.lyricsVersion===next.lyricsVersion?snapshot.lines||[]:[];snapshot=next;received=performance.now()-Math.max(0,d.serverNow-d.receivedAt);clearTimeout(freshnessTimer);freshnessTimer=setTimeout(()=>empty(true),Math.max(0,15000-(performance.now()-received)));card(snapshot,true);frame=requestAnimationFrame(paint)}
  else{clearTimeout(freshnessTimer);snapshot=null;showLyric('');if(progress)progress.hidden=true;
-  if(performance.now()-historyChecked>=30000){const history=window.worldPublicJSON?await window.worldPublicJSON('/api/deeplist/history'):await fetch('/api/deeplist/history',{cache:'no-store',signal:AbortSignal.timeout(4000)}).then(r=>{if(!r.ok)throw Error();return r.json()});historyTrack=history.tracks?.[0]||null;historyChecked=performance.now();}
-  if(historyTrack)card(historyTrack,false);else empty()}
- failures=0;}catch{failures++;empty(true)}finally{loading=false;timer=setTimeout(()=>{if((window.worldIsVisible||(()=>!document.hidden))(box))poll();else timer=setTimeout(()=>{if((window.worldIsVisible||(()=>!document.hidden))(box))poll()},10000)},failures?Math.min(10000,1000*2**(failures-1)):Math.max(250,(window.worldPollDelay?.(snapshot?.playing?1000:5000,5000)??(snapshot?.playing?1000:5000))-(performance.now()-started)))}}
+  await showRecent();}
+ failures=0;}catch{failures++;if(!snapshot){try{await showRecent()}catch{if(historyTrack)card(historyTrack,false);else empty(true)}}}finally{loading=false;timer=setTimeout(()=>{if((window.worldIsVisible||(()=>!document.hidden))(box))poll();else timer=setTimeout(()=>{if((window.worldIsVisible||(()=>!document.hidden))(box))poll()},10000)},failures?Math.min(10000,1000*2**(failures-1)):Math.max(250,(window.worldPollDelay?.(snapshot?.playing?1000:5000,5000)??(snapshot?.playing?1000:5000))-(performance.now()-started)))}}
 document.addEventListener('visibilitychange',()=>{if(document.hidden){lyricAnimation?.cancel();label.classList.remove('deeplist-live-indicator');clearTimeout(timer);cancelAnimationFrame(frame)}else poll()});box.addEventListener('world-visible',()=>{if(snapshot)frame=requestAnimationFrame(paint);poll()});poll();
 })();
