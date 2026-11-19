@@ -712,7 +712,7 @@ function loadFrames(){
     const context=grading.getContext('2d');
     if(!context || !('filter' in context))return source;
     try{
-      context.filter='saturate(1.5) brightness(1.26) contrast(1.05)';
+      context.filter='saturate(1.7) brightness(1.39) contrast(1.08)';
       context.drawImage(source,0,0);
       const result=await createImageBitmap(grading);
       source.close?.();
@@ -756,16 +756,18 @@ function frameSource(index){
   const width=sheet.width/6,height=sheet.height/5;
   return [sheet,slot%6*width,Math.floor(slot/6)*height,width,height];
 }
-function drawModel(x,y,scale,direction,previousDirection,phase,lean){
+function drawModel(x,y,scale,direction,previousDirection,phase,lean,compression){
   const lastFrame=wrists.length-1;
-  const pose=clamp((phase-.025)/.91)*lastFrame;
-  const current=Math.round(pose);
-  const airborne=ease(clamp(phase/.045))*(1-ease(clamp((phase-.87)/.13)));
-  const takeoff=sheets[Math.floor(current/30)]?airborne:0;
+  const reach=clamp((phase-.035)/.20);
+  const land=clamp((phase-.235)/.765);
+  const pose=phase<.235 ? .35*ease(reach) : .35+.65*land;
+  const current=Math.round(pose*lastFrame);
+  const takeoff=phase>=.035&&phase<.995&&sheets[Math.floor(current/30)]?1:0;
   const crouchDirection=rest>.5?direction:previousDirection;
   const alpha=Math.round(takeoff*32)/32;
   const angle=Math.round(lean*120)/120;
-  const key=[scale,alpha,crouchDirection,alpha?current:-1,direction,alpha?angle:0].join(':');
+  const squash=Math.round(compression*40)/40;
+  const key=[scale,alpha,crouchDirection,alpha?current:-1,direction,angle,squash].join(':');
   if(key!==spriteKey){
     spriteKey=key;
     spritePen.clearRect(0,0,spriteSize,spriteSize);
@@ -775,12 +777,12 @@ function drawModel(x,y,scale,direction,previousDirection,phase,lean){
       if(opacity<=0)return;
       spritePen.save();
       spritePen.rotate(rotation);
-      spritePen.scale(-facing*scale*.4,scale*.4);
+      spritePen.scale(-facing*scale*.4*(1+squash*.45),scale*.4*(1-squash));
       spritePen.globalAlpha=opacity;
       spritePen.drawImage(...frameSource(index),crop.left-400,crop.top-400,crop.width,crop.height);
       spritePen.restore();
     }
-    paint(lastFrame,1-alpha,crouchDirection);
+    paint(lastFrame,1-alpha,crouchDirection,angle);
     paint(current,alpha,direction,angle);
     spritePen.restore();
   }
@@ -790,10 +792,10 @@ function drawModel(x,y,scale,direction,previousDirection,phase,lean){
   }
   sprite.hidden=false;
   const hand=wrists[alpha>0?current:lastFrame];
-  const wristX=-direction*(hand[0]-.5)*320*scale;
-  const wristY=(hand[1]-.5)*320*scale;
-  return [x+wristX*Math.cos(lean)-wristY*Math.sin(lean),
-    y+wristX*Math.sin(lean)+wristY*Math.cos(lean)];
+  const wristX=-(alpha?direction:crouchDirection)*(hand[0]-.5)*320*scale*(1+squash*.45);
+  const wristY=(hand[1]-.5)*320*scale*(1-squash);
+  return [x+wristX*Math.cos(angle)-wristY*Math.sin(angle),
+    y+wristX*Math.sin(angle)+wristY*Math.cos(angle)];
 }
 const AudioEngine=window.AudioContext || window.webkitAudioContext;
 const webAudioGestures=['pointerup','touchend','keydown','click'];
@@ -884,6 +886,7 @@ function drawSpeedLines(x,y,scale,segment,flight,scrolling,elapsed){
     pen.moveTo(endX,endY);
     pen.lineTo(startX,startY);
     pen.stroke();
+    include(startX,startY,4);
     include(endX,endY,4);
   }
   pen.restore();
@@ -919,7 +922,7 @@ function draw(now){
   frame = 0;
   const elapsed = Math.min(now-(last || now-16),48);
   last = now;
-  scroll = paused ? target : lerp(scroll,target,1-Math.exp(-elapsed/47));
+  scroll = paused ? target : lerp(scroll,target,1-Math.exp(-elapsed*.98/47));
   viewportTop=target;
   const scrolling=now-lastScrollInput<100;
   const restTarget=scrolling?0:1;
@@ -936,8 +939,10 @@ function draw(now){
   while(segment<stops.length-2 && stops[segment+1].mark<scroll) segment++;
   const start=stops[segment], end=stops[segment+1];
   const phase=clamp((scroll-start.mark)/Math.max(1,end.mark-start.mark));
-  const flight=ease(clamp((phase-.025)/.94));
-  const landing=Math.sin(Math.PI*ease(clamp((phase-.80)/.20)));
+  const travel=clamp((phase-.035)/.90);
+  const flight=travel*travel*(3-2*travel);
+  const load=Math.sin(Math.PI*clamp(phase/.075));
+  const landing=Math.sin(Math.PI*clamp((phase-.84)/.16));
   const arc=Math.sin(Math.PI*flight);
   let attached=false, visible=false;
   if(sheets[3]){
@@ -952,9 +957,11 @@ function draw(now){
     const edge=Math.ceil(46*scale);
     const x=Math.max(edge,Math.min(width-edge,lerp(start.x,end.x,flight)+direction*arc*swing));
     const sag=Math.min(height*.28,Math.hypot(end.x-start.x,end.y-start.y)*.32)*route.dip;
-    const launch=Math.sin(Math.PI*clamp(phase/.24))*Math.min(34,height*.055);
-    const y=lerp(start.y,end.y,flight)-viewportTop+45*scale+route.lift*arc*sag+landing*20-launch;
-    const lean=direction*route.lean*1.3*Math.sin(2*Math.PI*flight)*arc;
+    const push=clamp((phase-.035)/.26);
+    const launch=4*push*(1-push)*Math.min(48,height*.11);
+    const y=lerp(start.y,end.y,flight)-viewportTop+45*scale+route.lift*arc*sag+landing*13+load*9-launch;
+    const lean=direction*(route.lean*1.3*Math.sin(2*Math.PI*flight)*arc+.14*load-.12*landing);
+    const compression=.09*load+.14*landing;
     const anchor=end;
     if(y>-165 && y<height+165){
       visible=true;
@@ -967,8 +974,8 @@ function draw(now){
         pen.fillStyle='rgba(2,9,19,'+contact*.28+')';pen.fill();
       }
       drawSpeedLines(x,y,scale,segment,flight,scrolling,elapsed);
-      const wrist=drawModel(x,y,scale,direction,previousDirection,phase,lean);
-      if(readySheets===sheets.length && scrolling && phase>.012 && phase<.96 &&
+      const wrist=drawModel(x,y,scale,direction,previousDirection,phase,lean,compression);
+      if(readySheets===sheets.length && scrolling && phase>.065 && phase<.94 &&
         (shotSegment!==segment || lastScrollInput-lastShotInput>360)){
         if(rope)detach(now);
         shotSegment=segment;
