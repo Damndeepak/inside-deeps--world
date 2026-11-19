@@ -439,12 +439,19 @@ syncInbox();
 
 <!-- Spider-Man scroll animation. Frames rendered from Swing to Land by Molon Modeler. -->
 <canvas id="deep-spider-swing" aria-hidden="true" style="position:fixed;inset:0;pointer-events:none;z-index:6"></canvas>
+<canvas id="deep-spider-sprite" aria-hidden="true" hidden style="position:fixed;top:0;left:0;z-index:7;pointer-events:none;will-change:transform"></canvas>
 <script>
 (()=>{
 
 const canvas = document.getElementById('deep-spider-swing');
 const pen = canvas?.getContext('2d');
 if(!canvas || !pen) return;
+const sprite=document.getElementById('deep-spider-sprite');
+const spritePen=sprite.getContext('2d');
+if(!spritePen)return;
+const spriteSize=416, spriteOriginY=160;
+const touch=matchMedia('(pointer: coarse)').matches;
+let spriteKey='',spriteX,spriteY;
 const cards = [...document.querySelectorAll(
   '#cxChat, .deep-socials, #lfm, #deeplistStats, .media-entry, #memoryFilm, #publicThoughts'
 )];
@@ -527,7 +534,12 @@ let paused = preference.matches;
 let lastScrollInput = -Infinity;
 let rest = 1;
 function resize(){
-  const density = Math.min(devicePixelRatio || 1, innerWidth<750?1.35:1.75);
+  const density=1;
+  const spriteDensity=Math.min(devicePixelRatio||1,touch?1.5:2);
+  sprite.width=sprite.height=Math.round(spriteSize*spriteDensity);
+  sprite.style.width=sprite.style.height=spriteSize+'px';
+  spritePen.setTransform(sprite.width/spriteSize,0,0,sprite.height/spriteSize,0,0);
+  spriteKey='';
   width = innerWidth;
   height = innerHeight;
   canvas.width = width*density;
@@ -570,7 +582,7 @@ function silk(points,alpha,surface){
     pen.stroke();
   }
   // Project the same moving strand onto the landing surface, away from the key light.
-  if(surface){
+  if(surface&&!touch){
     const shadow=points.map((point,i)=>{
       const separation=5+13*(1-i/(points.length-1));
       return {x:point.x+separation*.72,y:point.y+separation};
@@ -582,7 +594,7 @@ function silk(points,alpha,surface){
     });
   }
   points.forEach(point=>include(point.x,point.y-viewportTop,8));
-  draw(points,'rgba(53,174,255,'+alpha*.12+')',10);
+  if(!touch) draw(points,'rgba(53,174,255,'+alpha*.12+')',10);
   draw(points,'rgba(85,202,255,'+alpha*.38+')',4.2);
   draw(points,'rgba(223,252,255,'+alpha*.98+')',1.25);
 }
@@ -720,21 +732,33 @@ function drawModel(x,y,scale,direction,previousDirection,phase,lean){
   const pose=clamp((phase-.10)/.77)*lastFrame;
   const current=Math.round(pose);
   const takeoff=sheets[Math.floor(current/30)]?ease(clamp(phase/.10))*(1-rest):0;
-  function paint(index,alpha,facing,angle=0){
-    if(alpha<=0) return;
-    pen.save();
-    pen.rotate(angle);
-    pen.scale(-facing*scale*.4,scale*.4);
-    pen.globalAlpha=alpha;
-    pen.drawImage(...frameSource(index),crop.left-400,crop.top-400,crop.width,crop.height);
-    pen.restore();
-  }
   const crouchDirection=rest>.5?direction:previousDirection;
-  pen.save();
-  pen.translate(x,y);
-  paint(lastFrame,1-takeoff,crouchDirection);
-  paint(current,takeoff,direction,lean);
-  pen.restore();
+  const alpha=Math.round(takeoff*32)/32;
+  const angle=Math.round(lean*120)/120;
+  const key=[scale,alpha,crouchDirection,alpha?current:-1,direction,alpha?angle:0].join(':');
+  if(key!==spriteKey){
+    spriteKey=key;
+    spritePen.clearRect(0,0,spriteSize,spriteSize);
+    spritePen.save();
+    spritePen.translate(spriteSize/2,spriteOriginY);
+    function paint(index,opacity,facing,rotation=0){
+      if(opacity<=0)return;
+      spritePen.save();
+      spritePen.rotate(rotation);
+      spritePen.scale(-facing*scale*.4,scale*.4);
+      spritePen.globalAlpha=opacity;
+      spritePen.drawImage(...frameSource(index),crop.left-400,crop.top-400,crop.width,crop.height);
+      spritePen.restore();
+    }
+    paint(lastFrame,1-alpha,crouchDirection);
+    paint(current,alpha,direction,angle);
+    spritePen.restore();
+  }
+  if(spriteX!==x || spriteY!==y){
+    spriteX=x;spriteY=y;
+    sprite.style.transform='translate3d('+(x-spriteSize/2)+'px,'+(y-spriteOriginY)+'px,0)';
+  }
+  sprite.hidden=false;
   const hand=wrists[current];
   const wristX=-direction*(hand[0]-.5)*320*scale;
   const wristY=(hand[1]-.5)*320*scale;
@@ -780,7 +804,9 @@ function resetLooseCard(){
   looseCardIndex=-1;
 }
 function settleCard(index,phase,direction){
-  const card=demonstration[index];
+  const surface=demonstration[index];
+  // Move the lightweight web overlay on touch devices, not the whole chat/card layer.
+  const card=touch?surface?.querySelector('.deep-web-decoration'):surface;
   if(card!==looseCard) resetLooseCard();
   if(!card || phase<=.02 || phase>=.76){resetLooseCard();return;}
   if(!looseCard){looseCard=card;looseCardTransform=card.style.transform;}
@@ -794,7 +820,7 @@ function settleCard(index,phase,direction){
   cardLift=-9*displacement;
   cardAngle=direction*2.15*displacement*Math.PI/180;
   card.style.transform=(looseCardTransform ? looseCardTransform+' ' : '')+
-    'translate('+cardShift+'px,'+cardLift+'px) rotate('+cardAngle+'rad)';
+    'translate('+cardShift+'px,'+cardLift+'px) rotate('+cardAngle+'rad)'+(touch&&card.classList.contains('right')?' scaleX(-1)':'');
 }
 function drawSpeedLines(x,y,scale,segment,flight,scrolling,elapsed){
   const previous=previousSwingPoint;
@@ -869,6 +895,7 @@ function draw(now){
   bounds=null;
   if(paused || stops.length<2){
     resetLooseCard();rope=released=webFlash=null;
+    sprite.hidden=true;
     return;
   }
   let segment=0;
@@ -878,7 +905,7 @@ function draw(now){
   const flight=ease(clamp((phase-.08)/.84));
   const landing=Math.sin(Math.PI*ease(clamp((phase-.80)/.20)));
   const arc=Math.sin(Math.PI*flight);
-  let attached=false;
+  let attached=false, visible=false;
   if(sheets[3]){
     const scale=width<600?1.22:width>=1800?1.87:1.68;
     const route=routes[segment];
@@ -896,10 +923,11 @@ function draw(now){
     const extension=1-Math.pow(1-clamp((phase-.045)/.14),3);
     const anchor=end;
     if(y>-165 && y<height+165){
-      include(x,y,158*scale);
+      visible=true;
       // A compressed contact shadow gives the crouch weight against the surface.
       const contact=1-clamp(arc*(1-rest)*1.6);
       if(contact>.15){
+        include(x,y+32*scale,34*scale);
         pen.beginPath();
         pen.ellipse(x,y+32*scale,32*scale,6*scale,0,0,Math.PI*2);
         pen.fillStyle='rgba(2,9,19,'+contact*.28+')';pen.fill();
@@ -920,6 +948,7 @@ function draw(now){
       }
     }
   }
+  if(!visible)sprite.hidden=true;
   if(!scrolling){previousSwingPoint=null;lastWhooshSegment=-1;}
   if(!attached) detach(now);
   fall(now,elapsed);
