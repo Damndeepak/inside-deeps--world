@@ -317,6 +317,9 @@ body {
 .cx-spidey-mask::before,.cx-spidey-mask::after{content:"";position:absolute;top:38%;width:34%;height:32%;background:#f6f8ff;border:2px solid #22192c}
 .cx-spidey-mask::before{left:8%;transform:skewY(24deg);border-radius:14% 60% 40% 70%}
 .cx-spidey-mask::after{right:8%;transform:skewY(-24deg);border-radius:60% 14% 70% 40%}
+#cxChat .cx-spidey-hello{position:absolute;z-index:9;right:8px;bottom:calc(100% + 9px);color:#ffdde5;background:#342042;border:1px solid #fb839c77;border-radius:14px;padding:5px 10px;font-size:11px;pointer-events:none}
+#cxChat .cx-spidey-hello:empty{display:none}
+#cxChat .cx-mentions:not([hidden]){z-index:10}
 #cxChat .cx-spidey-hint{margin-right:auto;color:#c4b9d8;font-size:11px}
 #cxChat .cx-spidey-reply .cx-ai-badge{color:#ffd5dc;background:#8d234d55;border-color:#fd77976b}
 </style>
@@ -343,6 +346,7 @@ body {
 <div class="cx-reply" hidden="" id="cxReply"><div class="cx-reply-text" id="cxReplyText"></div><button aria-label="Cancel reply" class="cx-x" id="cxReplyX" type="button">×</button></div>
 <div class="cx-prev" hidden="" id="cxPrev"><img alt="" id="cxPrevImg"/><div class="cx-prev-name" id="cxPrevName"></div><button aria-label="Remove image" class="cx-x" id="cxPrevX" type="button">×</button></div>
 <div class="cx-composer">
+<span id="spideyHello" class="cx-spidey-hello" aria-live="polite"></span>
 <div class="cx-mentions" id="cxMentions" role="listbox" aria-label="Mention suggestions" hidden><button class="cx-mention-option" id="cxMentionDeepAI" type="button" role="option" aria-selected="true" tabindex="-1"><span class="cx-mention-avatar" aria-hidden="true">✦</span><span><strong>@deepAi <small>AI</small></strong><span>Ask the AI</span></span></button><button class="cx-mention-option" id="cxMentionSAI" data-ai-handle="S.Ai" type="button" role="option" tabindex="-1"><span class="cx-mention-avatar" aria-hidden="true">♡</span><span><strong>@S.Ai <small>AI</small></strong><span>Ask the AI</span></span></button><button class="cx-mention-option" id="cxMentionSpideyAI" data-ai-handle="SpideyAI" type="button" role="option" tabindex="-1"><span class="cx-mention-avatar cx-spidey-mask" aria-hidden="true"></span><span><strong>Spidey AI <small>@SpideyAI</small></strong><span>Ask Spidey AI</span></span></button></div>
 <form autocomplete="off" class="cx-form" id="cxForm">
 <button aria-label="Attach image" class="cx-attach" id="cxAttach" type="button"><svg fill="none" height="20" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewbox="0 0 24 24" width="20"><path d="M21 12.5l-8.6 8.6a5.5 5.5 0 0 1-7.8-7.8l9-9a3.7 3.7 0 0 1 5.2 5.2l-9 9a1.8 1.8 0 0 1-2.6-2.6l8.3-8.3"></path></svg></button>
@@ -571,7 +575,7 @@ syncInbox();
 <script defer="" src="/deeplist-home.js?v=connection-recovery-1"></script>
 <script type="module" src="/deeplist-listeners.js?v=connection-recovery-1"></script>
 <script type="module" src="/deeplist-stats.js?v=connection-recovery-1"></script>
-<script type="module" src="/home-chat.js?v=spidey-1"></script>
+<script type="module" src="/home-chat.js?v=spidey-hello-2"></script>
 <dialog aria-labelledby="ptTitle" class="pt-dialog" id="ptDialog"><div class="pt-dialog-close"><button aria-label="Close dialog" class="close" id="ptClose" type="button">×</button></div><section aria-labelledby="ptTitle" class="world-card pt-section" id="publicThoughts">
 <div class="world-heading"><div><h2 id="ptTitle">Inside Deep’s Mind</h2></div><button class="world-delete" id="ptAdmin" type="button">Admin</button></div>
 
@@ -684,6 +688,9 @@ const clamp = value => Math.max(0, Math.min(1, value));
 const lerp = (a,b,t) => a+(b-a)*t;
 const ease = t => t*t*(3-2*t);
 let width, height, frame, scroll, target, last;
+let settleAt=null, idleAt=null, idleFrom=null, greeting=null, greetingTimer, idleTimer;
+let modelPose=1;
+const greetingLabel=document.getElementById('spideyHello');
 let paused = preference.matches;
 const castAt=.17;
 const releaseAt=.65;
@@ -943,6 +950,31 @@ function draw(now){
     sprite.hidden=true;
     return;
   }
+  const parked=settleAt!==null && now>=settleAt;
+  if(parked && idleAt===null){
+    idleAt=now;
+    idleFrom=Number.isFinite(spriteX)?{x:spriteX,y:spriteY,pose:modelPose}:null;
+    if(web)looseWeb={points:web,at:now};
+    web=null;
+  }
+  if(greeting && sheets[3]){
+    const progress=clamp((now-greeting.at)/420);
+    const salute=clamp((now-greeting.at-420)/260);
+    const wave=clamp((now-greeting.at-680)/280);
+    const run=ease(progress);
+    const stride=Math.sin(progress*Math.PI*4)**2*Math.sin(progress*Math.PI)*9;
+    const pose=progress<1?lerp(1,.78,Math.sin(Math.PI*progress)):
+      salute<1?lerp(1,.22,ease(salute)):lerp(.22,1,ease(wave));
+    const x=lerp(greeting.x,greeting.endX,run);
+    const y=lerp(greeting.y,greeting.endY,run)-stride;
+    drawModel(x,y,1,greeting.direction,greeting.direction,pose);
+    if(now-greeting.at>=1050){
+      idleAt=now-220;
+      idleFrom={x,y:y-22,pose:1};
+      greeting=null;
+    }else requestDraw();
+    return;
+  }
   let segment=0;
   while(segment<stops.length-2 && stops[segment+1].mark<scroll)segment++;
   const start=stops[segment],end=stops[segment+1];
@@ -962,18 +994,28 @@ function draw(now){
     const y=lerp(start.y,end.y,travel)-viewportTop+34*scale+dip;
     if(y>-150 && y<height+120){
       visible=true;
-      const pose=clamp((phase-.07)/(landAt-.07));
-      const wrist=drawModel(x,y,scale,direction,previousDirection,pose);
+      modelPose=clamp((phase-.07)/(landAt-.07));
+      let modelX=x,modelY=y;
+      if(parked && idleFrom){
+        const settle=ease(clamp((now-idleAt)/200));
+        modelX=idleFrom.x;
+        modelY=lerp(idleFrom.y,Math.max(75,Math.min(height-90,idleFrom.y+22)),settle);
+        modelPose=lerp(idleFrom.pose,1,settle);
+      }
+      const wrist=drawModel(modelX,modelY,scale,direction,previousDirection,modelPose);
       if(readySheets===sheets.length){
-        if(!hasCast && sameLeg && lastPhase<castAt && phase>=castAt && phase<releaseAt){
-          hasCast=true;
-          playWebShot();
+        if(parked)drawWeb(wrist,start,end,1,now);
+        else{
+          if(!hasCast && sameLeg && lastPhase<castAt && phase>=castAt && phase<releaseAt){
+            hasCast=true;
+            playWebShot();
+          }
+          if(!hasLanded && sameLeg && lastPhase<landAt && phase>=landAt){
+            hasLanded=true;
+            landOnCard(end.index);
+          }
+          drawWeb(wrist,start,end,phase,now);
         }
-        if(!hasLanded && sameLeg && lastPhase<landAt && phase>=landAt){
-          hasLanded=true;
-          landOnCard(end.index);
-        }
-        drawWeb(wrist,start,end,phase,now);
       }
     }
   }
@@ -981,7 +1023,7 @@ function draw(now){
   lastSegment=segment;
   lastPhase=phase;
   previousBounds=bounds;
-  if(scroll!==target || looseWeb)requestDraw();
+  if(scroll!==target || looseWeb || (parked && idleAt!==null && now-idleAt<200))requestDraw();
   else last=0;
 }
 function requestDraw(){if(!frame) frame=requestAnimationFrame(draw)}
@@ -998,10 +1040,31 @@ addEventListener('resize',()=>{
   else resizeTimer=setTimeout(()=>{if(innerHeight!==height)resize();},160);
 },{passive:true});
 addEventListener('scroll',()=>{
+  if(scrollY===target)return;
   target=scrollY;
+  idleAt=idleFrom=null;
+  clearTimeout(idleTimer);
+  settleAt=performance.now()+160;
+  idleTimer=setTimeout(requestDraw,170);
   if(target>0) loadFrames();
   requestDraw();
 },{passive:true});
+window.addEventListener('spidey-greet',()=>{
+  if(!greetingLabel)return;
+  greetingLabel.textContent='Hey, hey. Spidey here.';
+  clearTimeout(greetingTimer);
+  greetingTimer=setTimeout(()=>{greetingLabel.textContent='';},2300);
+  if(paused)return;
+  const box=greetingLabel.parentElement.getBoundingClientRect();
+  const endX=Math.max(50,Math.min(width-50,box.right-62));
+  const endY=Math.max(80,Math.min(height-70,box.top-52));
+  const x=sprite.hidden?width-42:Math.max(42,Math.min(width-42,spriteX));
+  const y=sprite.hidden?endY-34:Math.max(75,Math.min(height-80,spriteY));
+  greeting={at:performance.now(),x,y,endX,endY,direction:Math.sign(endX-x)||-1};
+  settleAt=greeting.at;
+  web=looseWeb=null;
+  requestDraw();
+});
 const observer=new ResizeObserver(scheduleMeasure);
 observer.observe(document.body);
 demonstration.forEach(card=>observer.observe(card));

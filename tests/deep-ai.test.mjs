@@ -248,3 +248,15 @@ try {
   await t.flush();
   assert.equal((await deepAIStatus(t.env,fallback.id)).state,'done');
 } finally {globalThis.fetch=originalSpideyFetch;}
+
+for (const provider of ['refusal','offline']) {
+  t=setup();
+  if(provider==='refusal')t.env.AI.run=async()=>({response:'I’m sorry, but I can’t help with that.'});
+  else delete t.env.AI;
+  const prompt=t.source('spidey-fallback','@SpideyAI come here');
+  assert.equal((await queueDeepAI(t.env,t.ctx,prompt,t.request())).state,'pending');
+  await t.flush();
+  const reply=t.env.DB.sqlite.prepare('SELECT message FROM messages WHERE parent_id=? AND sender_id=?').get(prompt.id,SPIDEY_AI_ID);
+  assert.match(reply.message,/ceiling route/);
+  assert.equal((await deepAIStatus(t.env,prompt.id)).state,'done');
+}

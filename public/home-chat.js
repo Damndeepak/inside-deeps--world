@@ -346,7 +346,7 @@ if(parseFloat(getComputedStyle(E.input).fontSize)<16)E.input.style.fontSize="16p
 E.form.addEventListener("submit",e=>{e.preventDefault();submit()});
 
 function setReply(m){
-  S.replyTo={id:m.id,username:m.username,snippet:snip(m),image:!!m.image};
+  S.replyTo={id:m.id,username:m.username,snippet:snip(m),image:!!m.image,ai:m.ai===true};
   E.replyText.textContent="";E.replyText.append("Replying to ",h("b",null,"@"+m.username)," · "+(snip(m)||"photo"));
   E.reply.hidden=false;E.input.focus();
 }
@@ -400,6 +400,18 @@ async function submit(){
   if(!text&&!file)return;
   if(text.length>MAX_TEXT){toast("Message is too long");return}
   const parent=S.replyTo?{id:S.replyTo.id,username:S.replyTo.username,snippet:S.replyTo.snippet,image:S.replyTo.image,deleted:false}:null;
+  const spideyMention=/(?:^|[^\p{L}\p{N}_@])@spideyai(?![\p{L}\p{N}_])/iu.test(text);
+  const otherMention=/(?:^|[^\p{L}\p{N}_@])@(?:deepai|s\.ai)(?![\p{L}\p{N}_])/iu.test(text);
+  if(spideyMention||(!otherMention&&S.replyTo?.ai&&S.replyTo.username==="Spidey AI")){
+    window.dispatchEvent(new Event("spidey-greet"));
+    if(window.speechSynthesis&&window.SpeechSynthesisUtterance&&!window.speechSynthesis.speaking){
+      try{
+        const hello=new SpeechSynthesisUtterance("Hey, hey. Spidey here.");
+        hello.lang="en-US";hello.rate=1.08;hello.pitch=1.08;hello.volume=.65;
+        window.speechSynthesis.speak(hello);
+      }catch{}
+    }
+  }
   const p={id:"tmp-"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),message:text,created_at:new Date().toISOString(),username:S.me?S.me.username:"you",mine:true,image:!!file,localUrl:file?S.fileUrl:"",parent,pending:"sending",_file:file,_parent:parent?parent.id:null};
   mentionAutocomplete?.close();
   E.input.value="";grow();clearReply();clearFile(true);updateSend();
