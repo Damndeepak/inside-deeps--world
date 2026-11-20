@@ -1200,7 +1200,18 @@ loadFrames();
   ];
   const voice=new Audio();
   voice.preload='none';
-  let previous=-1, timer;
+  let previous=-1, timer, speechTimer, speechTurn=0, activeLine=null;
+  function stopGreeting(){
+    ++speechTurn;
+    clearTimeout(speechTimer);
+    if(activeLine)window.speechSynthesis?.cancel();
+    activeLine=null;
+    voice.onended=null;
+    voice.pause();
+  }
+  document.addEventListener('play',event=>{
+    if(event.target.matches?.('audio,video'))stopGreeting();
+  },true);
   function nextGreeting(){
     let index=Math.floor(Math.random()*(greetings.length-1));
     if(previous<0)index=Math.floor(Math.random()*greetings.length);
@@ -1219,12 +1230,30 @@ loadFrames();
     if(!voice.paused || [...document.querySelectorAll('audio,video')].some(media=>!media.paused))return;
     if(!clips.length){
       const speech=window.speechSynthesis;
-      if(!speech || !window.SpeechSynthesisUtterance || speech.speaking)return;
-      for(const {text} of lines){
+      if(!speech || !window.SpeechSynthesisUtterance || speech.speaking || speech.pending)return;
+      const phrases=lines.flatMap(line=>line.text.split(/,\s*/));
+      const turn=++speechTurn;
+      function speakNext(){
+        if(turn!==speechTurn || document.hidden || !phrases.length ||
+          [...document.querySelectorAll('audio,video')].some(media=>!media.paused))return;
+        const text=phrases.shift();
         const line=new SpeechSynthesisUtterance(text);
         line.lang=/[\u0900-\u097f]/.test(text)?'hi-IN':'en-IN';
+        const voices=speech.getVoices().filter(v=>v.lang.replace('_','-').toLowerCase()===line.lang.toLowerCase());
+        const preferred=voices.find(v=>/\b(male|ravi|madhur|prabhat)\b/i.test(v.name)) || voices[0];
+        if(preferred)line.voice=preferred;
+        line.rate=.97;
+        line.pitch=.93;
+        activeLine=line;
+        line.onend=()=>{
+          if(turn!==speechTurn)return;
+          activeLine=null;
+          if(phrases.length)speechTimer=setTimeout(speakNext,380+Math.random()*160);
+        };
+        line.onerror=()=>{if(turn===speechTurn)activeLine=null;};
         speech.speak(line);
       }
+      speakNext();
       return;
     }
     function playNext(){
@@ -1242,10 +1271,10 @@ loadFrames();
   }
   window.addEventListener('spidey-greet-request',()=>{greet(false);schedule();});
   window.addEventListener('pointerup',()=>{
-    if(greetings.some(line=>line.clip))greet(true);
+    greet(true);
     schedule();
     document.addEventListener('visibilitychange',()=>{
-      if(document.hidden){voice.pause();voice.onended=null;}
+      if(document.hidden)stopGreeting();
       schedule();
     });
   },{once:true});
