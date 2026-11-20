@@ -575,7 +575,7 @@ syncInbox();
 <script defer="" src="/deeplist-home.js?v=connection-recovery-1"></script>
 <script type="module" src="/deeplist-listeners.js?v=connection-recovery-1"></script>
 <script type="module" src="/deeplist-stats.js?v=connection-recovery-1"></script>
-<script type="module" src="/home-chat.js?v=voice-fix-1"></script>
+<script type="module" src="/home-chat.js?v=spidey-greetings-1"></script>
 <dialog aria-labelledby="ptTitle" class="pt-dialog" id="ptDialog"><div class="pt-dialog-close"><button aria-label="Close dialog" class="close" id="ptClose" type="button">×</button></div><section aria-labelledby="ptTitle" class="world-card pt-section" id="publicThoughts">
 <div class="world-heading"><div><h2 id="ptTitle">Inside Deep’s Mind</h2></div><button class="world-delete" id="ptAdmin" type="button">Admin</button></div>
 
@@ -612,7 +612,7 @@ demonstration.forEach((card,index)=>{
   decoration.setAttribute('aria-hidden','true');
   card.append(decoration);
 });
-let stops=[];
+let move=null, lastAnchor=-1, nextMove=0, patrolTimer;
 let previousBounds=null;
 let bounds=null;
 let web=null;
@@ -621,13 +621,10 @@ const webPile=[];
 const webParts=10;
 const holdTime=.24;
 let pageFloor=0;
-let lastSegment=-1;
-let lastPhase=0;
 let hasCast=false;
 let hasLanded=false;
 let landingAnimation;
 let impact=null;
-let takeoffFrom=null;
 let layoutFrame=0;
 let viewportTop=0;
 let surfaces=new Map();
@@ -635,49 +632,16 @@ let routeGeometry;
 function measure(){
   layoutFrame=0;
   const top=window.scrollY;
-  const trigger=height*.38;
-  const maxScroll=Math.max(1,document.documentElement.scrollHeight-height);
   const rows=demonstration.map((card,index)=>({box:card.getBoundingClientRect(),index}))
-    .filter(({box})=>box.width>0 && box.height>0)
-    .sort((a,b)=>a.box.top-b.box.top);
-  const hero=document.querySelector('.deep-hero')?.getBoundingClientRect();
-  const footer=document.querySelector('.deep-footer')?.getBoundingClientRect();
-  const metric=value=>Math.round(value);
-  const geometry=[width,height,maxScroll,metric((hero?.top??0)+top),metric((footer?.top??0)+top),
-    ...rows.flatMap(({box,index})=>[index,metric(box.left),metric(box.top+top),metric(box.width),metric(box.height)])].join(':');
+    .filter(({box})=>box.width>0 && box.height>0);
+  const floor=document.documentElement.scrollHeight-8;
+  const geometry=[width,height,floor,...rows.flatMap(({box,index})=>
+    [index,box.left,box.top+top,box.width,box.height].map(Math.round))].join(':');
   if(geometry===routeGeometry)return;
   routeGeometry=geometry;
+  pageFloor=floor;
   surfaces=new Map(rows.map(({box,index})=>[index,
     {x:box.left,y:box.top+top,width:box.width,height:box.height}]));
-  stops=[{x:width*.87,y:Math.min(height*.40,(hero?.top??0)+top+height*.25),mark:0,index:-1}];
-  const cardGap=Math.min(145,height*.20,maxScroll/(rows.length+1));
-  const landings=[];
-  for(const {box,index} of rows){
-    const y=box.top+top+Math.min(box.height*.16,65);
-    const mark=y-trigger;
-    if(mark<cardGap || mark>maxScroll-cardGap || mark-(landings.at(-1)?.mark??0)<cardGap)continue;
-    const fromRight=landings.length%2===0;
-    const x=Math.max(52,Math.min(width-52,box.left+box.width*(fromRight?.26:.74)));
-    landings.push({x,y,mark,index});
-  }
-  const footerTop=footer?footer.top+top:maxScroll+height*.64;
-  landings.push({x:width*.89,y:Math.max(maxScroll+height*.32,
-    Math.min(footerTop-55,maxScroll+height*.58)),mark:maxScroll,index:-1});
-  for(const landing of landings){
-    const start=stops.at(-1);
-    const distance=landing.mark-start.mark;
-    const wallCount=Math.max(0,Math.ceil(distance/(height*.78))-1);
-    for(let i=1;i<=wallCount;i++){
-      const mark=start.mark+distance*i/(wallCount+1);
-      const x=stops.at(-1).x>width*.5?width*.12:width*.88;
-      stops.push({x,y:mark+trigger,mark,index:-1});
-    }
-    if(landing.index<0)landing.x=stops.at(-1).x>width*.5?width*.12:width*.88;
-    stops.push(landing);
-  }
-  pageFloor=maxScroll+height-8;
-  releaseWeb(performance.now());
-  lastSegment=-1;
   requestDraw();
 }
 function scheduleMeasure(){
@@ -701,14 +665,12 @@ const preference = matchMedia('(prefers-reduced-motion: reduce)');
 const clamp = value => Math.max(0, Math.min(1, value));
 const lerp = (a,b,t) => a+(b-a)*t;
 const ease = t => t*t*(3-2*t);
-let width, height, frame, scroll, target, last;
-let settleAt=null, idleAt=null, idleFrom=null, greeting=null, greetingTimer, idleTimer;
-let modelPose=1;
+let width, height, frame;
+let greeting=null,greetingTimer;
 const greetingLabel=document.getElementById('spideyHello');
 let paused = preference.matches;
 const castAt=.17;
 const releaseAt=.65;
-const landAt=.91;
 function resize(){
   const density=1;
   const spriteDensity=Math.min(devicePixelRatio||1,touch?1:1.4);
@@ -728,7 +690,8 @@ function resize(){
   pen.imageSmoothingEnabled=true;
   // Keep the prefiltered sheet detail with inexpensive per-frame sampling.
   pen.imageSmoothingQuality='low';
-  target = scroll = scrollY;
+  releaseWeb(performance.now());
+  move=null;
   previousBounds=null;
   scheduleMeasure();
   requestDraw();
@@ -1001,28 +964,38 @@ function playWebShot(){
   // The source has a half-second of silence before the thwip.
   source.start(0,.52,Math.min(.34,webShotBuffer.duration-.52));
 }
+function planMove(now,x,y){
+  const choices=[];
+  for(const [index,box] of surfaces){
+    if(index===lastAnchor)continue;
+    const top=box.y-viewportTop;
+    const anchorY=Math.max(78,top+38);
+    if(anchorY>Math.min(height-110,top+box.height-20))continue;
+    const anchorX=Math.max(52,Math.min(width-52,box.x+box.width*(x>width/2?.24:.76)));
+    const distance=Math.hypot(anchorX-x,anchorY-y);
+    if(distance>95 && distance<Math.min(560,height*.76))choices.push({x:anchorX,y:anchorY,index});
+  }
+  const edge={x:width*(x>width/2?.12:.88),y:height*(.26+Math.random()*.28),index:-1};
+  const end=choices.length && Math.random()<.82?choices[Math.floor(Math.random()*choices.length)]:edge;
+  hasCast=hasLanded=false;
+  lastAnchor=end.index;
+  return {start:{x,y},end,at:now,duration:Math.min(1400,780+Math.hypot(end.x-x,end.y-y)),top:viewportTop};
+}
+function schedulePatrol(delay){
+  clearTimeout(patrolTimer);
+  if(!paused&&!document.hidden)patrolTimer=setTimeout(requestDraw,delay);
+}
 function draw(now){
-  frame = 0;
-  const elapsed = Math.min(now-(last || now-16),48);
-  last = now;
-  scroll = paused ? target : lerp(scroll,target,1-Math.exp(-elapsed/70));
-  if(Math.abs(target-scroll)<.25)scroll=target;
-  viewportTop=scroll;
+  frame=0;
+  viewportTop=window.scrollY;
   clearPrevious();
   bounds=null;
-  if(paused || stops.length<2){
-    web=impact=null;
+  if(paused){
+    web=impact=move=greeting=null;
     fallingWebs.length=0;
     landingAnimation?.cancel();
-    lastSegment=-1;
     sprite.hidden=true;
     return;
-  }
-  const parked=settleAt!==null && now>=settleAt;
-  if(parked && idleAt===null){
-    idleAt=now;
-    idleFrom=Number.isFinite(spriteX)?{x:spriteX,y:spriteY,pose:modelPose}:null;
-    releaseWeb(now);
   }
   if(greeting && sheets[3]){
     const progress=clamp((now-greeting.at)/420);
@@ -1039,75 +1012,55 @@ function draw(now){
     drawWebPile();
     previousBounds=bounds;
     if(now-greeting.at>=1050){
-      idleAt=now-220;
-      idleFrom={x,y:y-22,pose:1};
+      nextMove=now+6500;
+      schedulePatrol(6500);
       greeting=null;
     }
     requestDraw();
     return;
   }
-  let segment=0;
-  while(segment<stops.length-2 && stops[segment+1].mark<scroll)segment++;
-  const start=stops[segment],end=stops[segment+1];
-  const phase=clamp((scroll-start.mark)/Math.max(1,end.mark-start.mark));
-  const sameLeg=segment===lastSegment;
-  if(!sameLeg)releaseWeb(now);
-  if(!sameLeg || phase<.06)hasCast=hasLanded=false;
-  let visible=false,wrist;
+  let wrist;
   if(sheets[3]){
-    const scale=width<600?1.08:width>=1800?1.66:1.48;
-    const direction=Math.sign(end.x-start.x)||1;
-    const previousDirection=segment>0?Math.sign(start.x-stops[segment-1].x)||direction:direction;
-    const travel=ease(clamp((phase-.05)/(landAt-.05)));
-    const drop=clamp((phase-releaseAt)/(landAt-releaseAt));
-    const dip=16*drop*drop*(1-drop)*(1-drop)*Math.min(24,height*.03);
-    const x=lerp(start.x,end.x,travel);
-    const push=clamp(phase/.28);
-    const lift=32*Math.sin(Math.PI*push)**2;
-    const y=lerp(start.y,end.y,travel)-viewportTop+34*scale+dip-lift;
-    if(y>-150 && y<height+120){
-      visible=true;
-      modelPose=clamp((phase+.025)/(landAt+.025));
-      let modelX=x,modelY=y;
-      if(parked && idleFrom){
-        const settle=ease(clamp((now-idleAt)/200));
-        modelX=idleFrom.x;
-        modelY=lerp(idleFrom.y,Math.max(75,Math.min(height-90,idleFrom.y+22)),settle);
-        modelPose=lerp(idleFrom.pose,1,settle);
+    const x=sprite.hidden?width*.86:spriteX;
+    const y=sprite.hidden?height*.31:spriteY;
+    if(move && Math.abs(viewportTop-move.top)>Math.min(125,height*.19)){
+      releaseWeb(now);
+      move=null;
+      nextMove=now;
+    }
+    if(!move && now>=nextMove && readySheets===sheets.length)move=planMove(now,x,y);
+    if(move){
+      const {start,end,duration,top}=move;
+      const phase=clamp((now-move.at)/duration);
+      const travel=ease(phase);
+      const endY=end.y+top-viewportTop;
+      const lift=Math.sin(Math.PI*travel)*Math.min(48,height*.075);
+      const direction=Math.sign(end.x-start.x)||1;
+      wrist=drawModel(lerp(start.x,end.x,travel),lerp(start.y,endY,travel)-lift,
+        width<600?1.08:1.48,direction,direction,phase);
+      if(!hasCast && phase>=castAt && phase<releaseAt){hasCast=true;playWebShot();}
+      drawWeb(wrist,{x:start.x,y:start.y+top},{x:end.x,y:end.y+top,index:end.index},phase,now);
+      if(phase===1){
+        move=null;
+        nextMove=now+4500+Math.random()*4500;
+        schedulePatrol(nextMove-now);
       }
-      if(!parked && takeoffFrom){
-        const blend=ease(clamp((now-takeoffFrom.at)/180));
-        modelX=lerp(takeoffFrom.x,modelX,blend);
-        modelY=lerp(takeoffFrom.y,modelY,blend)-12*Math.sin(Math.PI*blend);
-        if(blend===1)takeoffFrom=null;
-      }
-      wrist=drawModel(modelX,modelY,scale,direction,previousDirection,modelPose);
-      if(readySheets===sheets.length){
-        if(parked)drawWeb(wrist,start,end,1,now);
-        else{
-          if(!hasCast && sameLeg && lastPhase<castAt && phase>=castAt && phase<releaseAt){
-            hasCast=true;
-            playWebShot();
-          }
-          drawWeb(wrist,start,end,phase,now);
-        }
-      }
+    }else if(sprite.hidden){
+      wrist=drawModel(x,y,width<600?1.08:1.48,1,1,1);
     }
   }
-  if(!visible){sprite.hidden=true;releaseWeb(now);}
   drawFallingWebs(now,wrist);
   drawWebPile();
   drawImpact(now);
-  lastSegment=segment;
-  lastPhase=phase;
   previousBounds=bounds;
-  if(scroll!==target || fallingWebs.length || impact || (!parked && takeoffFrom) || (parked && idleAt!==null && now-idleAt<200))requestDraw();
-  else last=0;
+  if(move || fallingWebs.length || impact)requestDraw();
 }
+
 function requestDraw(){if(!frame&&!document.hidden)frame=requestAnimationFrame(draw)}
 document.addEventListener('visibilitychange',()=>{
-  if(document.hidden){cancelAnimationFrame(frame);frame=0;last=0;}
-  else requestDraw();
+  if(document.hidden){cancelAnimationFrame(frame);clearTimeout(patrolTimer);frame=0;}
+  else schedulePatrol(Math.max(0,nextMove-performance.now()));
+  requestDraw();
 });
 preference.addEventListener('change', event=>{
   paused=event.matches;
@@ -1121,31 +1074,21 @@ addEventListener('resize',()=>{
   if(innerWidth!==width)resize();
   else resizeTimer=setTimeout(()=>{if(innerHeight!==height)resize();},160);
 },{passive:true});
-addEventListener('scroll',()=>{
-  if(scrollY===target)return;
-  target=scrollY;
-  const now=performance.now();
-  if(idleAt!==null && !sprite.hidden)takeoffFrom={x:spriteX,y:spriteY,at:now};
-  idleAt=idleFrom=null;
-  clearTimeout(idleTimer);
-  settleAt=now+235;
-  idleTimer=setTimeout(requestDraw,245);
-  if(target>0) loadFrames();
-  requestDraw();
-},{passive:true});
-window.addEventListener('spidey-greet',()=>{
+addEventListener('scroll',requestDraw,{passive:true});
+window.addEventListener('spidey-greet',({detail})=>{
   if(!greetingLabel)return;
-  greetingLabel.textContent='Hey, hey. Spidey here.';
+  greetingLabel.textContent=detail.text;
   clearTimeout(greetingTimer);
   greetingTimer=setTimeout(()=>{greetingLabel.textContent='';},2300);
   if(paused)return;
   const box=greetingLabel.parentElement.getBoundingClientRect();
+  if(detail.ambient && (box.bottom<0 || box.top>height))return;
   const endX=Math.max(50,Math.min(width-50,box.right-62));
   const endY=Math.max(80,Math.min(height-70,box.top-52));
   const x=sprite.hidden?width-42:Math.max(42,Math.min(width-42,spriteX));
   const y=sprite.hidden?endY-34:Math.max(75,Math.min(height-80,spriteY));
   greeting={at:performance.now(),x,y,endX,endY,direction:Math.sign(endX-x)||-1};
-  settleAt=greeting.at;
+  move=null;
   releaseWeb(greeting.at);
   requestDraw();
 });
@@ -1242,6 +1185,70 @@ loadFrames();
   document.addEventListener('visibilitychange', syncMotion);
   motion.addEventListener('change', syncMotion);
   syncMotion();
+})();
+</script>
+<script>
+(()=>{
+  // Set clip to a site-hosted recording of Deepak saying the matching line.
+  const greetings=[
+    {text:"Hi, what's up?",clip:null},
+    {text:'Hi, कैसे हो?',clip:null},
+    {text:'Hi, क्या कर रहे हो?',clip:null},
+    {text:'आज का क्या प्लान है?',clip:null},
+    {text:'सब बढ़िया?',clip:null},
+    {text:'और सुनाओ, क्या चल रहा है?',clip:null}
+  ];
+  const voice=new Audio();
+  voice.preload='none';
+  let previous=-1, timer;
+  function nextGreeting(){
+    let index=Math.floor(Math.random()*(greetings.length-1));
+    if(previous<0)index=Math.floor(Math.random()*greetings.length);
+    else if(index>=previous)index++;
+    previous=index;
+    return greetings[index];
+  }
+  function greet(ambient){
+    if(document.hidden)return;
+    const lines=[nextGreeting()];
+    if(Math.random()<.35)lines.push(nextGreeting());
+    window.dispatchEvent(new CustomEvent('spidey-greet',{detail:{
+      text:lines.map(line=>line.text).join(' '),ambient
+    }}));
+    const clips=lines.map(line=>line.clip).filter(Boolean);
+    if(!voice.paused || [...document.querySelectorAll('audio,video')].some(media=>!media.paused))return;
+    if(!clips.length){
+      const speech=window.speechSynthesis;
+      if(!speech || !window.SpeechSynthesisUtterance || speech.speaking)return;
+      for(const {text} of lines){
+        const line=new SpeechSynthesisUtterance(text);
+        line.lang=/[\u0900-\u097f]/.test(text)?'hi-IN':'en-IN';
+        speech.speak(line);
+      }
+      return;
+    }
+    function playNext(){
+      const clip=clips.shift();
+      if(!clip || document.hidden)return;
+      voice.src=clip;
+      voice.play().catch(()=>{voice.onended=null;});
+    }
+    voice.onended=playNext;
+    playNext();
+  }
+  function schedule(){
+    clearTimeout(timer);
+    if(!document.hidden)timer=setTimeout(()=>{greet(true);schedule();},30000+Math.random()*45000);
+  }
+  window.addEventListener('spidey-greet-request',()=>{greet(false);schedule();});
+  window.addEventListener('pointerup',()=>{
+    if(greetings.some(line=>line.clip))greet(true);
+    schedule();
+    document.addEventListener('visibilitychange',()=>{
+      if(document.hidden){voice.pause();voice.onended=null;}
+      schedule();
+    });
+  },{once:true});
 })();
 </script>
 <script id="media-single-player-js">

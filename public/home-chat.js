@@ -403,14 +403,7 @@ async function submit(){
   const spideyMention=/(?:^|[^\p{L}\p{N}_@])@spideyai(?![\p{L}\p{N}_])/iu.test(text);
   const otherMention=/(?:^|[^\p{L}\p{N}_@])@(?:deepai|s\.ai)(?![\p{L}\p{N}_])/iu.test(text);
   if(spideyMention||(!otherMention&&S.replyTo?.ai&&S.replyTo.username==="Spidey AI")){
-    window.dispatchEvent(new Event("spidey-greet"));
-    if(window.speechSynthesis&&window.SpeechSynthesisUtterance&&!window.speechSynthesis.speaking){
-      try{
-        const hello=new SpeechSynthesisUtterance("Hey, hey. Spidey here.");
-        hello.lang="en-US";hello.rate=1.08;hello.pitch=1.08;hello.volume=.65;
-        window.speechSynthesis.speak(hello);
-      }catch{}
-    }
+    window.dispatchEvent(new Event("spidey-greet-request"));
   }
   const p={id:"tmp-"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),message:text,created_at:new Date().toISOString(),username:S.me?S.me.username:"you",mine:true,image:!!file,localUrl:file?S.fileUrl:"",parent,pending:"sending",_file:file,_parent:parent?parent.id:null};
   mentionAutocomplete?.close();
