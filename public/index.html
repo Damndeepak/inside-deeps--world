@@ -586,7 +586,7 @@ syncInbox();
 
 <!-- Spider-Man scroll animation. Frames rendered from Swing to Land by Molon Modeler. -->
 <canvas id="deep-spider-swing" aria-hidden="true" style="position:fixed;inset:0;pointer-events:none;z-index:6"></canvas>
-<canvas id="deep-spider-sprite" aria-hidden="true" hidden style="position:fixed;top:0;left:0;z-index:7;pointer-events:none;will-change:transform;filter:drop-shadow(6px 10px 3px #020916b8)"></canvas>
+<canvas id="deep-spider-sprite" aria-hidden="true" hidden style="position:fixed;top:0;left:0;z-index:7;pointer-events:none;will-change:transform"></canvas>
 <script>
 (()=>{
 
@@ -596,8 +596,9 @@ if(!canvas || !pen) return;
 const sprite=document.getElementById('deep-spider-sprite');
 const spritePen=sprite.getContext('2d');
 if(!spritePen)return;
-const spriteSize=344, spriteOriginY=132;
+const spriteWidth=244, spriteHeight=324, spriteOriginY=126;
 const touch=matchMedia('(pointer: coarse)').matches;
+if(!touch)sprite.style.filter='drop-shadow(4px 7px 2px #020916a0)';
 let spriteKey='',spriteX,spriteY;
 const cards = [...document.querySelectorAll(
   '#cxChat, #lfm, #deeplistStats, .media-entry, #memoryFilm, #publicThoughts, #music .song-player, #music .public-video-player'
@@ -624,6 +625,7 @@ let landingAnimation;
 let layoutFrame=0;
 let viewportTop=0;
 let surfaces=new Map();
+let routeGeometry;
 function measure(){
   layoutFrame=0;
   const top=window.scrollY;
@@ -632,10 +634,15 @@ function measure(){
   const rows=demonstration.map((card,index)=>({box:card.getBoundingClientRect(),index}))
     .filter(({box})=>box.width>0 && box.height>0)
     .sort((a,b)=>a.box.top-b.box.top);
-  surfaces=new Map(rows.map(({box,index})=>[index,
-    {x:box.left,y:box.top+top,width:box.width,height:box.height}]));
   const hero=document.querySelector('.deep-hero')?.getBoundingClientRect();
   const footer=document.querySelector('.deep-footer')?.getBoundingClientRect();
+  const metric=value=>Math.round(value);
+  const geometry=[width,height,maxScroll,metric((hero?.top??0)+top),metric((footer?.top??0)+top),
+    ...rows.flatMap(({box,index})=>[index,metric(box.left),metric(box.top+top),metric(box.width),metric(box.height)])].join(':');
+  if(geometry===routeGeometry)return;
+  routeGeometry=geometry;
+  surfaces=new Map(rows.map(({box,index})=>[index,
+    {x:box.left,y:box.top+top,width:box.width,height:box.height}]));
   stops=[{x:width*.87,y:Math.min(height*.40,(hero?.top??0)+top+height*.25),mark:0,index:-1}];
   const cardGap=Math.min(145,height*.20,maxScroll/(rows.length+1));
   const landings=[];
@@ -697,10 +704,12 @@ const releaseAt=.65;
 const landAt=.91;
 function resize(){
   const density=1;
-  const spriteDensity=Math.min(devicePixelRatio||1,touch?1.5:2);
-  sprite.width=sprite.height=Math.round(spriteSize*spriteDensity);
-  sprite.style.width=sprite.style.height=spriteSize+'px';
-  spritePen.setTransform(sprite.width/spriteSize,0,0,sprite.height/spriteSize,0,0);
+  const spriteDensity=Math.min(devicePixelRatio||1,touch?1:1.4);
+  sprite.width=Math.round(spriteWidth*spriteDensity);
+  sprite.height=Math.round(spriteHeight*spriteDensity);
+  sprite.style.width=spriteWidth+'px';
+  sprite.style.height=spriteHeight+'px';
+  spritePen.setTransform(sprite.width/spriteWidth,0,0,sprite.height/spriteHeight,0,0);
   spriteKey='';
   width = innerWidth;
   height = innerHeight;
@@ -715,6 +724,7 @@ function resize(){
   target = scroll = scrollY;
   previousBounds=null;
   scheduleMeasure();
+  requestDraw();
 }
 function onSurface(surface,draw){
   if(!surface){draw();return;}
@@ -808,47 +818,17 @@ let loading = false;
 function loadFrames(){
   if(loading || preference.matches) return;
   loading = true;
-  const compact=typeof createImageBitmap==='function';
   sheets=Array(4);
-  // Grade each sprite sheet once, so the swing needs no per-frame colour filter.
-  async function brightenSprite(source){
-    if(typeof createImageBitmap!=='function')return source;
-    const grading=document.createElement('canvas');
-    grading.width=source.width;
-    grading.height=source.height;
-    const context=grading.getContext('2d');
-    if(!context || !('filter' in context))return source;
-    try{
-      context.filter='saturate(1.7) brightness(1.39) contrast(1.08)';
-      context.drawImage(source,0,0);
-      const result=await createImageBitmap(grading);
-      source.close?.();
-      return result;
-    }catch{return source}
-    finally{grading.width=grading.height=0}
-  }
   async function loadSheet(index){
-    const url='/spider-swing/swing-120-'+index+'.webp';
-    let sheet;
-    if(compact){
-      try{
-        const response=await fetch(url);
-        if(!response.ok) throw Error('Sprite unavailable');
-        sheet=await createImageBitmap(await response.blob(),{
-          resizeWidth:1200,resizeHeight:1470,resizeQuality:'high'
-        });
-      }catch{}
-    }
-    if(!sheet){
-      const image=new Image();
-      image.src=url;
-      await image.decode();
-      sheet=image;
-    }
-    sheets[index]=await brightenSprite(sheet);
+    const image=new Image();
+    image.decoding='async';
+    image.src='/spider-swing/swing-120-'+index+'.webp?v=compact-1';
+    await image.decode();
+    sheets[index]=image;
     readySheets++;
     requestDraw();
   }
+
   async function load(){
     // The resting pose is on the last sheet. Show it while the swing loads.
     await loadSheet(3);
@@ -874,9 +854,9 @@ function drawModel(x,y,scale,direction,previousDirection,phase){
   const key=[scale,alpha,crouchDirection,alpha?current:-1,direction].join(':');
   if(key!==spriteKey){
     spriteKey=key;
-    spritePen.clearRect(0,0,spriteSize,spriteSize);
+    spritePen.clearRect(0,0,spriteWidth,spriteHeight);
     spritePen.save();
-    spritePen.translate(spriteSize/2,spriteOriginY);
+    spritePen.translate(spriteWidth/2,spriteOriginY);
     function paint(index,opacity,facing){
       if(opacity<=0)return;
       spritePen.save();
@@ -891,7 +871,7 @@ function drawModel(x,y,scale,direction,previousDirection,phase){
   }
   if(spriteX!==x || spriteY!==y){
     spriteX=x;spriteY=y;
-    sprite.style.transform='translate3d('+(x-spriteSize/2)+'px,'+(y-spriteOriginY)+'px,0)';
+    sprite.style.transform='translate3d('+(x-spriteWidth/2)+'px,'+(y-spriteOriginY)+'px,0)';
   }
   sprite.hidden=false;
   const idleHand=wrists[lastFrame];
@@ -940,7 +920,7 @@ function draw(now){
   last = now;
   scroll = paused ? target : lerp(scroll,target,1-Math.exp(-elapsed/42));
   if(Math.abs(target-scroll)<.25)scroll=target;
-  viewportTop=target;
+  viewportTop=scroll;
   clearPrevious();
   bounds=null;
   if(paused || stops.length<2){
@@ -1026,7 +1006,11 @@ function draw(now){
   if(scroll!==target || looseWeb || (parked && idleAt!==null && now-idleAt<200))requestDraw();
   else last=0;
 }
-function requestDraw(){if(!frame) frame=requestAnimationFrame(draw)}
+function requestDraw(){if(!frame&&!document.hidden)frame=requestAnimationFrame(draw)}
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden){cancelAnimationFrame(frame);frame=0;last=0;}
+  else requestDraw();
+});
 preference.addEventListener('change', event=>{
   paused=event.matches;
   if(!paused) loadFrames();
@@ -1083,8 +1067,14 @@ loadFrames();
   const motion = matchMedia('(prefers-reduced-motion: reduce)');
   const random = (min, max) => min + Math.random() * (max - min);
   let width, height, flakes, frame, previous;
-  let lastScroll = -Infinity;
-  addEventListener('scroll',()=>{lastScroll=performance.now();},{passive:true});
+  let snowResume;
+  addEventListener('scroll',()=>{
+    cancelAnimationFrame(frame);
+    frame=undefined;
+    previous=undefined;
+    clearTimeout(snowResume);
+    if(!motion.matches&&!document.hidden)snowResume=setTimeout(startSnow,180);
+  },{passive:true});
   let wind = 0;
   let targetWind = 0;
   let gustStart = 0;
@@ -1104,7 +1094,7 @@ loadFrames();
   }
 
   function draw(now) {
-    if(now-lastScroll<150 || (previous!==undefined && now-previous<32)){
+    if(previous!==undefined && now-previous<32){
       frame=requestAnimationFrame(draw);
       return;
     }
@@ -1135,16 +1125,20 @@ loadFrames();
     frame = requestAnimationFrame(draw);
   }
 
+  function startSnow(){
+    if(frame===undefined&&!motion.matches&&!document.hidden)frame=requestAnimationFrame(draw);
+  }
   function syncMotion() {
+    clearTimeout(snowResume);
     cancelAnimationFrame(frame);
     frame = undefined;
     previous = undefined;
     if (motion.matches || document.hidden) return;
     resize();
-    frame = requestAnimationFrame(draw);
+    startSnow();
   }
 
-  addEventListener('resize', () => { if (frame !== undefined) resize(); });
+  addEventListener('resize', () => { if (!motion.matches&&!document.hidden) resize(); });
   document.addEventListener('visibilitychange', syncMotion);
   motion.addEventListener('change', syncMotion);
   syncMotion();
