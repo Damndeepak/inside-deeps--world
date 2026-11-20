@@ -1,4 +1,4 @@
-const HANDLES = ['deepAi', 'S.Ai'];
+const HANDLES = ['deepAi', 'S.Ai', 'SpideyAI'];
 
 export function mentionRange(value, start, end = start) {
   if (start !== end) return null;
@@ -18,16 +18,20 @@ export function initChatMentions(input, list, option) {
     input.setAttribute('aria-expanded', 'false');
     input.removeAttribute('aria-activedescendant');
   }
+  function select(item) {
+    selected=item;
+    for(const option of visible)option.setAttribute('aria-selected', String(option===item));
+    input.setAttribute('aria-activedescendant', item.id);
+  }
   function update() {
     const range = composing ? null : mentionRange(input.value, input.selectionStart, input.selectionEnd);
     if (!range) { close(); return; }
     const prefix=input.value.slice(range.start+1,input.selectionStart).toLowerCase();
     visible=options.filter(item=>{const show=handleOf(item).toLowerCase().startsWith(prefix);item.hidden=!show;return show;});
     if(!visible.length){close();return;}
-    selected=visible[0];
     active = range; list.hidden = false;
     input.setAttribute('aria-expanded', 'true');
-    input.setAttribute('aria-activedescendant', selected.id);
+    select(visible[0]);
   }
   function choose() {
     if (!active) return;
@@ -44,7 +48,7 @@ export function initChatMentions(input, list, option) {
     if (!active || event.isComposing || composing) return false;
     if (['ArrowDown', 'ArrowUp', 'Escape', 'Tab'].includes(event.key) || (event.key === 'Enter' && !event.shiftKey)) {
       event.preventDefault();
-      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {selected=visible[(visible.indexOf(selected)+(event.key==='ArrowDown'?1:visible.length-1))%visible.length]; input.setAttribute('aria-activedescendant',selected.id);}
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {select(visible[(visible.indexOf(selected)+(event.key==='ArrowDown'?1:visible.length-1))%visible.length]);}
       else if (event.key === 'Escape') close();
       else if (event.key === 'Enter' || event.key === 'Tab') choose();
       return true;

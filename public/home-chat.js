@@ -1,5 +1,5 @@
 import {initReactionPeople} from './chat-reaction-people.js?v=1';
-import {initChatMentions} from './chat-mentions.js?v=banter-2';
+import {initChatMentions} from './chat-mentions.js?v=spidey-1';
 import {identityColor,identityLabel} from './chat-identity.js';
 import {initNicknameControls} from './nickname-controls.js';
 (()=>{
@@ -115,6 +115,7 @@ function buildRow(m){
 function paint(row,w){
   const m=w.m,showName=w.first&&!m.mine;
   row.classList.toggle("ai",m.ai===true);
+  row.classList.toggle("cx-spidey-reply",m.ai===true&&m.username==="Spidey AI");
   row.classList.toggle("cx-admin-author",m.adminAuthor===true);
   row.classList.toggle("cx-queen-author",m.badge==="queen");
   row.classList.toggle("first",w.first);row.classList.toggle("last",w.last);

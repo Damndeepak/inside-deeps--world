@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
 import { webcrypto } from 'node:crypto';
 import worker from '../src/index.js';
-import { DEEP_AI_ID, S_AI_ID, DEEP_AI_MODEL, S_AI_MODEL, aiTargets, mentionsSAI, mentionsDeepAI, queueDeepAI, deepAIStatus } from '../src/deep-ai.js';
+import { DEEP_AI_ID, S_AI_ID, SPIDEY_AI_ID, DEEP_AI_MODEL, S_AI_MODEL, SPIDEY_AI_MODEL, SPIDEY_GROQ_MODEL, aiTargets, mentionsSAI, mentionsDeepAI, queueDeepAI, deepAIStatus } from '../src/deep-ai.js';
 if (!globalThis.crypto) Object.defineProperty(globalThis, 'crypto', { value: webcrypto });
 
 class DB {
@@ -218,3 +218,33 @@ try {
   assert.equal(denied.state,'limited');assert.equal(t.calls.length,1);
 } finally {globalThis.fetch=nativeFetch}
 console.log('PASS: R2 vision routing, bounded image payload, one vision call and configurable daily job budget');
+
+assert.deepEqual(aiTargets('@SpideyAI love you'),[SPIDEY_AI_ID], 'Spidey always replies solo');
+assert.deepEqual(aiTargets('another one?',SPIDEY_AI_ID),[SPIDEY_AI_ID]);
+assert.deepEqual(aiTargets('person@SpideyAI.example'),[]);
+assert.deepEqual(aiTargets('@SpideyAI_extra'),[]);
+t=setup();
+const spidey=t.source('spidey-first','@SpideyAI roast my playlist');
+assert.equal((await queueDeepAI(t.env,t.ctx,spidey,t.request())).state,'pending');
+await t.flush();
+assert.equal(t.calls[0].model,SPIDEY_AI_MODEL);
+assert.equal(t.calls[0].input.max_tokens,96);
+assert.match(t.calls[0].input.messages[0].content,/self-deprecation/);
+assert.equal(t.env.DB.sqlite.prepare('SELECT sender_id FROM messages WHERE parent_id=?').get(spidey.id).sender_id,SPIDEY_AI_ID);
+assert.equal((await deepAIStatus(t.env,spidey.id)).state,'done');
+t=setup();
+delete t.env.AI;
+t.env.GROQ_API_KEY='fixture';
+const originalSpideyFetch=globalThis.fetch;
+try {
+  globalThis.fetch=async (_,options)=>{
+    const payload=JSON.parse(options.body);
+    assert.equal(payload.model,SPIDEY_GROQ_MODEL);
+    assert.match(payload.messages[0].content,/@SpideyAI/);
+    return Response.json({choices:[{message:{content:'That playlist needs a stunt double.'}}]});
+  };
+  const fallback=t.source('spidey-groq','@SpideyAI roast my playlist');
+  assert.equal((await queueDeepAI(t.env,t.ctx,fallback,t.request())).state,'pending');
+  await t.flush();
+  assert.equal((await deepAIStatus(t.env,fallback.id)).state,'done');
+} finally {globalThis.fetch=originalSpideyFetch;}

@@ -1,7 +1,7 @@
 import {purgeDeletedCloud} from './app-cloud.js';
 import {handleAppAccounts} from './app-accounts.js';
 import {handleActivity, auditStatement, recordAudit, ensureActivity, purgeDeletedArchive} from './activity.js';
-import { DEEP_AI_ID, isChatAI, chatAIName, deepAIStatus, queueDeepAI } from './deep-ai.js';
+import { isChatAI, chatAIName, deepAIStatus, queueDeepAI } from './deep-ai.js';
 import { ensureRoyalBadges } from './royal-badges.js';
 import { ensureIdentitySchema, identityFor, validIdentity, linkChatIdentity } from './chat-identity.js';
 import { handleDeeplist } from "./deeplist.js";
@@ -1685,7 +1685,7 @@ export default {
           env.DB.prepare(`INSERT OR IGNORE INTO deleted_chat_archive(message_id,author_name,message,created_at,deleted_at,deleted_by,type)
             SELECT m.id,COALESCE(u.username,'Unknown'),COALESCE(m.message,''),COALESCE(m.created_at,''),?,?,? FROM messages m LEFT JOIN users u ON u.id=m.sender_id WHERE m.id=?`)
             .bind(deletedAt,deletedBy,audio?'voice':img?'image':'text',messageId),
-          await auditStatement(env.DB,admin?{username:'Admin'}:await getUser(userId),'message_deleted',messageId,{author:(await getUser(msg.sender_id))?.username||(msg.sender_id===DEEP_AI_ID?'deepAi':'Unknown'),type:audio?'voice':img?'image':'text',by_admin:admin}),
+          await auditStatement(env.DB,admin?{username:'Admin'}:await getUser(userId),'message_deleted',messageId,{author:(await getUser(msg.sender_id))?.username||(isChatAI(msg.sender_id)?chatAIName(msg.sender_id):'Unknown'),type:audio?'voice':img?'image':'text',by_admin:admin}),
           env.DB.prepare("DELETE FROM message_audio WHERE message_id = ?").bind(messageId),
           env.DB.prepare("DELETE FROM message_reactions WHERE message_id = ?").bind(messageId),
           env.DB.prepare("DELETE FROM message_images WHERE message_id = ?").bind(messageId),

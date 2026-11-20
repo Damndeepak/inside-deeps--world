@@ -7,7 +7,11 @@ class Input extends EventTarget {
   setRangeText(text,start,end){this.value=this.value.slice(0,start)+text+this.value.slice(end);this.selectionStart=this.selectionEnd=start+text.length;}
   type(value,caret=value.length){this.value=value;this.selectionStart=this.selectionEnd=caret;this.dispatchEvent(new Event('input'));}
 }
-const input=new Input(),list={hidden:true},option=new EventTarget();option.id='ai-option';
+const input=new Input(),option=new Input(),spidey=new Input();
+option.id='ai-option';
+spidey.id='spidey-option';
+spidey.dataset={aiHandle:'SpideyAI'};
+const list={hidden:true,querySelectorAll:()=>[spidey]};
 const mentions=initChatMentions(input,list,option);
 function key(name,extra={}){let prevented=false;const handled=mentions.handleKeydown({key:name,preventDefault(){prevented=true},...extra});return {handled,prevented};}
 for(const text of ['email@deep','@@','@someone','@deepAi_extra','ordinary text']){input.type(text);assert.equal(list.hidden,true);}
@@ -22,4 +26,10 @@ input.type('@d');key('Escape');assert.equal(list.hidden,true);assert.equal(input
 input.type('@d');assert.equal(key('Enter',{isComposing:true}).handled,false,'IME confirmation must never select or send');
 input.dispatchEvent(new Event('blur'));assert.equal(list.hidden,true);
 assert.equal(mentionRange('hi @d',3,5),null,'Replacing selected text does not trigger autocomplete');
+input.type('@');key('ArrowDown');
+assert.equal(input.attrs.get('aria-activedescendant'),spidey.id);
+assert.equal(spidey.attrs.get('aria-selected'),'true');
+key('Enter');assert.equal(input.value,'@SpideyAI ');
+input.type('hey @spi');spidey.dispatchEvent(new Event('click'));
+assert.equal(input.value,'hey @SpideyAI ');
 console.log('PASS: mention autocomplete, safe insertion at caret, email exclusion, touch selection, IME, Escape and Enter without accidental sends');
