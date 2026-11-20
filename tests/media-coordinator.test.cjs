@@ -1,5 +1,5 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
-const html=fs.readFileSync('public/media/index.html','utf8');
+const html=fs.readFileSync('public/index.html','utf8');
 const script=html.match(/<script id="media-single-player-js">([\s\S]*?)<\/script>/)[1];
 class Root{
  constructor(){this.elements=[];this.media=[];this.frames=[];this.events={};}
