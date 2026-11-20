@@ -345,6 +345,7 @@ body {
 </div>
 <div class="cx-reply" hidden="" id="cxReply"><div class="cx-reply-text" id="cxReplyText"></div><button aria-label="Cancel reply" class="cx-x" id="cxReplyX" type="button">×</button></div>
 <div class="cx-prev" hidden="" id="cxPrev"><img alt="" id="cxPrevImg"/><div class="cx-prev-name" id="cxPrevName"></div><button aria-label="Remove image" class="cx-x" id="cxPrevX" type="button">×</button></div>
+<span id="spidey-dock-anchor" aria-hidden="true" style="display:block;height:1px"></span><button id="spidey-track" type="button" title="Add track to chat draft" hidden><strong></strong><small></small></button>
 <div class="cx-composer">
 <span id="spideyHello" class="cx-spidey-hello" aria-live="polite"></span>
 <div class="cx-mentions" id="cxMentions" role="listbox" aria-label="Mention suggestions" hidden><button class="cx-mention-option" id="cxMentionDeepAI" type="button" role="option" aria-selected="true" tabindex="-1"><span class="cx-mention-avatar" aria-hidden="true">✦</span><span><strong>@deepAi <small>AI</small></strong><span>Ask the AI</span></span></button><button class="cx-mention-option" id="cxMentionSAI" data-ai-handle="S.Ai" type="button" role="option" tabindex="-1"><span class="cx-mention-avatar" aria-hidden="true">♡</span><span><strong>@S.Ai <small>AI</small></strong><span>Ask the AI</span></span></button><button class="cx-mention-option" id="cxMentionSpideyAI" data-ai-handle="SpideyAI" type="button" role="option" tabindex="-1"><span class="cx-mention-avatar cx-spidey-mask" aria-hidden="true"></span><span><strong>Spidey AI <small>@SpideyAI</small></strong><span>Ask Spidey AI</span></span></button></div>
@@ -585,6 +586,24 @@ syncInbox();
 <script defer="" src="/home-thoughts.js"></script>
 
 <!-- Spider-Man scroll animation. Frames rendered from Swing to Land by Molon Modeler. -->
+<style>
+#spidey-grip,#spidey-catch-caption{position:fixed;left:0;top:0;z-index:8}
+#spidey-grip{width:36px;height:36px;border:0;background:transparent;padding:0;touch-action:none;cursor:grab}
+#spidey-grip::after,#spidey-trail button::after{content:"";display:block;width:8px;height:8px;margin:auto;border:1px solid #dcf6ff;border-radius:50%;background:#6094ab;box-shadow:0 0 8px #8fdfff}
+#spidey-grip:active{cursor:grabbing}
+#spidey-catch-caption{pointer-events:none;color:white;background:#17182c;border-radius:12px;padding:4px 9px;font-size:12px}
+#spidey-catch-caption:empty{display:none}
+#spidey-trail{position:fixed;right:12px;top:calc(env(safe-area-inset-top,0px) + 6px);z-index:8;display:flex;border-radius:16px;background:linear-gradient(5deg,transparent 48%,#99bed88c 50%,transparent 52%)}
+#spidey-trail button{width:24px;height:28px;padding:0;background:none;border:0;cursor:pointer}
+#spidey-trail button:nth-child(even){transform:translateY(3px)}
+#spidey-track{position:relative;display:grid;text-align:left;max-width:min(100%,330px);padding:6px 13px;margin:0 0 5px;border:1px solid #7194aa;border-radius:12px;color:#ecf6ff;cursor:pointer;background:linear-gradient(to right,#29374d var(--played,0%),#151c2d var(--played,0%));line-height:1.25}
+#spidey-track small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#b6d6f3;background:linear-gradient(to right,#fff var(--glow,0%),#b6d6f3 var(--glow,0%));background-clip:text;-webkit-text-fill-color:transparent}
+#spidey-track.travelling{pointer-events:none;z-index:8}
+#spidey-trail[hidden],#spidey-grip[hidden],#spidey-track[hidden]{display:none}
+</style>
+<nav id="spidey-trail" aria-label="Return to visited cards" hidden></nav>
+<button type="button" id="spidey-grip" aria-label="Catch the web" hidden></button>
+<span id="spidey-catch-caption" role="status"></span>
 <canvas id="deep-spider-swing" aria-hidden="true" style="position:fixed;inset:0;pointer-events:none;z-index:6"></canvas>
 <canvas id="deep-spider-sprite" aria-hidden="true" hidden style="position:fixed;top:0;left:0;z-index:7;pointer-events:none;will-change:transform"></canvas>
 <script>
@@ -690,6 +709,7 @@ function resize(){
   pen.imageSmoothingEnabled=true;
   // Keep the prefiltered sheet detail with inexpensive per-frame sampling.
   pen.imageSmoothingQuality='low';
+  clearGrip();
   releaseWeb(performance.now());
   move=null;
   previousBounds=null;
@@ -965,10 +985,104 @@ function playWebShot(){
   source.start(0,.52,Math.min(.34,webShotBuffer.duration-.52));
 }
 let route=[], held=false, lastScrollShot=0, scrollShot=false;
+const knot=document.getElementById('spidey-grip');
+const caption=document.getElementById('spidey-catch-caption');
+let grip=null, flight=null, caught=false, captionTimer;
+function clearGrip(){
+  const id=grip?.id;
+  grip=flight=null;
+  knot.hidden=true;
+  if(typeof id==='number' && knot.hasPointerCapture(id))knot.releasePointerCapture(id);
+}
+function showGrip(points){
+  if(grip || !points || held || move?.action || route.length || paused){
+    if(!grip)knot.hidden=true;
+    return;
+  }
+  const [a,b,c]=points;
+  const x=(a.x+2*b.x+c.x)/4,y=(a.y+2*b.y+c.y)/4-viewportTop;
+  knot.style.transform='translate3d('+Math.round(x-18)+'px,'+Math.round(y-18)+'px,0)';
+  knot.hidden=false;
+}
+function catchWeb(id,x,y){
+  if(!web || !move || route.length || move.action || paused || grip)return;
+  grip={id,x,y,startX:x,startY:y,bodyX:spriteX,bodyY:spriteY,anchor:{...web.at(-1)}};
+  move=null;
+  clearTimeout(patrolTimer);
+  if(!caught){
+    caught=true;caption.textContent='Yo, you caught that?';
+    clearTimeout(captionTimer);
+    captionTimer=setTimeout(()=>{caption.textContent='';},1750);
+  }
+  requestDraw();
+}
+function letGo(cancelled){
+  if(!grip)return;
+  const g=grip;
+  clearGrip();
+  const now=performance.now();
+  releaseWeb(now);
+  if(!cancelled){
+    const dx=g.x-g.startX,dy=g.y-g.startY;
+    flight={at:now,x:spriteX,y:spriteY,endX:Math.max(48,Math.min(width-48,spriteX-dx*1.3)),
+      endY:Math.max(70,Math.min(height-70,spriteY-dy*.75)),lift:Math.min(85,18+Math.hypot(dx,dy)*.32)};
+  }
+  nextMove=now+1300;
+  schedulePatrol(1300);
+  requestDraw();
+}
+knot.addEventListener('pointerdown',e=>{
+  if(!e.isPrimary || e.button!==0)return;
+  catchWeb(e.pointerId,e.clientX,e.clientY);
+  if(grip){knot.setPointerCapture(e.pointerId);e.preventDefault();}
+});
+knot.addEventListener('pointermove',e=>{
+  if(grip?.id!==e.pointerId)return;
+  grip.x=e.clientX;grip.y=e.clientY;requestDraw();
+});
+for(const type of ['pointerup','pointercancel','lostpointercapture']){
+  knot.addEventListener(type,e=>{if(grip?.id===e.pointerId)letGo(type!=='pointerup');});
+}
+knot.addEventListener('keydown',e=>{
+  if(e.key==='Enter'||e.key===' '){
+    e.preventDefault();
+    if(grip?.id==='key'){letGo(false);return;}
+    if(!grip && web){const p=web[1];catchWeb('key',p.x,p.y-viewportTop);}
+  }else if(grip?.id==='key' && ['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){
+    e.preventDefault();
+    grip.x+=e.key==='ArrowLeft'?-16:e.key==='ArrowRight'?16:0;
+    grip.y+=e.key==='ArrowUp'?-16:e.key==='ArrowDown'?16:0;
+    requestDraw();
+  }
+});
+knot.addEventListener('blur',()=>{if(grip?.id==='key')letGo(true);});
+function drawInteraction(now){
+  if(!grip && !flight)return false;
+  let wrist;
+  if(grip){
+    const g=grip,dx=g.x-g.startX,dy=g.y-g.startY;
+    const x=Math.max(38,Math.min(width-38,g.bodyX+dx*.32));
+    const y=Math.max(64,Math.min(height-64,g.bodyY+dy*.32));
+    const facing=g.anchor.x>x?1:-1;
+    wrist=drawModel(x,y,width<600?1.08:1.48,facing,facing,.35);
+    web=[{x:wrist[0],y:wrist[1]+viewportTop},{x:g.x,y:g.y+viewportTop},g.anchor];
+    silk([web[0],web[1]],.98);silk([web[1],web[2]],.98);
+    knot.style.transform='translate3d('+(g.x-18)+'px,'+(g.y-18)+'px,0)';
+    caption.style.transform='translate3d('+Math.min(width-145,Math.max(6,x-50))+'px,'+Math.max(10,y-95)+'px,0)';
+  }else{
+    const f=flight,t=clamp((now-f.at)/720),u=ease(t),dir=f.endX>=f.x?1:-1;
+    wrist=drawModel(lerp(f.x,f.endX,u),lerp(f.y,f.endY,u)-Math.sin(Math.PI*t)*f.lift,width<600?1.08:1.48,dir,dir,t);
+    if(t>=1)flight=null;
+  }
+  drawFallingWebs(now,wrist);drawWebPile();drawImpact(now);previousBounds=bounds;
+  if(flight || fallingWebs.length || impact)requestDraw();
+  return true;
+}
 const actionNames=new Set(['left','right','up','down','lap','reverse lap','web','stop','resume']);
 window.addEventListener('spidey-route',({detail})=>{
   if(paused || !Array.isArray(detail) || !detail.length || detail.length>12 ||
     !detail.every(action=>actionNames.has(action)))return;
+  clearGrip();
   route=detail.slice();
   releaseWeb(performance.now());
   move=greeting=null;
@@ -1017,13 +1131,16 @@ function draw(now){
   clearPrevious();
   bounds=null;
   if(paused){
+    clearGrip();
     web=impact=move=greeting=null;
     fallingWebs.length=0;
     landingAnimation?.cancel();
     sprite.hidden=true;
     return;
   }
+  if(drawInteraction(now))return;
   if(greeting && sheets[3]){
+    knot.hidden=true;
     const progress=clamp((now-greeting.at)/420);
     const salute=clamp((now-greeting.at-420)/260);
     const wave=clamp((now-greeting.at-680)/280);
@@ -1049,6 +1166,18 @@ function draw(now){
   if(sheets[3]){
     const x=sprite.hidden?width*.86:spriteX;
     const y=sprite.hidden?height*.31:spriteY;
+    if(move && !move.action && !route.length && web && !hasLanded &&
+      move.end.index>=0 && Math.abs(viewportTop-move.top)>Math.min(95,height*.13)){
+      const box=surfaces.get(move.end.index);
+      if(box && box.y+box.height>viewportTop+45 && box.y<viewportTop+height-45){
+        const side=x<box.x+box.width/2?1:-1;
+        const rimX=side>0?box.x+12:box.x+box.width-12;
+        move={action:'miss',start:{x,y},end:{x:rimX,y:Math.max(58,Math.min(height-65,box.y-viewportTop+48)),index:move.end.index},top:viewportTop,at:now,duration:780};
+        landingAnimation?.cancel();
+        landingAnimation=demonstration[move.end.index].animate?.([{rotate:'0deg'},{rotate:(side*.65)+'deg',offset:.24},{rotate:'0deg'}],{duration:460});
+        hasLanded=true;
+      }
+    }
     if(move && !move.action && !move.scrollCast && Math.abs(viewportTop-move.top)>Math.min(125,height*.19)){
       releaseWeb(now);
       move=null;
@@ -1070,6 +1199,11 @@ function draw(now){
       const lift=Math.sin(Math.PI*travel)*Math.min(48,height*.075);
       let px=lerp(start.x,end.x,travel),py=lerp(start.y,move.action?end.y:Math.max(65,Math.min(height-65,endY)),travel)-lift;
       let direction=Math.sign(end.x-start.x)||1;
+      if(move.action==='miss'){
+        const catchUp=ease(clamp(phase/.32));
+        px=lerp(start.x,end.x,catchUp);
+        py=lerp(start.y,end.y,catchUp)+Math.sin(Math.PI*clamp((phase-.24)/.76))*28;
+      }
       if(move.action?.endsWith('lap')){
         const rx=width*.32,ry=height*.27,cx=width*.5,cy=height*.48;
         const initial=Math.atan2((start.y-cy)/ry,(start.x-cx)/rx);
@@ -1083,7 +1217,13 @@ function draw(now){
       wrist=drawModel(px,py,
         width<600?1.08:1.48,direction,direction,phase);
       if(!hasCast && phase>=castAt && phase<releaseAt){hasCast=true;playWebShot();}
-      drawWeb(wrist,{x:start.x,y:start.y+top},{x:end.x,y:end.y+top,index:end.index},phase,now);
+      if(move.action==='miss'){
+        const anchor={x:end.x,y:end.y+top};
+        const hand={x:wrist[0],y:wrist[1]+viewportTop};
+        web=[hand,{x:(hand.x+anchor.x)/2,y:(hand.y+anchor.y)/2+5},anchor];
+        silk(web,.93,surfaces.get(end.index));
+        if(phase===1)releaseWeb(now);
+      }else drawWeb(wrist,{x:start.x,y:start.y+top},{x:end.x,y:end.y+top,index:end.index},phase,now);
       if(phase===1){
         move=null;
         nextMove=now+(route.length?100:scrollShot?250:4500+Math.random()*4500);
@@ -1097,6 +1237,7 @@ function draw(now){
   drawWebPile();
   drawImpact(now);
   previousBounds=bounds;
+  showGrip(web);
   if(move || fallingWebs.length || impact)requestDraw();
 }
 
@@ -1108,6 +1249,7 @@ document.addEventListener('visibilitychange',()=>{
 });
 preference.addEventListener('change', event=>{
   paused=event.matches;
+  if(paused)cancelCarry();
   if(!paused) loadFrames();
   requestDraw();
 });
@@ -1134,6 +1276,7 @@ window.addEventListener('spidey-greet',({detail})=>{
   greetingTimer=setTimeout(()=>{greetingLabel.textContent='';},2300);
   if(paused || detail.command || held || route.length || move?.action)return;
   const box=greetingLabel.parentElement.getBoundingClientRect();
+  if(grip || flight)return;
   if(detail.ambient && (box.bottom<0 || box.top>height))return;
   const endX=Math.max(50,Math.min(width-50,box.right-62));
   const endY=Math.max(80,Math.min(height-70,box.top-52));
@@ -1143,6 +1286,125 @@ window.addEventListener('spidey-greet',({detail})=>{
   move=null;
   releaseWeb(greeting.at);
   requestDraw();
+});
+const trail=document.getElementById('spidey-trail');
+const stops=new Map(), dwellTimers=new Map();
+function destinationName(el){
+  return (el.querySelector('.song-title,h2,h3')?.textContent || el.getAttribute('aria-label') || el.textContent || 'Visited card').trim().slice(0,56);
+}
+function remember(el){
+  if(stops.has(el)||!el.isConnected||!el.getClientRects().length)return;
+  if(stops.size===6){
+    const first=stops.keys().next().value;
+    stops.get(first).remove();stops.delete(first);
+  }
+  const b=document.createElement('button');
+  b.type='button';b.title='Return to '+destinationName(el);b.setAttribute('aria-label',b.title);
+  b.addEventListener('click',()=>{
+    if(el.isConnected)el.scrollIntoView({block:'center',inline:'center',behavior:paused?'instant':'smooth'});
+    else{b.remove();stops.delete(el);trail.hidden=stops.size<2;}
+  });
+  stops.set(el,b);trail.append(b);trail.hidden=stops.size<2;
+}
+const visits=new IntersectionObserver(entries=>{
+  for(const e of entries){
+    clearTimeout(dwellTimers.get(e.target));dwellTimers.delete(e.target);
+    if(e.isIntersecting && !document.hidden && !stops.has(e.target)){
+      dwellTimers.set(e.target,setTimeout(()=>{dwellTimers.delete(e.target);remember(e.target);},700));
+    }
+  }
+},{rootMargin:'-18% 0px -24% 0px'});
+demonstration.forEach(el=>visits.observe(el));
+document.addEventListener('click',e=>{
+  const item=e.target.closest?.('.cx-row,[data-memory-id],#homeMemories > *,#collectionRail > *');
+  if(item)remember(item);
+},{passive:true});
+const dock=document.getElementById('spidey-track');
+const composer=document.getElementById('cxInput');
+const trackLabel=dock.querySelector('strong'),trackLyric=dock.querySelector('small');
+let song=null,player=null,chatVisible=false,inPlayer=false,delivered=false,carry=null;
+function updateTrack(){
+  if(!song || dock.hidden)return;
+  const current=player.querySelector('.uf-current');
+  const lyric=current?.textContent?.trim();
+  const letters=current?.querySelectorAll('.uf-letter').length||0;
+  const lit=letters?current.querySelectorAll('.uf-lit').length/letters:0;
+  trackLyric.style.setProperty('--glow',Math.round(lit*100)+'%');
+  const seconds=Math.floor(song.currentTime)||0;
+  const detail=lyric || Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0');
+  if(trackLyric.textContent!==detail)trackLyric.textContent=detail;
+  const duration=song.duration;
+  dock.style.setProperty('--played',(Number.isFinite(duration)&&duration>0?clamp(song.currentTime/duration)*100:0)+'%');
+}
+function cancelCarry(){
+  if(carry){carry.cancel();carry=null;}
+  dock.classList.remove('travelling');
+}
+function syncDock(){
+  const show=song && !song.paused && !song.ended && chatVisible && !inPlayer && !document.hidden;
+  dock.hidden=!show;
+  if(!show){cancelCarry();return;}
+  updateTrack();
+  if(delivered)return;
+  delivered=true;
+  if(paused || sprite.hidden || !dock.animate)return;
+  const target=dock.getBoundingClientRect();
+  const x=Math.max(30,Math.min(width-40,spriteX)),y=Math.max(40,Math.min(height-40,spriteY));
+  const dx=x-target.left,dy=y-target.top;
+  dock.classList.add('travelling');
+  const animation=dock.animate([{transform:'translate('+dx+'px,'+dy+'px) scale(.4)',opacity:.3},
+    {transform:'translate(0,0) scale(1)',opacity:1}],{duration:640,easing:'cubic-bezier(.2,.65,.2,1)'});
+  carry=animation;
+  if(!held && !grip && !flight && !route.length && !move?.action){
+    releaseWeb(performance.now());greeting=null;hasCast=hasLanded=false;
+    move={action:'carry',start:{x,y},end:{x:Math.max(46,Math.min(width-46,target.left+24)),y:Math.max(65,target.top-24),index:-1},at:performance.now(),duration:640,top:scrollY};
+    requestDraw();
+  }
+  animation.onfinish=()=>{if(carry===animation)cancelCarry();};
+}
+const playerView=new IntersectionObserver(entries=>{
+  for(const e of entries)if(e.target===player)inPlayer=e.isIntersecting;
+  syncDock();
+});
+const chatView=new IntersectionObserver(entries=>{chatVisible=entries.at(-1).isIntersecting;syncDock();});
+chatView.observe(document.getElementById('spidey-dock-anchor'));
+function clearSong(){
+  if(song)for(const type of ['timeupdate','seeked'])song.removeEventListener(type,updateTrack);
+  playerView.disconnect();song=player=null;delivered=false;syncDock();
+}
+document.addEventListener('play',e=>{
+  const el=e.target,card=el.closest?.('#music .song-player');
+  if(el.tagName!=='AUDIO' || !card){if(el.matches?.('audio,video'))clearSong();return;}
+  clearSong();song=el;player=card;
+  trackLabel.textContent=destinationName(card).replace(/ music player$/i,'');
+  dock.setAttribute('aria-label','Add '+trackLabel.textContent+' to your chat draft');
+  inPlayer=true;playerView.observe(card);
+  for(const type of ['timeupdate','seeked'])song.addEventListener(type,updateTrack);
+},true);
+for(const type of ['ended','pause','emptied'])document.addEventListener(type,e=>{
+  if(e.target===song && (song.paused||song.ended||type==='emptied'))clearSong();
+},true);
+dock.addEventListener('click',()=>{
+  if(!song || !composer)return;
+  const title=trackLabel.textContent,link=new URL(location.href);
+  if(!player.id)player.id='track-'+(song.id||title.toLowerCase().replace(/[^a-z0-9]+/g,'-'));
+  link.hash=player.id;
+  const text=title+' '+link.href;
+  const a=composer.selectionStart,b=composer.selectionEnd;
+  const insertion=(a && !/\s/.test(composer.value[a-1])?' ':'')+text+(b<composer.value.length?' ':'');
+  if(composer.value.length-b+a+insertion.length>composer.maxLength){
+    composer.setCustomValidity('Make room in your draft to add this track.');
+    composer.reportValidity();composer.setCustomValidity('');return;
+  }
+  composer.setRangeText(insertion,a,b,'end');
+  composer.dispatchEvent(new Event('input',{bubbles:true}));composer.focus({preventScroll:true});
+});
+document.querySelectorAll('#music .song-player audio[id]').forEach(el=>{
+  const card=el.closest('.song-player');if(!card.id)card.id='track-'+el.id;
+});
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden){web=null;for(const timer of dwellTimers.values())clearTimeout(timer);dwellTimers.clear();clearGrip();}
+  syncDock();
 });
 const observer=new ResizeObserver(scheduleMeasure);
 observer.observe(document.body);
