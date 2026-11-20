@@ -599,10 +599,13 @@ demonstration.forEach((card,index)=>{
 let stops=[];
 let previousBounds=null;
 let bounds=null;
-let shots=[];
-const impacts=new Map();
-const cardHits=new Map();
-let nextShot=0;
+let web=null;
+let looseWeb=null;
+let lastSegment=-1;
+let lastPhase=0;
+let hasCast=false;
+let hasLanded=false;
+let landingAnimation;
 let layoutFrame=0;
 let viewportTop=0;
 let surfaces=new Map();
@@ -619,21 +622,33 @@ function measure(){
   const hero=document.querySelector('.deep-hero')?.getBoundingClientRect();
   const footer=document.querySelector('.deep-footer')?.getBoundingClientRect();
   stops=[{x:width*.87,y:Math.min(height*.40,(hero?.top??0)+top+height*.25),mark:0,index:-1}];
-  const gap=Math.min(84,height*.12,maxScroll/(rows.length+1));
-  rows.forEach(({box,index},row)=>{
-    const previous=stops.at(-1);
-    const y=box.top+top+Math.min(box.height*.20,94);
-    const mark=Math.max(previous.mark+gap,Math.min(y-trigger,maxScroll-(rows.length-row)*gap));
-    const side=previous.x>width*.50?.36:.64;
-    const x=Math.max(48,Math.min(width-48,box.left+box.width*side));
-    stops.push({x,y,mark,index});
-  });
-  const footerTop=footer?footer.top+top:maxScroll+height*.72;
-  const previous=stops.at(-1);
-  stops.push({x:width*(previous.x>width*.5?.20:.80),
-    y:Math.max(maxScroll+height*.46,Math.min(footerTop-45,maxScroll+height*.72)),
-    mark:maxScroll,index:-1});
-
+  const cardGap=Math.min(145,height*.20,maxScroll/(rows.length+1));
+  const landings=[];
+  for(const {box,index} of rows){
+    const y=box.top+top+Math.min(box.height*.16,65);
+    const mark=y-trigger;
+    if(mark<cardGap || mark>maxScroll-cardGap || mark-(landings.at(-1)?.mark??0)<cardGap)continue;
+    const fromRight=landings.length%2===0;
+    const x=Math.max(52,Math.min(width-52,box.left+box.width*(fromRight?.26:.74)));
+    landings.push({x,y,mark,index});
+  }
+  const footerTop=footer?footer.top+top:maxScroll+height*.64;
+  landings.push({x:width*.89,y:Math.max(maxScroll+height*.32,
+    Math.min(footerTop-55,maxScroll+height*.58)),mark:maxScroll,index:-1});
+  for(const landing of landings){
+    const start=stops.at(-1);
+    const distance=landing.mark-start.mark;
+    const wallCount=Math.max(0,Math.ceil(distance/(height*.78))-1);
+    for(let i=1;i<=wallCount;i++){
+      const mark=start.mark+distance*i/(wallCount+1);
+      const x=stops.at(-1).x>width*.5?width*.12:width*.88;
+      stops.push({x,y:mark+trigger,mark,index:-1});
+    }
+    if(landing.index<0)landing.x=stops.at(-1).x>width*.5?width*.12:width*.88;
+    stops.push(landing);
+  }
+  web=looseWeb=null;
+  lastSegment=-1;
   requestDraw();
 }
 function scheduleMeasure(){
@@ -659,8 +674,9 @@ const lerp = (a,b,t) => a+(b-a)*t;
 const ease = t => t*t*(3-2*t);
 let width, height, frame, scroll, target, last;
 let paused = preference.matches;
-let lastScrollInput = -Infinity;
-let rest = 1;
+const castAt=.17;
+const releaseAt=.65;
+const landAt=.91;
 function resize(){
   const density=1;
   const spriteDensity=Math.min(devicePixelRatio||1,touch?1.5:2);
@@ -726,106 +742,44 @@ function silk(points,alpha,surface){
   draw(points,'rgba(85,202,255,'+alpha*.38+')',4.2);
   draw(points,'rgba(223,252,255,'+alpha*.98+')',1.25);
 }
-function shoot(wrist,direction,now){
-  const [x,screenY]=wrist;
-  const y=screenY+viewportTop;
-  const reach=Math.min(245,width*.48,height*.34);
-  let destination;
-  let closest=Infinity;
-  for(const [index,box] of surfaces){
-    if(box.y+box.height<viewportTop || box.y>viewportTop+height){
-      cardHits.delete(index);
-      continue;
-    }
-    const previous=cardHits.get(index);
-    if(impacts.has(index) || previous?.count>=2 || now-(previous?.time??-Infinity)<1000)continue;
-    const hitX=Math.max(box.x+18,Math.min(box.x+box.width-18,x+direction*reach*.68));
-    const hitY=Math.max(box.y+20,Math.min(box.y+box.height-20,y+42));
-    const distance=Math.hypot(hitX-x,hitY-y);
-    if(hitY<viewportTop+12 || hitY>viewportTop+height-12 || distance>reach || distance<30 || distance>=closest)continue;
-    closest=distance;
-    destination={x:hitX,y:hitY,index};
-  }
-  const end=destination??{x:Math.max(18,Math.min(width-18,x+direction*reach*.72)),y:y-reach*.43};
-  if(shots.length>=2)shots.shift();
-  shots.push({...end,time:now,reach,contacted:false});
-  playWebShot();
-}
-function hitCard(shot,now){
-  const {index,x,y}=shot;
-  if(index===undefined || impacts.has(index))return;
+function landOnCard(index){
+  if(index<0)return;
   const card=demonstration[index];
-  const previous=cardHits.get(index);
-  cardHits.set(index,{count:(previous?.count??0)+1,time:now});
-  const animation=card.animate?.([
-    {translate:'0 0',rotate:'0deg'},
-    {translate:'3px 2px',rotate:'.33deg',offset:.10},
-    {translate:'-2px -1px',rotate:'-.19deg',offset:.23},
-    {translate:'1px 0',rotate:'.08deg',offset:.40},
-    {translate:'0 0',rotate:'0deg'}
-  ],{duration:420,easing:'ease-out'});
-  impacts.set(index,{x,y,time:now,animation});
+  if(!card.closest('#music'))return;
+  landingAnimation?.cancel();
+  landingAnimation=card.animate?.([
+    {translate:'0 0'},
+    {translate:'0 2px',offset:.22},
+    {translate:'0 -.65px',offset:.57},
+    {translate:'0 0'}
+  ],{duration:270,easing:'ease-out'});
 }
-function drawShots(wrist,now){
-  shots=shots.filter(shot=>{
-    const age=now-shot.time;
-    if(age>=355)return false;
-    const x=wrist[0],y=wrist[1]+viewportTop;
-    const distance=Math.hypot(shot.x-x,shot.y-y);
-    const extension=1-(1-clamp(age/82))**3;
-    const capped=Math.min(1,shot.reach/Math.max(1,distance));
-    const endX=lerp(x,shot.x,extension*capped);
-    const endY=lerp(y,shot.y,extension*capped);
-    const receiver=surfaces.get(shot.index);
-    if(age>=82 && !shot.contacted){
-      shot.contacted=true;
-      if(distance<=shot.reach)hitCard(shot,now);
-    }
-    const alpha=1-ease(clamp((age-133)/222));
-    silk([{x,y},{x:lerp(x,endX,.5),y:lerp(y,endY,.5)+8*(1-extension)+5*alpha},
-      {x:endX,y:endY}],alpha,receiver);
-    return true;
-  });
-}
-function drawRepairs(now){
-  for(const [index,impact] of impacts){
-    const age=now-impact.time;
-    const receiver=surfaces.get(index);
-    if(!receiver || age>=780){impacts.delete(index);continue;}
-    const {x,y}=impact;
-    const sy=y-viewportTop;
-    if(sy<-45 || sy>height+45)continue;
-    const opening=ease(clamp(age/110));
-    const joining=ease(clamp((age-120)/320));
-    const opacity=(1-ease(clamp((age-460)/320)))*opening;
-    const crack=[[-12,-34],[3,-20],[-4,-7],[8,3],[-1,14],[12,30]];
-    include(x,sy,47);
-    onSurface(receiver,()=>{
-      pen.beginPath();
-      crack.forEach(([dx,dy],i)=>{
-        const method=i?'lineTo':'moveTo';
-        pen[method](x+dx*opening,sy+dy*opening);
-      });
-      pen.lineJoin='round';
-      pen.lineWidth=3.7-joining*2.5;
-      pen.strokeStyle='rgba(5,9,18,'+opacity*.9+')';
-      pen.stroke();
-      pen.lineWidth=.85;
-      pen.strokeStyle='rgba(210,238,255,'+opacity*.7+')';
-      pen.stroke();
-      for(let stitch=0;stitch<4;stitch++){
-        const spread=ease(clamp((age-110-stitch*52)/105));
-        if(!spread)continue;
-        const cy=sy-22+stitch*14;
-        pen.beginPath();
-        pen.moveTo(x-18,cy-4);
-        pen.quadraticCurveTo(x,cy+5,x-18+36*spread,cy+5);
-        pen.lineWidth=1.25;
-        pen.strokeStyle='rgba(208,247,255,'+opacity*spread+')';
-        pen.stroke();
-      }
-    });
+function drawWeb(wrist,start,end,phase,now){
+  if(phase>=castAt && phase<releaseAt){
+    const origin={x:wrist[0],y:wrist[1]+viewportTop};
+    const anchorX=lerp(start.x,end.x,.83);
+    const anchorY=lerp(start.y,end.y,.22)-Math.min(155,height*.19);
+    const extension=1-(1-clamp((phase-castAt)/.13))**3;
+    const tip={x:lerp(origin.x,anchorX,extension),y:lerp(origin.y,anchorY,extension)};
+    // The loose line straightens as it takes the character's weight.
+    const slack=18*(1-ease(clamp((phase-castAt)/.22)))+2;
+    const points=[origin,{x:lerp(origin.x,tip.x,.5),y:lerp(origin.y,tip.y,.5)+slack*extension},tip];
+    web=points;
+    silk(points,.92,surfaces.get(end.index));
+  }else if(web){
+    if(phase>=releaseAt)looseWeb={points:web,at:now};
+    web=null;
   }
+  if(!looseWeb)return;
+  const seconds=(now-looseWeb.at)/1000;
+  if(seconds>=.30){looseWeb=null;return;}
+  const fade=1-ease(seconds/.30);
+  const fall=280*seconds*seconds;
+  const points=looseWeb.points.map((point,i)=>({
+    x:point.x+(i-1)*seconds*18,
+    y:point.y+fall*(i===1?1.3:1)
+  }));
+  silk(points,fade*.8);
 }
 // Frames pre-rendered from the supplied Swing to Land GLB, with projected wrist positions.
 const wrists = [[0.42941,0.3668],[0.43155,0.3633],[0.43377,0.35993],[0.43598,0.35749],[0.43823,0.35526],[0.44046,0.354],[0.44269,0.35309],[0.44473,0.3525],[0.44667,0.35211],[0.44884,0.3517],[0.45124,0.35128],[0.45385,0.35068],[0.45679,0.34978],[0.45979,0.34884],[0.46296,0.34763],[0.4661,0.34656],[0.46895,0.34559],[0.47177,0.34478],[0.47411,0.34461],[0.47638,0.34458],[0.47848,0.34515],[0.48046,0.34591],[0.48223,0.34686],[0.48384,0.34795],[0.48514,0.349],[0.48628,0.35004],[0.48767,0.35068],[0.48937,0.35093],[0.49075,0.35096],[0.49159,0.3506],[0.49211,0.35029],[0.49169,0.34987],[0.49109,0.34979],[0.48993,0.35033],[0.48859,0.35116],[0.48762,0.3539],[0.48656,0.35691],[0.48539,0.36162],[0.48414,0.36681],[0.4814,0.37229],[0.4781,0.37804],[0.47238,0.38412],[0.46501,0.39058],[0.45529,0.39846],[0.44345,0.40812],[0.43204,0.41921],[0.42137,0.43267],[0.41326,0.4467],[0.40966,0.45952],[0.40696,0.47226],[0.40712,0.47946],[0.40688,0.48715],[0.40762,0.4904],[0.40814,0.49419],[0.40841,0.4971],[0.4087,0.50026],[0.40802,0.50314],[0.40728,0.50574],[0.40579,0.50803],[0.40415,0.50971],[0.40279,0.51086],[0.40169,0.5115],[0.40093,0.51197],[0.40026,0.51245],[0.39977,0.51323],[0.39877,0.51523],[0.39756,0.51735],[0.39419,0.52209],[0.39079,0.52608],[0.38513,0.53227],[0.37999,0.53701],[0.37517,0.53991],[0.37109,0.54088],[0.3684,0.54072],[0.36615,0.53988],[0.36482,0.54098],[0.36381,0.54368],[0.36321,0.54751],[0.36309,0.55244],[0.36328,0.55761],[0.36408,0.56308],[0.3648,0.56797],[0.36538,0.57234],[0.3659,0.57577],[0.36612,0.5784],[0.36635,0.57993],[0.36673,0.58144],[0.36713,0.58195],[0.36812,0.58374],[0.36919,0.58513],[0.37117,0.58991],[0.37351,0.59579],[0.37636,0.60196],[0.37957,0.60824],[0.38249,0.61273],[0.38511,0.61542],[0.38725,0.61695],[0.38863,0.61656],[0.39007,0.61589],[0.3915,0.61518],[0.39289,0.61443],[0.39399,0.61412],[0.3951,0.61372],[0.39597,0.61366],[0.39686,0.61354],[0.39758,0.61359],[0.3983,0.61363],[0.39889,0.61393],[0.39947,0.61428],[0.39998,0.61484],[0.40047,0.61549],[0.40092,0.61602],[0.40133,0.61646],[0.4017,0.61684],[0.40199,0.61718],[0.40227,0.61748],[0.40243,0.61776],[0.40261,0.61799],[0.4027,0.61812],[0.4028,0.61824]];
@@ -895,8 +849,9 @@ function drawModel(x,y,scale,direction,previousDirection,phase){
   const lastFrame=wrists.length-1;
   const pose=clamp(phase)*lastFrame;
   const current=Math.round(pose);
-  const takeoff=sheets[Math.floor(current/30)]?ease(clamp(phase/.15))*(1-rest):0;
-  const crouchDirection=rest>.5?direction:previousDirection;
+  const takeoff=sheets[Math.floor(current/30)]?
+    ease(clamp(phase/.13))*(1-ease(clamp((phase-.88)/.12))):0;
+  const crouchDirection=phase<.5?previousDirection:direction;
   const alpha=Math.round(takeoff*32)/32;
   const key=[scale,alpha,crouchDirection,alpha?current:-1,direction].join(':');
   if(key!==spriteKey){
@@ -965,18 +920,15 @@ function draw(now){
   frame = 0;
   const elapsed = Math.min(now-(last || now-16),48);
   last = now;
-  scroll = paused ? target : lerp(scroll,target,1-Math.exp(-elapsed/34));
+  scroll = paused ? target : lerp(scroll,target,1-Math.exp(-elapsed/42));
+  if(Math.abs(target-scroll)<.25)scroll=target;
   viewportTop=target;
-  const scrolling=now-lastScrollInput<135;
-  const restTarget=scrolling?0:1;
-  rest=lerp(rest,restTarget,1-Math.exp(-elapsed/(scrolling?53:110)));
-  if(Math.abs(restTarget-rest)<.01)rest=restTarget;
   clearPrevious();
   bounds=null;
   if(paused || stops.length<2){
-    shots=[];
-    for(const impact of impacts.values())impact.animation?.cancel();
-    impacts.clear();
+    web=looseWeb=null;
+    landingAnimation?.cancel();
+    lastSegment=-1;
     sprite.hidden=true;
     return;
   }
@@ -984,30 +936,41 @@ function draw(now){
   while(segment<stops.length-2 && stops[segment+1].mark<scroll)segment++;
   const start=stops[segment],end=stops[segment+1];
   const phase=clamp((scroll-start.mark)/Math.max(1,end.mark-start.mark));
-  const travel=ease(phase);
-  const arc=Math.sin(Math.PI*travel)**2;
+  const sameLeg=segment===lastSegment;
+  if(!sameLeg)web=looseWeb=null;
+  if(!sameLeg || phase<.06)hasCast=hasLanded=false;
   let visible=false;
   if(sheets[3]){
     const scale=width<600?1.08:width>=1800?1.66:1.48;
     const direction=Math.sign(end.x-start.x)||1;
     const previousDirection=segment>0?Math.sign(start.x-stops[segment-1].x)||direction:direction;
+    const travel=ease(clamp((phase-.14)/(landAt-.14)));
+    const drop=clamp((phase-releaseAt)/(landAt-releaseAt));
+    const dip=16*drop*drop*(1-drop)*(1-drop)*Math.min(24,height*.03);
     const x=lerp(start.x,end.x,travel);
-    const y=lerp(start.y,end.y,phase)-viewportTop+45*scale+arc*Math.min(17,height*.022);
-    if(y>-165 && y<height+165){
+    const y=lerp(start.y,end.y,travel)-viewportTop+34*scale+dip;
+    if(y>-150 && y<height+120){
       visible=true;
-      const wrist=drawModel(x,y,scale,direction,previousDirection,phase);
-      if(readySheets===sheets.length && scrolling && Math.abs(target-scroll)>1 && now>=nextShot &&
-          wrist[1]>-28 && wrist[1]<height+28){
-        shoot(wrist,direction,now);
-        nextShot=now+175;
+      const pose=clamp((phase-.07)/(landAt-.07));
+      const wrist=drawModel(x,y,scale,direction,previousDirection,pose);
+      if(readySheets===sheets.length){
+        if(!hasCast && sameLeg && lastPhase<castAt && phase>=castAt && phase<releaseAt){
+          hasCast=true;
+          playWebShot();
+        }
+        if(!hasLanded && sameLeg && lastPhase<landAt && phase>=landAt){
+          hasLanded=true;
+          landOnCard(end.index);
+        }
+        drawWeb(wrist,start,end,phase,now);
       }
-      drawShots(wrist,now);
     }
   }
-  if(!visible){sprite.hidden=true;shots=[];}
-  drawRepairs(now);
+  if(!visible){sprite.hidden=true;web=looseWeb=null;}
+  lastSegment=segment;
+  lastPhase=phase;
   previousBounds=bounds;
-  if(Math.abs(target-scroll)>.22 || scrolling || rest!==restTarget || shots.length || impacts.size)requestDraw();
+  if(scroll!==target || looseWeb)requestDraw();
   else last=0;
 }
 function requestDraw(){if(!frame) frame=requestAnimationFrame(draw)}
@@ -1025,7 +988,6 @@ addEventListener('resize',()=>{
 },{passive:true});
 addEventListener('scroll',()=>{
   target=scrollY;
-  lastScrollInput=performance.now();
   if(target>0) loadFrames();
   requestDraw();
 },{passive:true});
