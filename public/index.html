@@ -575,7 +575,7 @@ syncInbox();
 <script defer="" src="/deeplist-home.js?v=connection-recovery-1"></script>
 <script type="module" src="/deeplist-listeners.js?v=connection-recovery-1"></script>
 <script type="module" src="/deeplist-stats.js?v=connection-recovery-1"></script>
-<script type="module" src="/home-chat.js?v=spidey-greetings-1"></script>
+<script type="module" src="/home-chat.js?v=spidey-routes-2"></script>
 <dialog aria-labelledby="ptTitle" class="pt-dialog" id="ptDialog"><div class="pt-dialog-close"><button aria-label="Close dialog" class="close" id="ptClose" type="button">×</button></div><section aria-labelledby="ptTitle" class="world-card pt-section" id="publicThoughts">
 <div class="world-heading"><div><h2 id="ptTitle">Inside Deep’s Mind</h2></div><button class="world-delete" id="ptAdmin" type="button">Admin</button></div>
 
@@ -746,8 +746,8 @@ function landOnCard(index){
   landingAnimation?.cancel();
   landingAnimation=card.animate?.([
     {translate:'0 0'},
-    {translate:'-2px 2px',offset:.22},
-    {translate:'1px -1px',offset:.57},
+    {translate:'-3px 2px',offset:.22},
+    {translate:'2px -1px',offset:.57},
     {translate:'0 0'}
   ],{duration:270,easing:'ease-out'});
 }
@@ -964,7 +964,33 @@ function playWebShot(){
   // The source has a half-second of silence before the thwip.
   source.start(0,.52,Math.min(.34,webShotBuffer.duration-.52));
 }
-function planMove(now,x,y){
+let route=[], held=false, lastScrollShot=0, scrollShot=false;
+const actionNames=new Set(['left','right','up','down','lap','reverse lap','web','stop','resume']);
+window.addEventListener('spidey-route',({detail})=>{
+  if(paused || !Array.isArray(detail) || !detail.length || detail.length>12 ||
+    !detail.every(action=>actionNames.has(action)))return;
+  route=detail.slice();
+  releaseWeb(performance.now());
+  move=greeting=null;
+  held=false;
+  nextMove=0;
+  window.dispatchEvent(new CustomEvent('spidey-ack',{detail:route[0]}));
+  requestDraw();
+});
+function commandedMove(now,x,y,action){
+  if(action==='stop'){held=true;route=[];return null;}
+  if(action==='resume'){held=false;return planMove(now,x,y);}
+  if(action==='web')return planMove(now,x,y,true);
+  const end={x,y,index:-1};
+  const lap=action.endsWith('lap');
+  if(action==='left')end.x=width*.16;
+  if(action==='right')end.x=width*.84;
+  if(action==='up')end.y=height*.19;
+  if(action==='down')end.y=height*.79;
+  hasCast=hasLanded=false;
+  return {action,start:{x,y},end,at:now,duration:lap?2200:900,top:viewportTop};
+}
+function planMove(now,x,y,preferCard=false){
   const choices=[];
   for(const [index,box] of surfaces){
     if(index===lastAnchor)continue;
@@ -976,7 +1002,7 @@ function planMove(now,x,y){
     if(distance>95 && distance<Math.min(560,height*.76))choices.push({x:anchorX,y:anchorY,index});
   }
   const edge={x:width*(x>width/2?.12:.88),y:height*(.26+Math.random()*.28),index:-1};
-  const end=choices.length && Math.random()<.82?choices[Math.floor(Math.random()*choices.length)]:edge;
+  const end=choices.length && (preferCard || Math.random()<.82)?choices[Math.floor(Math.random()*choices.length)]:edge;
   hasCast=hasLanded=false;
   lastAnchor=end.index;
   return {start:{x,y},end,at:now,duration:Math.min(1400,780+Math.hypot(end.x-x,end.y-y)),top:viewportTop};
@@ -1023,26 +1049,44 @@ function draw(now){
   if(sheets[3]){
     const x=sprite.hidden?width*.86:spriteX;
     const y=sprite.hidden?height*.31:spriteY;
-    if(move && Math.abs(viewportTop-move.top)>Math.min(125,height*.19)){
+    if(move && !move.action && !move.scrollCast && Math.abs(viewportTop-move.top)>Math.min(125,height*.19)){
       releaseWeb(now);
       move=null;
       nextMove=now;
     }
-    if(!move && now>=nextMove && readySheets===sheets.length)move=planMove(now,x,y);
+    if(!move && !held && now>=nextMove && readySheets===sheets.length){
+      if(route.length)move=commandedMove(now,x,y,route.shift());
+      else{
+        move=planMove(now,x,y,scrollShot);
+        move.scrollCast=scrollShot;
+      }
+      scrollShot=false;
+    }
     if(move){
       const {start,end,duration,top}=move;
       const phase=clamp((now-move.at)/duration);
       const travel=ease(phase);
       const endY=end.y+top-viewportTop;
       const lift=Math.sin(Math.PI*travel)*Math.min(48,height*.075);
-      const direction=Math.sign(end.x-start.x)||1;
-      wrist=drawModel(lerp(start.x,end.x,travel),lerp(start.y,endY,travel)-lift,
+      let px=lerp(start.x,end.x,travel),py=lerp(start.y,move.action?end.y:Math.max(65,Math.min(height-65,endY)),travel)-lift;
+      let direction=Math.sign(end.x-start.x)||1;
+      if(move.action?.endsWith('lap')){
+        const rx=width*.32,ry=height*.27,cx=width*.5,cy=height*.48;
+        const initial=Math.atan2((start.y-cy)/ry,(start.x-cx)/rx);
+        const sign=move.action==='reverse lap'?-1:1;
+        const angle=initial+sign*2*Math.PI*ease(clamp((phase-.13)/.87));
+        const entry=ease(clamp(phase/.13));
+        px=lerp(start.x,cx+rx*Math.cos(angle),entry);
+        py=lerp(start.y,cy+ry*Math.sin(angle),entry);
+        direction=Math.sign(-sign*Math.sin(angle))||1;
+      }
+      wrist=drawModel(px,py,
         width<600?1.08:1.48,direction,direction,phase);
       if(!hasCast && phase>=castAt && phase<releaseAt){hasCast=true;playWebShot();}
       drawWeb(wrist,{x:start.x,y:start.y+top},{x:end.x,y:end.y+top,index:end.index},phase,now);
       if(phase===1){
         move=null;
-        nextMove=now+4500+Math.random()*4500;
+        nextMove=now+(route.length?100:scrollShot?250:4500+Math.random()*4500);
         schedulePatrol(nextMove-now);
       }
     }else if(sprite.hidden){
@@ -1074,13 +1118,21 @@ addEventListener('resize',()=>{
   if(innerWidth!==width)resize();
   else resizeTimer=setTimeout(()=>{if(innerHeight!==height)resize();},160);
 },{passive:true});
-addEventListener('scroll',requestDraw,{passive:true});
+addEventListener('scroll',()=>{
+  const now=performance.now();
+  if(!paused && !held && !route.length && !move?.action && now>=lastScrollShot){
+    scrollShot=true;
+    lastScrollShot=now+900+Math.random()*1100;
+    nextMove=now;
+  }
+  requestDraw();
+},{passive:true});
 window.addEventListener('spidey-greet',({detail})=>{
   if(!greetingLabel)return;
   greetingLabel.textContent=detail.text;
   clearTimeout(greetingTimer);
   greetingTimer=setTimeout(()=>{greetingLabel.textContent='';},2300);
-  if(paused)return;
+  if(paused || detail.command || held || route.length || move?.action)return;
   const box=greetingLabel.parentElement.getBoundingClientRect();
   if(detail.ambient && (box.bottom<0 || box.top>height))return;
   const endX=Math.max(50,Math.min(width-50,box.right-62));
@@ -1189,95 +1241,43 @@ loadFrames();
 </script>
 <script>
 (()=>{
-  // Set clip to a site-hosted recording of Deepak saying the matching line.
   const greetings=[
-    {text:"Hi, what's up?",clip:null},
-    {text:'Hi, कैसे हो?',clip:null},
-    {text:'Hi, क्या कर रहे हो?',clip:null},
-    {text:'आज का क्या प्लान है?',clip:null},
-    {text:'सब बढ़िया?',clip:null},
-    {text:'और सुनाओ, क्या चल रहा है?',clip:null}
+    ["What's up?",'sup'],
+    ["Just doing my rounds.",'patrol'],
+    ["I see the vibe.",'vibe']
   ];
-  const voice=new Audio();
-  voice.preload='none';
-  let previous=-1, timer, speechTimer, speechTurn=0, activeLine=null;
-  function stopGreeting(){
-    ++speechTurn;
-    clearTimeout(speechTimer);
-    if(activeLine)window.speechSynthesis?.cancel();
-    activeLine=null;
-    voice.onended=null;
-    voice.pause();
-  }
-  document.addEventListener('play',event=>{
-    if(event.target.matches?.('audio,video'))stopGreeting();
-  },true);
-  function nextGreeting(){
-    let index=Math.floor(Math.random()*(greetings.length-1));
-    if(previous<0)index=Math.floor(Math.random()*greetings.length);
-    else if(index>=previous)index++;
-    previous=index;
-    return greetings[index];
+  const speech=window.speechSynthesis;
+  let timer, previous=-1;
+  function stop(){if(speech?.speaking)speech.cancel();}
+  function say(line,ambient,command=false){
+    if(document.hidden || [...document.querySelectorAll('audio,video')].some(m=>!m.paused))return;
+    if(speech?.speaking && !command)return;
+    window.dispatchEvent(new CustomEvent('spidey-greet',{detail:{text:line[0],ambient,command}}));
+    if(!speech || !window.SpeechSynthesisUtterance)return;
+    stop();
+    const utterance=new SpeechSynthesisUtterance(line[0]);
+    utterance.lang='en-US';
+    utterance.rate=1.15;
+    const english=speech.getVoices().filter(v=>/^en[-_]/i.test(v.lang));
+    const voice=english.find(v=>/en[-_]in/i.test(v.lang)) || english[0];
+    if(voice)utterance.voice=voice;
+    speech.speak(utterance);
   }
   function greet(ambient){
-    if(document.hidden)return;
-    const lines=[nextGreeting()];
-    if(Math.random()<.35)lines.push(nextGreeting());
-    window.dispatchEvent(new CustomEvent('spidey-greet',{detail:{
-      text:lines.map(line=>line.text).join(' '),ambient
-    }}));
-    const clips=lines.map(line=>line.clip).filter(Boolean);
-    if(!voice.paused || [...document.querySelectorAll('audio,video')].some(media=>!media.paused))return;
-    if(!clips.length){
-      const speech=window.speechSynthesis;
-      if(!speech || !window.SpeechSynthesisUtterance || speech.speaking || speech.pending)return;
-      const phrases=lines.flatMap(line=>line.text.split(/,\s*/));
-      const turn=++speechTurn;
-      function speakNext(){
-        if(turn!==speechTurn || document.hidden || !phrases.length ||
-          [...document.querySelectorAll('audio,video')].some(media=>!media.paused))return;
-        const text=phrases.shift();
-        const line=new SpeechSynthesisUtterance(text);
-        line.lang=/[\u0900-\u097f]/.test(text)?'hi-IN':'en-IN';
-        const voices=speech.getVoices().filter(v=>v.lang.replace('_','-').toLowerCase()===line.lang.toLowerCase());
-        const preferred=voices.find(v=>/\b(male|ravi|madhur|prabhat)\b/i.test(v.name)) || voices[0];
-        if(preferred)line.voice=preferred;
-        line.rate=.97;
-        line.pitch=.93;
-        activeLine=line;
-        line.onend=()=>{
-          if(turn!==speechTurn)return;
-          activeLine=null;
-          if(phrases.length)speechTimer=setTimeout(speakNext,380+Math.random()*160);
-        };
-        line.onerror=()=>{if(turn===speechTurn)activeLine=null;};
-        speech.speak(line);
-      }
-      speakNext();
-      return;
-    }
-    function playNext(){
-      const clip=clips.shift();
-      if(!clip || document.hidden)return;
-      voice.src=clip;
-      voice.play().catch(()=>{voice.onended=null;});
-    }
-    voice.onended=playNext;
-    playNext();
+    previous=(previous+1+Math.floor(Math.random()*(previous<0?greetings.length:greetings.length-1)))%greetings.length;
+    say(greetings[previous],ambient);
   }
   function schedule(){
     clearTimeout(timer);
-    if(!document.hidden)timer=setTimeout(()=>{greet(true);schedule();},30000+Math.random()*45000);
+    if(!document.hidden)timer=setTimeout(()=>{greet(true);schedule();},45000+Math.random()*45000);
   }
-  window.addEventListener('spidey-greet-request',()=>{greet(false);schedule();});
-  window.addEventListener('pointerup',()=>{
-    greet(true);
+  window.addEventListener('spidey-ack',({detail})=>{
+    say(detail==='stop'?["Taking a break.",'stop']:["Watch me swing.",'move'],false,true);
     schedule();
-    document.addEventListener('visibilitychange',()=>{
-      if(document.hidden)stopGreeting();
-      schedule();
-    });
-  },{once:true});
+  });
+  window.addEventListener('pointerup',()=>{greet(true);schedule();},{once:true});
+  document.addEventListener('play',e=>{if(e.target.matches?.('audio,video'))stop();},true);
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)stop();else if(timer)schedule();});
 })();
 </script>
 <script id="media-single-player-js">

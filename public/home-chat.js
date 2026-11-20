@@ -1,3 +1,4 @@
+import {movementRoute} from './spidey-route.js';
 import {initReactionPeople} from './chat-reaction-people.js?v=1';
 import {initChatMentions} from './chat-mentions.js?v=spidey-1';
 import {identityColor,identityLabel} from './chat-identity.js';
@@ -44,6 +45,7 @@ function toast(msg){E.toast.textContent=msg;E.toast.hidden=false;clearTimeout(to
 
 // AI stays in the existing conversation; no extra panel or send button.
 const aiWatchers=new Set();
+const spideyRequests=new Map();
 function paintAIWaiting(){const status=$("cxAiStatus");if(!status)return;status.hidden=!aiWatchers.size;status.textContent=aiWatchers.size?"AI is thinking…":""}
 function watchAI(messageId,ai){
   if(!ai)return;
@@ -215,6 +217,14 @@ async function loadFeed(sig){
   if(!d.success)throw new Error("feed");
   const first=!S.ready;
   if(d.me){S.me=d.me;paintMyIdentity()}
+  for(const [id,expires] of spideyRequests){
+    if(Date.now()>expires){spideyRequests.delete(id);continue;}
+    const reply=d.messages.find(m=>m.ai && m.username==="Spidey AI" && m.parent?.id===id);
+    if(!reply)continue;
+    spideyRequests.delete(id);
+    const match=/^on it:\s*([a-z, ]+)[.!]?$/i.exec(reply.message.trim());
+    if(match)window.dispatchEvent(new CustomEvent("spidey-route",{detail:match[1].toLowerCase().split(",").map(a=>a.trim())}));
+  }
   applyFeed(d.messages,d.has_more,first);S.ready=true;if(sig!=null)S.sig=sig;
 }
 
@@ -402,10 +412,8 @@ async function submit(){
   const parent=S.replyTo?{id:S.replyTo.id,username:S.replyTo.username,snippet:S.replyTo.snippet,image:S.replyTo.image,deleted:false}:null;
   const spideyMention=/(?:^|[^\p{L}\p{N}_@])@spideyai(?![\p{L}\p{N}_])/iu.test(text);
   const otherMention=/(?:^|[^\p{L}\p{N}_@])@(?:deepai|s\.ai)(?![\p{L}\p{N}_])/iu.test(text);
-  if(spideyMention||(!otherMention&&S.replyTo?.ai&&S.replyTo.username==="Spidey AI")){
-    window.dispatchEvent(new Event("spidey-greet-request"));
-  }
-  const p={id:"tmp-"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),message:text,created_at:new Date().toISOString(),username:S.me?S.me.username:"you",mine:true,image:!!file,localUrl:file?S.fileUrl:"",parent,pending:"sending",_file:file,_parent:parent?parent.id:null};
+  const forSpidey=spideyMention||(!otherMention&&S.replyTo?.ai&&S.replyTo.username==="Spidey AI");
+  const p={forSpidey,id:"tmp-"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),message:text,created_at:new Date().toISOString(),username:S.me?S.me.username:"you",mine:true,image:!!file,localUrl:file?S.fileUrl:"",parent,pending:"sending",_file:file,_parent:parent?parent.id:null};
   mentionAutocomplete?.close();
   E.input.value="";grow();clearReply();clearFile(true);updateSend();
   S.pending.push(p);reconcile(true);toBottom(true);
@@ -424,6 +432,11 @@ async function post(p){
     const old=nodes.get("m:"+p.id);if(old){nodes.delete("m:"+p.id);nodes.set("m:"+real.id,old);old.dataset.id=real.id;old._sig=""}
     S.msgs.push(real);S.msgs.sort(messageOrder);S.local.set(real.id,real);
     reconcile(false);toBottom(false);
+    if(p.forSpidey){
+      const route=movementRoute(p.message);
+      if(route.length)window.dispatchEvent(new CustomEvent("spidey-route",{detail:route}));
+      else spideyRequests.set(real.id,Date.now()+60000);
+    }
     watchAI(real.id,d.ai);
     loadFeed().catch(()=>{});
   }catch(e){
