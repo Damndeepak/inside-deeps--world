@@ -596,45 +596,78 @@ window.addEventListener('world-admin-change',async()=>{
   let recorder=null,stream=null,chunks=[],blob=null,objectURL='',started=0,ticker=0,stopTimer=0,discard=false,opening=false,uploading=false;
   function stopTracks(){if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;clearInterval(ticker);clearTimeout(stopTimer)}
   function reset(){if(objectURL)URL.revokeObjectURL(objectURL);objectURL='';blob=null;chunks=[];preview.pause();preview.removeAttribute('src');preview.hidden=true;panel.hidden=true;mic.classList.remove('recording');mic.textContent='🎙';mic.setAttribute('aria-label','Record voice note');send.disabled=true;mic.disabled=false}
-  function stop(drop=false){discard=drop;if(recorder&&recorder.state!=='inactive')recorder.stop();else{stopTracks();reset()}}
+  function stop(drop=false){
+    discard ||= drop;
+    if(!recorder || recorder.state==='inactive')return;
+    mic.disabled=true;
+    label.textContent='Finishing recording…';
+    recorder.stop();
+  }
   mic.addEventListener('click',async()=>{
     if(opening||uploading)return;
-    if(recorder&&recorder.state==='recording'){stop();return}
+    if(recorder){stop();return}
     if(blob){toast('Send or discard the current voice note first');return}
     if(S.file){toast('Send or remove the attached image first');return}
     opening=true;mic.disabled=true;discard=false;
     try{
       stream=await navigator.mediaDevices.getUserMedia({audio:true});
       if(document.hidden||discard){stopTracks();reset();return}
-      const type=['audio/webm;codecs=opus','audio/webm','audio/mp4','audio/ogg;codecs=opus'].find(t=>MediaRecorder.isTypeSupported(t));
-      if(!type)throw new Error('This browser cannot record a supported audio format');
-      recorder=new MediaRecorder(stream,{mimeType:type,audioBitsPerSecond:64000});chunks=[];started=Date.now();
-      recorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
-      recorder.onerror=()=>{discard=true;stopTracks();reset();toast('Recording failed. Please try again')};
-      recorder.onstop=()=>{
-        stopTracks();mic.classList.remove('recording');mic.textContent='🎙';mic.setAttribute('aria-label','Record voice note');
+      const type=['audio/webm;codecs=opus','audio/mp4','audio/webm','audio/ogg;codecs=opus'].find(t=>MediaRecorder.isTypeSupported?.(t));
+      let current;
+      try{current=new MediaRecorder(stream,type?{mimeType:type,audioBitsPerSecond:64000}:undefined)}
+      catch{current=new MediaRecorder(stream)}
+      recorder=current;chunks=[];started=Date.now();
+      current.ondataavailable=e=>{if(recorder===current&&e.data.size)chunks.push(e.data)};
+      current.onerror=()=>{
+        if(recorder!==current)return;
+        recorder=null;stopTracks();reset();toast('Recording failed. Please try again');
+      };
+      current.onstop=()=>{
+        if(recorder!==current)return;
+        recorder=null;stopTracks();
+        mic.classList.remove('recording');mic.textContent='🎙';mic.setAttribute('aria-label','Record voice note');
         if(discard){reset();return}
-        blob=new Blob(chunks,{type:chunks[0]?.type||recorder.mimeType||type});
+        blob=new Blob(chunks,{type:chunks[0]?.type||current.mimeType||type||''});
+        chunks=[];
         if(!blob.size||blob.size>8*1024*1024){reset();toast('Recording is empty or too large');return}
         objectURL=URL.createObjectURL(blob);preview.src=objectURL;preview.hidden=false;label.textContent='Preview your voice note before sending';send.disabled=false;mic.disabled=true;
       };
-      recorder.start(250);panel.hidden=false;preview.hidden=true;send.disabled=true;label.textContent='Recording · 0:00 / 1:00';mic.textContent='■';mic.setAttribute('aria-label','Stop recording');mic.classList.add('recording');
+      recorder.start();panel.hidden=false;preview.hidden=true;send.disabled=true;label.textContent='Recording · 0:00 / 1:00';mic.textContent='■';mic.setAttribute('aria-label','Stop recording');mic.classList.add('recording');
       ticker=setInterval(()=>{const s=Math.min(60,Math.floor((Date.now()-started)/1000));label.textContent='Recording · '+Math.floor(s/60)+':'+String(s%60).padStart(2,'0')+' / 1:00'},250);
       stopTimer=setTimeout(()=>stop(),60000);
-    }catch(e){stopTracks();reset();toast(e.name==='NotAllowedError'?'Microphone permission is needed to record':e.message||'Could not start recording')}
+    }catch(e){recorder=null;stopTracks();reset();toast(e.name==='NotAllowedError'?'Microphone permission is needed to record':e.message||'Could not start recording')}
     finally{opening=false;if(!blob)mic.disabled=false}
   });
-  cancel.addEventListener('click',()=>{if(!uploading){if(recorder?.state==='recording')stop(true);else reset()}});
+  cancel.addEventListener('click',()=>{if(!uploading){if(recorder||opening)stop(true);else reset()}});
   send.addEventListener('click',async()=>{
     if(!blob||uploading)return;
     if(S.file){toast('Remove the attached image before sending a voice note');return}
     uploading=true;send.disabled=true;cancel.disabled=true;label.textContent='Sending voice note…';
-    const caption=E.input.value.trim(),reply=S.replyTo?.id||'';
-    const fd=new FormData();fd.append('audio',blob,'voice.'+(blob.type.includes('mp4')?'m4a':blob.type.includes('ogg')?'ogg':'webm'));fd.append('message',caption);if(reply)fd.append('parent_id',reply);
-    try{const r=await fetch('/api/chat/voice',{method:'POST',body:fd});const d=await r.json().catch(()=>null);if(!r.ok||!d?.success)throw new Error(d?.warning ? d.error+'. '+d.warning : d?.error||'Voice note upload failed ('+r.status+'). Try Send again.');if(E.input.value.trim()===caption){E.input.value='';grow();updateSend()}if(S.replyTo?.id===reply)clearReply();reset();toast('Voice note sent');await loadFeed(await getState());toBottom(false)}catch(e){label.textContent='Not sent. Your recording is still here.';toast(e.message)}finally{uploading=false;send.disabled=!blob;cancel.disabled=false}
+    const caption=E.input.value.trim(),reply=S.replyTo;
+    const fd=new FormData();fd.append('audio',blob,'voice.'+(blob.type.includes('mp4')?'m4a':blob.type.includes('ogg')?'ogg':'webm'));fd.append('message',caption);if(reply)fd.append('parent_id',reply.id);
+    let data;
+    try{
+      const response=await fetch('/api/chat/voice',{method:'POST',body:fd});
+      data=await response.json().catch(()=>null);
+      if(!response.ok||!data?.success)throw new Error(data?.warning ? data.error+'. '+data.warning : data?.error||'Voice note upload failed ('+response.status+')');
+    }catch(error){
+      label.textContent='Send could not be confirmed. Your recording is still here.';
+      toast(error.message);
+      return;
+    }finally{uploading=false;send.disabled=!blob;cancel.disabled=false}
+    if(E.input.value.trim()===caption){E.input.value='';grow();updateSend()}
+    if(S.replyTo===reply)clearReply();
+    reset();toast('Voice note sent');
+    if(!S.msgs.some(message=>message.id===data.message_id)){
+      const message={id:data.message_id,created_at:data.created_at,message:caption,username:S.me?.username||'you',mine:true,audio:true,parent:reply,localAt:Date.now()};
+      S.msgs.push(message);S.msgs.sort(messageOrder);S.local.set(message.id,message);
+      reconcile(false);
+    }
+    toBottom(false);
+    loadFeed().catch(()=>{});
   });
-  document.addEventListener('visibilitychange',()=>{if(document.hidden&&(opening||recorder?.state==='recording'))stop(true)});
-  window.addEventListener('pagehide',()=>{stop(true);stopTracks()});
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)stop()});
+  window.addEventListener('pagehide',()=>stop());
 })();
 
 /* ---------- admin-only read receipts ---------- */
