@@ -1246,22 +1246,10 @@ loadFrames();
     ["Just doing my rounds.",'patrol'],
     ["I see the vibe.",'vibe']
   ];
-  const speech=window.speechSynthesis;
   let timer, previous=-1;
-  function stop(){if(speech?.speaking)speech.cancel();}
   function say(line,ambient,command=false){
     if(document.hidden || [...document.querySelectorAll('audio,video')].some(m=>!m.paused))return;
-    if(speech?.speaking && !command)return;
     window.dispatchEvent(new CustomEvent('spidey-greet',{detail:{text:line[0],ambient,command}}));
-    if(!speech || !window.SpeechSynthesisUtterance)return;
-    stop();
-    const utterance=new SpeechSynthesisUtterance(line[0]);
-    utterance.lang='en-US';
-    utterance.rate=1.15;
-    const english=speech.getVoices().filter(v=>/^en[-_]/i.test(v.lang));
-    const voice=english.find(v=>/en[-_]in/i.test(v.lang)) || english[0];
-    if(voice)utterance.voice=voice;
-    speech.speak(utterance);
   }
   function greet(ambient){
     previous=(previous+1+Math.floor(Math.random()*(previous<0?greetings.length:greetings.length-1)))%greetings.length;
@@ -1276,8 +1264,7 @@ loadFrames();
     schedule();
   });
   window.addEventListener('pointerup',()=>{greet(true);schedule();},{once:true});
-  document.addEventListener('play',e=>{if(e.target.matches?.('audio,video'))stop();},true);
-  document.addEventListener('visibilitychange',()=>{if(document.hidden)stop();else if(timer)schedule();});
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)clearTimeout(timer);else if(timer)schedule();});
 })();
 </script>
 <script id="media-single-player-js">
