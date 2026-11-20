@@ -223,9 +223,7 @@ body {
 .cx-card,.world-card,.corner-card,.public-moments{box-shadow:inset 0 1px 0 #c8e6ff42,0 10px 24px #040a164f!important}
 .deep-social-link{box-shadow:inset 0 1px 0 #d7eeff45,0 5px 12px #050d1b45}
 </style>
-<link rel="stylesheet" href="/media/apple-demo.css?v=2"/>
 <link rel="stylesheet" href="/public-media.css"/>
-<script defer src="/media/apple-demo.js?v=1"></script>
 <style id="home-music-css">
 #music { margin-block: 64px 32px; scroll-margin-top: 24px; }
 #music > h2 { margin: 0; }
@@ -275,6 +273,18 @@ body {
 .unforgettable-player .uf-letter{display:inline-block;font-weight:900;color:#777782;white-space:pre;text-shadow:none;transition:color .06s linear,text-shadow .06s linear}
 .unforgettable-player .uf-letter.uf-lit{color:#fff;text-shadow:0 0 6px #fff,0 0 14px #ff67d4,0 0 23px #9b86ff}
 @media(max-width:650px){.unforgettable-player .uf-lyrics{height:155px;margin:12px 0}.unforgettable-player .uf-line{font-size:clamp(20px,6vw,29px)}}
+#music .wasted-player{
+  border-color:#504169;
+  background:radial-gradient(ellipse at 92% 0%,#8063bb30,transparent 72%),linear-gradient(145deg,#211b2d,#16131d);
+}
+.wasted-player .song-play{background:#e6d8ff}
+.wasted-player .song-fill{width:100%;background:#ceb4ff;transform:scaleX(0);transform-origin:left;transition:none}
+.wasted-player .uf-line.uf-current{transform:none}
+.wasted-player .uf-current .uf-letter{color:#b5a8ce;transition:color .12s ease-out}
+.wasted-player .uf-current .uf-letter.uf-lit{color:#fbf7ff;text-shadow:0 0 8px #cfaaff80}
+.wasted-player .uf-current.uf-line-enter{animation:wasted-line-in .24s cubic-bezier(.2,.75,.25,1) both}
+@keyframes wasted-line-in{from{opacity:.56;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){.wasted-player .uf-current.uf-line-enter{animation:none}.wasted-player .uf-current .uf-letter{transition:none}}
 .uf-wordstorm{position:relative;isolation:isolate;background:radial-gradient(ellipse at 50% 35%,#59216b44,transparent 65%),#0d0915;border-color:#844ea466}
 .uf-wordstorm .song-title,.uf-wordstorm .song-controls{position:relative;z-index:2}
 .uf-wordstorm .uf-lyrics{position:relative;z-index:2;height:240px;text-align:center;gap:20px}
@@ -497,18 +507,11 @@ syncInbox();
 <div class="uf-lyrics" id="daddyLyrics"></div>
 <div class="song-controls"><button aria-label="Play" class="song-play" id="daddyPlay" type="button">▶</button>
 <div class="song-progress"><div class="song-track" id="daddyTrack"><div class="song-fill" id="daddyFill"></div></div><div class="song-times"><span id="daddyTime">0:00</span><span>1:01</span></div></div></div>
-<audio id="daddyAudio" playsinline="" preload="none" src="/media/hey-daddy-clip.mp3" webkit-playsinline=""></audio>
+<audio id="daddyAudio" playsinline="" preload="none" src="/media/hey-daddy-clip.mp3?v=ebbae34" webkit-playsinline=""></audio>
 </section>
-<section aria-label="Apple Music-style lyrics demo" class="apple-demo song-player" id="appleLyricsDemo">
-<div aria-hidden="true" class="am-ambient"></div>
-<header class="am-header"><span>DEEPLIST / LYRICS LAB</span><span>Apple Music-style</span></header>
-<div class="am-layout"><div class="am-player"><div aria-hidden="true" class="am-art"><span>WASTED</span><small>JUICE WRLD</small><i>♪</i></div><h2>Wasted</h2><p>Juice WRLD ft. Lil Uzi Vert</p><p class="am-caption">A short clip. A different way to feel it.</p><audio aria-label="Play Apple-style Wasted demo" controls="" id="appleDemoAudio" playsinline="" preload="none" src="/media/Wasted_3m18_3m45_320kbps.mp3?v=repair-ad33383"></audio><p class="am-status" id="appleDemoStatus" role="status">Press play to preview synced lyrics.</p></div><div class="am-window" id="appleDemoWindow"><div aria-label="Synced lyrics" class="am-lines" id="appleDemoLines"></div></div></div>
-<details class="am-settings"><summary>Adjust the look</summary><div><label>Lyrics text size<input id="amSize" max="64" min="24" step="2" type="range" value="38"/></label><label>Word spacing<input id="amSpacing" max="0.4" min="0" step="0.02" type="range" value="0.12"/></label><label>Background blur<input id="amBlur" max="80" min="0" type="range" value="40"/></label><label class="am-check"><input checked="" id="amMotion" type="checkbox"/> Background motion</label></div></details>
-<p class="am-caption">Deeplist web demo · inspired by Apple Music. Tap a lyric line to seek.</p></section>
-
 <div aria-label="Synced lyrics players" id="lyricsPlayers"></div><section aria-label="Kabhi Kabhi Aditi music player" class="song-player" data-gallery-section="lyricsPlayers" id="aditiPlayer" style="padding:0"><div id="aditiVisual"></div><audio id="aditiAudio" playsinline="" preload="none" src="/media/aditi-clip.mp3" webkit-playsinline=""></audio></section>
 <section aria-label="Sweet but Psycho music player" class="song-player" id="psychoPlayer" style="padding:0"><div id="psychoVisual"></div><audio id="psychoAudio" playsinline="" preload="none" src="/media/sweet-but-psycho-clip.mp3" webkit-playsinline=""></audio></section>
-<section aria-label="Wasted music player" class="song-player unforgettable-player">
+<section aria-label="Wasted music player" class="song-player unforgettable-player wasted-player">
 <div class="song-kicker">one little piece</div>
 <div class="song-title">Wasted</div>
 <div class="song-artist">Juice WRLD ft. Lil Uzi Vert</div>
@@ -1168,6 +1171,7 @@ const fmt=n=>Math.floor(Math.max(0,n)/60)+':'+String(Math.floor(Math.max(0,n))%6
 for(const config of players){
  const a=document.getElementById(config.audio),p=document.getElementById(config.prefix+'Play'),f=document.getElementById(config.prefix+'Fill'),t=document.getElementById(config.prefix+'Time'),tr=document.getElementById(config.prefix+'Track'),box=document.getElementById(config.box);
  let last=-1,raf=0,loading=false,currentLetters=[],ranges=[],happyWords=[],lastPosition=-1,lastWord=-2,lastFrame=0;
+ const wasted=config.audio==='wastedAudio';
  const happy=config.audio==='ufAudio';if(happy)a.closest('section').classList.add('uf-wordstorm');
   function lineAt(n){let index=0;for(let i=0;i<config.lines.length;i++)if(n>=config.lines[i][0])index=i;return index}
  function render(index){
@@ -1183,6 +1187,7 @@ for(const config of players){
     if(i===index)ranges.push({start,end:currentLetters.length});
     row.appendChild(span);
    });
+   if(wasted&&i===index&&last>=0&&!a.paused&&!a.seeking)row.classList.add('uf-line-enter');
    if(happy&&i===index){row.classList.add('uf-rise');row.querySelectorAll(':scope > span').forEach(el=>el.classList.add('uf-happy-word'))}
    box.appendChild(row);
   }
@@ -1201,9 +1206,13 @@ for(const config of players){
   }
   const lit=Math.ceil(position);if(lit!==lastPosition){for(let i=0;i<currentLetters.length;i++)if((i<lit)!==(i<lastPosition))currentLetters[i].classList.toggle('uf-lit',i<lit);lastPosition=lit;}
   if(happy){const words=happyWords;let active=-1;ranges.forEach((r,i)=>{if(position>=r.start)active=i});if(active!==lastWord){lastWord=active;words.forEach((el,i)=>{el.classList.toggle('uf-word-hot',i===active);el.classList.toggle('uf-word-done',i<active)});a.dispatchEvent(new CustomEvent('uf-word',{detail:words[active]?.textContent||''}))}}
-  f.style.width=(now/config.duration*100)+'%';t.textContent=fmt(now);
+  const progress=now/config.duration;
+  if(wasted)f.style.transform='scaleX('+progress+')';
+  else f.style.width=(progress*100)+'%';
+  const time=fmt(now);
+  if(t.textContent!==time)t.textContent=time;
  }
- function tick(timestamp=0){raf=0;if(document.hidden||!(window.worldIsVisible||(()=>!document.hidden))(a.closest('section')))return;if(timestamp-lastFrame>=32||!timestamp){lastFrame=timestamp;paint()}if(!a.paused&&!a.ended)raf=requestAnimationFrame(tick)}
+ function tick(timestamp=0){raf=0;if(document.hidden||!(window.worldIsVisible||(()=>!document.hidden))(a.closest('section')))return;if(wasted||timestamp-lastFrame>=32||!timestamp){lastFrame=timestamp;paint()}if(!a.paused&&!a.ended)raf=requestAnimationFrame(tick)}
  function restart(){cancelAnimationFrame(raf);tick()}
  p.onclick=async()=>{
   if(loading)return;if(!a.paused){a.pause();return}
