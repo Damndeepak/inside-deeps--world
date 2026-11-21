@@ -26,7 +26,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>Inside Deep's World</title>
-<meta content="#0b1627" name="theme-color"/>
+<meta content="#070809" name="theme-color"/>
 <link href="/favicon-32.png" rel="icon" sizes="32x32" type="image/png"/>
 <link href="/icon-192.png" rel="icon" sizes="192x192" type="image/png"/>
 <link href="/apple-touch-icon.png" rel="apple-touch-icon"/>
@@ -42,46 +42,46 @@
 <link rel="stylesheet" href="/chalk-world.css?v=3"/><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'"/>
 <link rel="stylesheet" href="/home-simple.css?v=ai-4"/><script defer src="/activity-tracker.js?v=1"></script><link rel="stylesheet" href="/frequency.css?v=full-background-3"><link rel="stylesheet" href="/glass-ui.css?v=approved-2">
 <style>
-:root { color-scheme:dark; --world-ink:#eef5ff; --world-ice:#8de9ff; --world-red:#ff6e66; --world-edge:#314965; }
-body { color:var(--world-ink); background:radial-gradient(ellipse at 78% 0%,#233f5b 0,transparent 44rem),radial-gradient(ellipse at 0% 30%,#302037 0,transparent 32rem),#0b1627 !important; }
-.deep-nav { background:#14243a !important; border:1px solid var(--world-edge) !important; border-radius:999px; }
+:root { color-scheme:dark; --world-ink:#f2f0ec; --world-ice:#c2a1ed; --world-red:#b594df; --world-edge:#353940; }
+body { color:var(--world-ink); background:#070809 !important; }
+.deep-nav { background:#111318 !important; border:1px solid var(--world-edge) !important; border-radius:999px; }
 .cx-card,.world-card,.corner-card,.media-entry-card,.deeplist-stats,.public-moments,.activity-panel {
-  background:linear-gradient(145deg,#182c43,#101d2f 82%) !important;
+  background:linear-gradient(145deg,#1e2126,#0c0e11 82%) !important;
   border:1px solid var(--world-edge) !important;
-  box-shadow:0 10px 28px #040a1638 !important;
+  box-shadow:0 10px 28px #00000038 !important;
   border-radius:22px !important;
 }
 .deep-nav,.cx-card,.world-card,.corner-card,.media-entry-card,.public-moments,#cxInput,.cx-form textarea,.cx-form input {
   backdrop-filter:none !important;
   -webkit-backdrop-filter:none !important;
 }
-#cxInput,.cx-form textarea,.cx-form input { background:#0e1a2c !important; border:1px solid var(--world-edge) !important; border-radius:16px; }
+#cxInput,.cx-form textarea,.cx-form input { background:#0c0e11 !important; border:1px solid var(--world-edge) !important; border-radius:16px; }
 .deep-brand span,.deep-chat-intro h2 span { color:var(--world-red) !important; }
 .deep-hero h1 em,.deep-hero h1 span,.deep-nav a:hover { color:var(--world-ice) !important; }
 #scrollProgress { background:linear-gradient(90deg,var(--world-red),var(--world-ice)) !important; }
-.cx-send,.world-button.primary { background:var(--world-ice) !important; color:#102032 !important; }
+.cx-send,.world-button.primary { background:var(--world-ice) !important; color:#111318 !important; }
 :focus-visible { outline-color:var(--world-ice); }
 .deep-hero.world-hero {
   position:relative; isolation:isolate; overflow:hidden; box-sizing:border-box;
   display:grid; grid-template-columns:minmax(0,1fr); align-items:center;
   gap:clamp(12px,4vw,48px); width:100%; min-height:clamp(320px,46vw,510px);
   margin:clamp(16px,4vw,44px) auto; padding:clamp(24px,6vw,74px);
-  border:1px solid #829dc65c; border-radius:clamp(18px,3vw,34px);
-  background:radial-gradient(ellipse at 78% 45%,#2b477d 0%,#15243e 47%,#0c1324 86%);
+  border:1px solid #777e895c; border-radius:clamp(18px,3vw,34px);
+  background:radial-gradient(ellipse at 78% 45%,#1e2126 0%,#111318 47%,#08090b 86%);
 }
 .world-hero::before {
   content:""; position:absolute; z-index:-1; inset:0;
-  background:radial-gradient(circle,#abcafa63 1px,transparent 1.6px) 0 0/9px 9px;
+  background:radial-gradient(circle,#777e8942 1px,transparent 1.6px) 0 0/9px 9px;
   mask-image:linear-gradient(115deg,transparent 25%,#000);
 }
 .world-hero .world-hero-title {
-  margin:0; max-width:none; color:#f4f7ff;
+  margin:0; max-width:none; color:#f2f0ec;
   font:800 clamp(56px,9vw,132px)/.84 Syne,Inter,sans-serif;
-  letter-spacing:-.065em; text-wrap:initial; text-shadow:0 6px 26px #081020a8;
+  letter-spacing:-.065em; text-wrap:initial; text-shadow:0 6px 26px #08090ba8;
 }
 .deep-hero .world-hero-title span {
   display:block; padding-bottom:.1em;
-  color:#bde7ff !important; text-shadow:0 0 20px #94d5ff61,0 0 54px #5689eb51;
+  color:#f5f2ef !important; text-shadow:0 0 20px #c2a1ed26,0 0 54px #777e891f;
 }
 @media (max-width:540px) {
   .deep-hero.world-hero { grid-template-columns:minmax(0,1fr); gap:8px; }
@@ -126,8 +126,10 @@ body { color:var(--world-ink); background:radial-gradient(ellipse at 78% 0%,#233
   .holiday-snow { display:none; }
   #cxChat .cx-admin-author .cx-bubble,#cxChat .cx-queen-author .cx-bubble { animation:none; }
 }
-/* Use the existing static artwork without a separate viewport-sized element. */
-body { background:#070809 url("/black-geometric.svg") center top / max(100vw, 900px) auto no-repeat !important; }
+.geometric-background {
+  position:fixed; inset:0; z-index:0; pointer-events:none;
+  background:#070809 url("/black-geometric.svg") center / cover no-repeat;
+}
 #lfm,.cx-card,.world-card,.corner-card,.public-moments,.deep-nav {
   backdrop-filter:none !important;
   -webkit-backdrop-filter:none !important;
@@ -151,37 +153,33 @@ body { background:#070809 url("/black-geometric.svg") center top / max(100vw, 90
 </style>
 <style>
 /* Homepage surface highlights */
-body {
-  background: radial-gradient(ellipse at 75% -12rem,#365d87 0%,transparent 59rem),
-    radial-gradient(ellipse at -8% 22rem,#392744 0%,transparent 43rem),#0a1424 !important;
-}
 .deep-hero.world-hero {
-  background: radial-gradient(ellipse at 76% 30%,#5586c7a6,transparent 62%),
-    radial-gradient(ellipse at 24% 100%,#65549442,transparent 60%),
-    linear-gradient(145deg,#192f4d,#10172b 76%);
-  box-shadow: inset 0 1px 0 #d4ecff61,0 20px 54px #060c1b70,0 0 44px #659ef032;
+  background: radial-gradient(ellipse at 76% 30%,#35394080,transparent 62%),
+    radial-gradient(ellipse at 24% 100%,#1e212642,transparent 60%),
+    linear-gradient(145deg,#1e2126,#090a0c 76%);
+  box-shadow: inset 0 1px 0 #d4d7dc33,0 20px 54px #05060770,0 0 44px #777e8919;
 }
 .deep-nav,.cx-card,.world-card,.corner-card,.media-entry-card,.deeplist-stats,.public-moments,.activity-panel {
-  border-color: #8db8ef42 !important;
-  box-shadow: inset 0 1px 0 #d2ebff24,0 12px 32px #040a1659 !important;
+  border-color: #777e8966 !important;
+  box-shadow: inset 0 1px 0 #ffffff18,0 12px 32px #05060759 !important;
 }
 .cx-card,.world-card,.corner-card,.media-entry-card,.deeplist-stats,.public-moments,.activity-panel {
-  background: radial-gradient(ellipse at 86% 0%,#5084bb25,transparent 65%),
-    linear-gradient(145deg,#1b3049,#101c2f 82%) !important;
+  background: radial-gradient(ellipse at 86% 0%,#777e8920,transparent 65%),
+    linear-gradient(145deg,#1e2126,#0c0e11 82%) !important;
 }
 .deep-social-link {
-  background: linear-gradient(145deg,#243a53,#141d30 77%);
-  border-color: #8db8ef40;
-  box-shadow: inset 0 1px 0 #d7eeff27,0 6px 16px #050d1b50;
+  background: linear-gradient(145deg,#1e2126,#111318 77%);
+  border-color: #777e8955;
+  box-shadow: inset 0 1px 0 #ffffff20,0 6px 16px #05060750;
 }
 .deep-social-icon {
-  background: color-mix(in srgb,var(--social-color) 13%,#152236);
+  background: color-mix(in srgb,var(--social-color) 13%,#111318);
   box-shadow: inset 0 0 0 1px color-mix(in srgb,var(--social-color) 26%,transparent);
 }
 @media (hover: hover) {
   .deep-social-link:hover {
-    background: linear-gradient(145deg,#304965,#19263e 77%);
-    box-shadow: inset 0 1px 0 #d7eeff36,0 0 18px color-mix(in srgb,var(--social-color) 18%,transparent);
+    background: linear-gradient(145deg,#353940,#1e2126 77%);
+    box-shadow: inset 0 1px 0 #ffffff30,0 0 18px color-mix(in srgb,var(--social-color) 18%,transparent);
   }
 }
 </style>
@@ -302,7 +300,8 @@ body {
 @media(prefers-reduced-motion:reduce){.uf-wordstorm .uf-rise{animation:none}.uf-wordstorm .uf-happy-word{transition:none;transform:none}.uf-wordstorm canvas{display:none}}
 </style>
 </head>
-<body data-world-motion="premium"><canvas class="holiday-snow" aria-hidden="true"></canvas><noscript><style>.player-skeleton{display:none}.lfm{min-height:180px}</style></noscript><a class="skip-link" href="#mainContent">Skip to content</a>
+<body data-world-motion="premium">
+<div class="geometric-background" aria-hidden="true"></div><canvas class="holiday-snow" aria-hidden="true"></canvas><noscript><style>.player-skeleton{display:none}.lfm{min-height:180px}</style></noscript><a class="skip-link" href="#mainContent">Skip to content</a>
 <div aria-hidden="true" class="scroll-progress"><span id="scrollProgress"></span></div>
 <main class="wrap" id="mainContent">
 <nav aria-label="Main navigation" class="deep-nav"><a aria-label="Inside Deep’s World home" class="deep-brand" href="/">deep<span>.</span></a><div><a href="#cxChat">Chat</a><a href="#deepExplore">Explore</a></div></nav>
